@@ -1,9 +1,9 @@
-# Recykle AI — Phase 1
+# Recykle AI — Phase 2
 
 A Lagos-focused recycling coordination hackathon prototype built with Nuxt 4,
-strict TypeScript and Tailwind CSS 4. This phase contains the application foundation:
-a public landing page, a public workspace shell, reusable UI and server utilities.
-It has **no live classification, quotes, matching, pickup workflows or dashboards**.
+strict TypeScript and Tailwind CSS 4. Phase 2 adds MongoDB operational models,
+geospatial indexes, and clearly marked demo seed data to the application foundation.
+The UI has **no live classification, quotes, matching, pickup workflows or dashboards**.
 
 ## Local setup
 
@@ -17,7 +17,7 @@ Use Node.js 24 LTS and npm.
    `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
 5. Run `npm run dev` and open http://localhost:3000.
 
-External AI, storage and payment keys may remain empty during Phase 1.
+External AI, storage and payment keys may remain empty through Phase 2.
 Authentication helpers reject missing/short secrets; there is no sign-in endpoint yet.
 
 ## Commands
@@ -27,6 +27,7 @@ Authentication helpers reject missing/short secrets; there is no sign-in endpoin
 - `npm run typecheck`: strict Nuxt/Vue TypeScript checks
 - `npm test`: password hashing checks
 - `npm run build`: production build
+- `npm run seed`: insert labelled demo data and verify MongoDB indexes
 - `npm run preview`: local production preview
 
 ## Structure
@@ -45,7 +46,8 @@ app/
 server/
   api/            HTTP endpoints
   middleware/     Response headers
-  models/         Reserved for phase-specific Mongoose models
+  models/         Mongoose operational models and GeoJSON validation
+scripts/           Repeatable labelled demo seed and index verification
   services/       Password hashing and integration clients
   utils/          Configuration, database, sessions and validation
 types/            Shared contracts; never put secrets here
@@ -56,6 +58,33 @@ tests/            Security utility tests
 Frontend components own presentation only. Future request bodies use Zod through
 `readValidatedJson`. Future protected endpoints use server authorization; client
 middleware is not an authorization boundary.
+
+## Why MongoDB
+
+Waste classification can vary by material, packaging, and disposal guidance, so
+document records keep those fields together without forcing every future item into
+the same rigid table shape. GeoJSON points and `2dsphere` indexes let the server find
+recyclers near a pickup location. Indexed availability, load, and request status
+support operational coordination. Aggregation pipelines can group completed requests
+and mock rewards by material, recycler, or date for later analytics. Prices and
+matching decisions remain deterministic server logic; MongoDB stores their inputs
+and results.
+
+## Phase 2 demo data
+
+Run `npm run seed` after setting `MONGODB_URI` and `DEMO_SEED_PASSWORD` (at least 12
+characters) in your local `.env` or process environment. The URI must name a
+non-system database. The seed is repeatable and inserts only documents with fixed
+demo IDs and `isDemo: true`; existing seeded documents are left alone. It creates
+one consumer, one waste operator, four fictional Lagos recycler businesses, and
+four historical completed requests with mock transactions. **All recycler prices
+are invented DEMO values, not real market quotes.** Never use this data for actual
+payouts or collection decisions. The script creates and verifies every declared
+index without dropping existing indexes.
+
+Prices, estimates, and payouts are stored as numeric NGN amounts. The demo uses
+whole naira. Future payment logic should define rounding and precision rules before
+any real transaction is processed.
 
 ## Health and MongoDB
 

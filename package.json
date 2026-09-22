@@ -9,8 +9,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "nuxt prepare && eslint .",
-    "typecheck": "nuxt typecheck",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "typecheck": "nuxt typecheck && tsc --project tsconfig.scripts.json",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "seed": "node --experimental-strip-types scripts/seed.ts"
   },
   "dependencies": {
     "@byteship/js": "^0.1.5",
