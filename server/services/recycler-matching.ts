@@ -1,4 +1,4 @@
-import { Types } from 'mongoose'
+import type { Types } from 'mongoose'
 import { Recycler } from '../models/Recycler'
 import { toRecyclerMaterialCodes } from '../../utils/material-codes'
 import {

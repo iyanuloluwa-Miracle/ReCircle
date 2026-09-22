@@ -21,36 +21,58 @@ const roles = [
 
 <template>
   <div>
-    <section class="hero container">
-      <div class="hero-copy">
-        <p class="location-label">ReCircle Pickups</p>
+    <section class="hero">
+      <div class="container hero-copy">
+        <p class="location-label">Recycling made rewarding</p>
         <h1>The scan that turns waste into <span>value.</span></h1>
         <p class="hero-description">
           Snap it. Know its worth. Find a recycler nearby.
         </p>
         <form class="hero-area-form" @submit.prevent="submitArea">
-          <span class="hero-area-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
-              <path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z" stroke="currentColor" stroke-width="1.8" />
-              <circle cx="12" cy="10" r="2.4" stroke="currentColor" stroke-width="1.8" />
-            </svg>
-          </span>
-          <label class="sr-only" for="hero-area">Lagos area</label>
-          <input
-            id="hero-area"
-            v-model="area"
-            type="text"
-            autocomplete="address-level2"
-            placeholder="Enter your Lagos area"
-            required
-          >
+          <div class="hero-area-fields">
+            <label for="hero-area">See what we offer in your neighborhood</label>
+            <div class="hero-area-input">
+              <span class="hero-area-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+                  <path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z" stroke="currentColor" stroke-width="1.8" />
+                  <circle cx="12" cy="10" r="2.4" stroke="currentColor" stroke-width="1.8" />
+                </svg>
+              </span>
+              <input
+                id="hero-area"
+                v-model="area"
+                type="text"
+                autocomplete="address-level2"
+                placeholder="Enter your Lagos area"
+                required
+              >
+            </div>
+          </div>
           <BaseButton type="submit" variant="secondary">Check pickup</BaseButton>
         </form>
         <p v-if="areaSubmitted" class="hero-area-confirmation" role="status">Thanks — we’ll check pickup options for {{ area }}.</p>
+        <a class="hero-area-why" href="#what-you-can-recycle">Why do we need your area?</a>
+      </div>
+
+      <div class="hero-media container" aria-label="ReCircle demo video">
+        <div class="demo-video-frame">
+          <video
+            class="demo-video"
+            poster="/demo-video-poster.jpg"
+            autoplay
+            muted
+            loop
+            playsinline
+            controls
+            preload="metadata"
+          >
+            <source src="/Demo-video.mp4" type="video/mp4">
+          </video>
+        </div>
       </div>
     </section>
 
-    <div class="principles-strip"><div class="container principles-inner"><span>Built around people.</span><span aria-hidden="true">✳</span><span>Rooted in Lagos.</span><span aria-hidden="true">✳</span><span>Made for a second life.</span><span aria-hidden="true">✳</span></div></div>
+    <RecycleCategories />
 
     <section id="how-it-works" class="section container">
       <div class="section-heading"><div><p class="eyebrow">Small steps. Real possibility.</p><h2>From your hands.<br>Back into the circle.</h2></div><p>A connected recycling experience,<br>designed to make the next step clearer.</p></div>

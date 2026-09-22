@@ -373,15 +373,15 @@ async function operatorAnalytics() {
 }
 
 /** Role-scoped analytics aggregations. Keeps pipeline work in MongoDB. */
-export class AnalyticsService {
-  static async forUser(user: AuthUser) {
+export const AnalyticsService = {
+  async forUser(user: AuthUser) {
     const userId = new Types.ObjectId(user.id)
     if (user.role === 'user') return consumerAnalytics(userId)
     if (user.role === 'recycler') return recyclerAnalytics(userId)
     return operatorAnalytics()
-  }
+  },
 
-  static supportsRole(role: UserRole) {
+  supportsRole(role: UserRole) {
     return role === 'user' || role === 'recycler' || role === 'waste_operator'
   }
 }
