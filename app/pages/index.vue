@@ -1,10 +1,10 @@
 <script setup lang="ts">
 const showPreview = ref(false)
-const email = ref('')
-const emailSubmitted = ref(false)
+const area = ref('')
+const areaSubmitted = ref(false)
 
-function submitEmail() {
-  emailSubmitted.value = true
+function submitArea() {
+  areaSubmitted.value = true
 }
 
 const steps = [
@@ -28,22 +28,25 @@ const roles = [
         <p class="hero-description">
           Snap it. Know its worth. Find a recycler nearby.
         </p>
-        <form class="hero-email-form" @submit.prevent="submitEmail">
-          <div class="hero-email-fields">
-            <label for="hero-email">See what we offer in your neighborhood</label>
-            <input
-              id="hero-email"
-              v-model="email"
-              type="email"
-              autocomplete="email"
-              placeholder="Enter your email"
-              required
-            >
-          </div>
-          <BaseButton type="submit">Get started</BaseButton>
+        <form class="hero-area-form" @submit.prevent="submitArea">
+          <span class="hero-area-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+              <path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z" stroke="currentColor" stroke-width="1.8" />
+              <circle cx="12" cy="10" r="2.4" stroke="currentColor" stroke-width="1.8" />
+            </svg>
+          </span>
+          <label class="sr-only" for="hero-area">Lagos area</label>
+          <input
+            id="hero-area"
+            v-model="area"
+            type="text"
+            autocomplete="address-level2"
+            placeholder="Enter your Lagos area"
+            required
+          >
+          <BaseButton type="submit" variant="secondary">Check pickup</BaseButton>
         </form>
-        <p v-if="emailSubmitted" class="hero-email-confirmation" role="status">Thanks — we’ll be in touch.</p>
-        <a class="hero-email-why" href="#how-it-works">Why do we need your email?</a>
+        <p v-if="areaSubmitted" class="hero-area-confirmation" role="status">Thanks — we’ll check pickup options for {{ area }}.</p>
       </div>
     </section>
 

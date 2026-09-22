@@ -43,17 +43,14 @@ h1, h2, h3, p { margin: 0; }
 .hero h1 { width: 100%; max-width: none; margin-inline: auto; font-size: clamp(48px, 7.2vw, 92px); line-height: 1.05; letter-spacing: -.06em; font-weight: 550; color: #173e31; }
 .hero h1 > span { color: #173e31; text-decoration: underline; text-decoration-color: #d3f28a; text-decoration-thickness: .12em; text-underline-offset: .08em; }
 .hero-description { margin: 28px auto 0; width: 100%; max-width: none; color: #4f5f55; font-size: clamp(16px, 1.6vw, 20px); line-height: 1.65; }
-.hero-email-form { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 760px; margin: 40px auto 0; padding: 8px 8px 8px 28px; border: 1px solid #ced9c5; border-radius: 999px; background: #fffef9; box-shadow: 0 10px 25px #123f320d; text-align: left; }
-.hero-email-fields { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.hero-email-fields label { color: #6a7a6c; font-size: 12px; font-weight: 550; }
-.hero-email-form input { width: 100%; min-width: 0; border: 0; background: transparent; padding: 2px 0 4px; color: #263c34; font: inherit; font-size: 16px; }
-.hero-email-form input::placeholder { color: #8a978c; }
-.hero-email-form input:focus { outline: 0; }
-.hero-email-form:focus-within { border-color: #61892d; box-shadow: 0 0 0 3px #d3f28a88; }
-.hero-email-form .button { flex-shrink: 0; min-height: 52px; border-radius: 999px; padding: 12px 28px; white-space: nowrap; }
-.hero-email-confirmation { margin-top: 14px; color: #476e32; font-size: 13px; font-weight: 650; }
-.hero-email-why { display: inline-block; margin-top: 18px; color: #3f5f34; font-size: 13px; font-weight: 550; text-decoration: underline; text-underline-offset: 3px; }
-.hero-email-why:hover { color: #527737; }
+.hero-area-form { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 720px; margin: 40px auto 0; padding: 8px 8px 8px 22px; border: 1px solid #3d5248; border-radius: 999px; background: #123f32; box-shadow: 0 14px 32px #123f3222; text-align: left; }
+.hero-area-icon { display: grid; place-items: center; color: #d7e4cf; flex-shrink: 0; }
+.hero-area-form input { min-width: 0; flex: 1; border: 0; background: transparent; padding: 10px 4px; color: #f4f7ef; font: inherit; font-size: 15px; }
+.hero-area-form input::placeholder { color: #a7b6aa; }
+.hero-area-form input:focus { outline: 0; }
+.hero-area-form:focus-within { border-color: #8fb56a; box-shadow: 0 0 0 3px #d3f28a55; }
+.hero-area-form .button { flex-shrink: 0; min-height: 48px; border-radius: 999px; padding: 10px 24px; white-space: nowrap; font-weight: 700; }
+.hero-area-confirmation { margin-top: 14px; color: #476e32; font-size: 13px; font-weight: 650; }
 .principles-strip { background: #edf1e4; border-block: 1px solid #e1e6d5; }
 .principles-inner { display: flex; justify-content: space-between; gap: 22px; align-items: center; min-height: 74px; font-size: 15px; color: #58694a; font-weight: 500; letter-spacing: -.3px; }
 .principles-inner > [aria-hidden] { color: #78954b; font-size: 23px; }
@@ -317,8 +314,8 @@ h1, h2, h3, p { margin: 0; }
   .container { width: calc(100% - 36px); }.nav-bar { min-height: 78px; flex-wrap: wrap; gap: 0; }.brand { font-size: 25px; }.brand img { width: 34px; height: 34px; }
   .menu-toggle { display: inline-flex; align-items: center; gap: 16px; font-size: 12px; }.nav-links { display: none; flex-basis: 100%; padding: 20px 0; flex-direction: column; align-items: stretch; gap: 6px; }.nav-links.is-open { display: flex; }.nav-links > a { padding: 12px; }.nav-links > .button { margin-top: 8px; }
   .hero { min-height: calc(100dvh - 78px); padding-block: 48px 64px; }.hero h1 { font-size: clamp(40px, 11vw, 56px); }.hero-description { font-size: 15px; }.location-label { margin-bottom: 18px; }
-  .hero-email-form { width: 100%; max-width: none; flex-direction: column; align-items: stretch; gap: 10px; padding: 16px; border-radius: 24px; }
-  .hero-email-form .button { width: 100%; padding-inline: 16px; }
+  .hero-area-form { width: 100%; max-width: none; flex-wrap: wrap; gap: 10px; padding: 14px; border-radius: 24px; }
+  .hero-area-form .button { width: 100%; padding-inline: 16px; }
   .principles-inner { min-height: 62px; flex-wrap: wrap; justify-content: center; font-size: 11px; gap: 10px 16px; padding-block: 15px; }.principles-inner > [aria-hidden] { font-size: 14px; }.principles-inner > :last-child { display: none; }
   .section { padding-block: 56px; }.section-heading { align-items: start; flex-direction: column; gap: 18px; margin-bottom: 28px; }.section-heading > p br { display: none; }
   .steps-grid, .roles-grid { grid-template-columns: 1fr; gap: 16px; }.card { padding: 25px; }.step-top { margin-bottom: 26px; }.preview-caption { align-items: start; line-height: 1.7; font-size: 10px; }.role-card { padding-block: 20px; }.role-index { margin-bottom: 16px; }.role-card h3 { max-width: none; }
