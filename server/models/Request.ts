@@ -1,4 +1,4 @@
-import mongoose, { Schema, type InferSchemaType } from 'mongoose'
+import mongoose, { Schema, type InferSchemaType, type Model } from 'mongoose'
 import { geoPointSchema } from './shared.ts'
 
 const requestSchema = new Schema({
@@ -8,7 +8,10 @@ const requestSchema = new Schema({
   pickupLocation: { type: geoPointSchema, required: true },
   requestedPickupTime: { type: Date, default: null },
   acceptedAt: { type: Date, default: null },
+  pickedUpAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },
+  rejectedAt: { type: Date, default: null },
+  cancelledAt: { type: Date, default: null },
   matchScore: { type: Number, required: true, min: 0, max: 1, validate: Number.isFinite },
   matchReasons: { type: [String], default: [] },
   distanceKm: { type: Number, required: true, min: 0, validate: Number.isFinite },
@@ -23,4 +26,4 @@ requestSchema.index({ userId: 1, createdAt: -1 })
 requestSchema.index({ status: 1, createdAt: -1 })
 
 export type RequestDocument = InferSchemaType<typeof requestSchema>
-export const Request = mongoose.models.Request || mongoose.model('Request', requestSchema)
+export const Request: Model<RequestDocument> = (mongoose.models.Request as Model<RequestDocument> | undefined) ?? mongoose.model<RequestDocument>('Request', requestSchema)

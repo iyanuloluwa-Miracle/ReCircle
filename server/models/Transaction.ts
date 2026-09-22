@@ -1,4 +1,4 @@
-import mongoose, { Schema, type InferSchemaType } from 'mongoose'
+import mongoose, { Schema, type InferSchemaType, type Model } from 'mongoose'
 
 const transactionSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -15,4 +15,4 @@ transactionSchema.index({ userId: 1, createdAt: -1 })
 transactionSchema.index({ status: 1, createdAt: -1 })
 
 export type TransactionDocument = InferSchemaType<typeof transactionSchema>
-export const Transaction = mongoose.models.Transaction || mongoose.model('Transaction', transactionSchema)
+export const Transaction: Model<TransactionDocument> = (mongoose.models.Transaction as Model<TransactionDocument> | undefined) ?? mongoose.model<TransactionDocument>('Transaction', transactionSchema)

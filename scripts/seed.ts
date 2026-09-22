@@ -126,7 +126,8 @@ async function runSeed(mongodbUri: string) {
       await insertDemo(Request, {
         _id: requestId, wasteItemId, userId: consumerId, recyclerId: id(item.recycler),
         pickupLocation: consumerPoint, requestedPickupTime: createdAt, acceptedAt: createdAt,
-        completedAt, matchScore: 0.86, matchReasons: ['Demo nearby recycler', 'Demo material price'],
+        pickedUpAt: new Date(completedAt.getTime() - 3600000), completedAt,
+        matchScore: 0.86, matchReasons: ['Demo nearby recycler', 'Demo material price'],
         distanceKm: 5.2, pricePerKg: item.price, expectedPayout: payout, status: 'completed',
         isDemo: true, createdAt, updatedAt: completedAt
       })

@@ -27,3 +27,18 @@ export async function connectDatabase() {
     throw createError({ statusCode: 503, statusMessage: 'Database is unavailable' })
   }
 }
+
+/** Run multi-document work inside a MongoDB transaction when the deployment supports it. */
+export async function withMongoTransaction<T>(work: (session: mongoose.ClientSession) => Promise<T>): Promise<T> {
+  await connectDatabase()
+  const session = await mongoose.startSession()
+  try {
+    let result!: T
+    await session.withTransaction(async () => {
+      result = await work(session)
+    })
+    return result
+  } finally {
+    await session.endSession()
+  }
+}

@@ -1,4 +1,4 @@
-import mongoose, { Schema, type InferSchemaType } from 'mongoose'
+import mongoose, { Schema, type InferSchemaType, type Model } from 'mongoose'
 import { geoPointSchema, materialCodePattern } from './shared.ts'
 
 const pricingRuleSchema = new Schema({
@@ -37,4 +37,4 @@ recyclerSchema.index({ acceptedMaterials: 1, availability: 1 })
 recyclerSchema.index({ createdAt: -1 })
 
 export type RecyclerDocument = InferSchemaType<typeof recyclerSchema>
-export const Recycler = mongoose.models.Recycler || mongoose.model('Recycler', recyclerSchema)
+export const Recycler: Model<RecyclerDocument> = (mongoose.models.Recycler as Model<RecyclerDocument> | undefined) ?? mongoose.model<RecyclerDocument>('Recycler', recyclerSchema)
