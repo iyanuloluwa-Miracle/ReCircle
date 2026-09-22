@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { loadEnvFile } from 'node:process'
 import mongoose from 'mongoose'
 import { User } from '../server/models/User.ts'
+import { SignupIntent } from '../server/models/SignupIntent.ts'
 import type { AuthResponse, UserRole } from '../types/index.ts'
 
 const envPath = resolve('.env')
@@ -46,8 +47,13 @@ try {
   }
   await expectStatus('/api/auth/me', 401)
   assert.equal((await request('/api/auth/demo', 'POST', { role: 'admin' })).status, 400)
-  assert.equal((await request('/api/auth/register', 'POST', { name: 'Test User', email: 'bad', password: 'short' })).status, 400)
+  assert.equal((await request('/api/auth/signup/start', 'POST', { name: 'Test User', email: 'bad', role: 'user' })).status, 400)
   assert.equal((await request('/api/auth/login', 'POST', { email: 'bad', password: 'x' })).status, 400)
+  assert.equal((await request('/api/auth/google', 'POST', { idToken: 'short' })).status, 400)
+  const googleMissing = await request('/api/auth/google', 'POST', {
+    idToken: 'a'.repeat(40), role: 'user'
+  })
+  assert.ok([401, 503].includes(googleMissing.status), 'google auth rejects bad/missing config')
   const crossOrigin = await fetch(new URL('/api/auth/demo', baseUrl), {
     method: 'POST', headers: { origin: 'https://untrusted.example', 'content-type': 'application/json' },
     body: JSON.stringify({ role: 'user' })
@@ -62,6 +68,7 @@ try {
     const account = (await me.json() as AuthResponse).user
     assert.equal(account.role, current.role)
     assert.equal(account.isDemo, true)
+    assert.equal(account.emailVerified, true)
     assert.equal('passwordHash' in account, false)
     for (const target of roles) {
       await expectStatus(`/api${target.path}`, current.role === target.role ? 200 : 403, cookie)
@@ -85,37 +92,71 @@ try {
   const testEmail = `auth-check-${randomUUID()}@example.invalid`
   const testPassword = `DemoTest-${randomUUID()}`
   try {
-    const invalidRole = await request('/api/auth/register', 'POST', {
-      name: 'Route Test', email: testEmail, password: testPassword, role: 'waste_operator'
+    const invalidRole = await request('/api/auth/signup/start', 'POST', {
+      name: 'Route Test', email: testEmail, role: 'not-a-role'
     })
     assert.equal(invalidRole.status, 400)
-    const registered = await request('/api/auth/register', 'POST', {
-      name: 'Route Test', email: ` ${testEmail.toUpperCase()} `, password: testPassword
+
+    const started = await request('/api/auth/signup/start', 'POST', {
+      name: 'Route Test', email: ` ${testEmail.toUpperCase()} `, role: 'waste_operator'
     })
-    assert.equal(registered.status, 201)
-    const registeredAccount = (await registered.json() as AuthResponse).user
+    assert.equal(started.status, 200)
+    const startedBody = await started.json() as { email: string }
+    assert.equal(startedBody.email, testEmail)
+
+    // When RESEND_API_KEY is unset, the server uses a fixed local OTP.
+    const verified = await request('/api/auth/signup/verify-otp', 'POST', {
+      email: testEmail, code: '424242'
+    })
+    assert.equal(verified.status, 200, 'otp verify should succeed with local fixed code when Resend is unset')
+    const verifiedBody = await verified.json() as { email: string; signupToken: string }
+    assert.ok(verifiedBody.signupToken)
+
+    const completed = await request('/api/auth/signup/complete', 'POST', {
+      email: testEmail, password: testPassword, signupToken: verifiedBody.signupToken
+    })
+    assert.equal(completed.status, 201)
+    const registeredAccount = (await completed.json() as AuthResponse).user
     assert.equal(registeredAccount.email, testEmail)
-    assert.equal(registeredAccount.role, 'user')
+    assert.equal(registeredAccount.role, 'waste_operator')
+    assert.equal(registeredAccount.emailVerified, true)
     assert.equal(registeredAccount.isDemo, false)
+    assert.equal(registeredAccount.onboardingCompletedAt, null)
     assert.equal('passwordHash' in registeredAccount, false)
-    const registrationCookie = sessionCookie(registered)
-    await expectStatus('/api/dashboard/user', 200, registrationCookie)
+    const registrationCookie = sessionCookie(completed)
+
+    const onboardingGate = await expectStatus('/dashboard/operator', 302, registrationCookie)
+    assert.equal(new URL(onboardingGate.headers.get('location')!, baseUrl).pathname, '/onboarding/avatar')
+
+    const avatar = await request('/api/profile/avatar', 'PATCH', { avatarUrl: 'emoji:♻️' }, registrationCookie)
+    assert.equal(avatar.status, 200)
+
+    const stillGated = await expectStatus('/dashboard/operator', 302, registrationCookie)
+    assert.equal(new URL(stillGated.headers.get('location')!, baseUrl).pathname, '/onboarding/operator')
+
+    const finished = await request('/api/onboarding/complete', 'POST', undefined, registrationCookie)
+    assert.equal(finished.status, 200)
+    await expectStatus('/api/dashboard/operator', 200, registrationCookie)
+
     assert.equal((await request('/api/auth/login', 'POST', { email: testEmail, password: 'wrong-password' })).status, 401)
     const loggedIn = await request('/api/auth/login', 'POST', { email: testEmail.toUpperCase(), password: testPassword })
     assert.equal(loggedIn.status, 200)
-    await expectStatus('/api/dashboard/user', 200, sessionCookie(loggedIn))
+    await expectStatus('/api/dashboard/operator', 200, sessionCookie(loggedIn))
     assert.ok(process.env.MONGODB_URI)
     await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
     const stored = await User.findOne({ email: testEmail }).select('+passwordHash')
     assert.ok(stored)
     assert.notEqual(stored.passwordHash, testPassword)
-    console.log('registration, normalized email, password hash, and password login verified')
+    assert.equal(stored.role, 'waste_operator')
+    assert.equal(stored.emailVerified, true)
+    console.log('email-first signup, OTP, password, avatar gate, and login verified')
   } finally {
     if (process.env.MONGODB_URI && mongoose.connection.readyState !== 1) {
       await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
     }
     if (mongoose.connection.readyState === 1) {
       await User.deleteOne({ email: testEmail, isDemo: false })
+      await SignupIntent.deleteOne({ email: testEmail })
       await mongoose.disconnect()
     }
   }

@@ -239,12 +239,26 @@ any real transaction is processed.
 
 ## Accounts and role access
 
-`POST /api/auth/register` creates consumer accounts only. `POST /api/auth/login`
-checks a salted scrypt password hash. `POST /api/auth/logout` clears the encrypted
-HttpOnly session cookie, and `GET /api/auth/me` returns the current account without
-the password hash. Public registration cannot assign recycler or operator roles.
+Signup starts with a **role** step, then Google-first identity (or email OTP).
+
+- `POST /api/auth/google` accepts `{ idToken, role? }` — verifies a Google ID token,
+  creates or links the account (`googleId`, no password), and starts a session.
+  New Google users must include `role` from the register role step.
+- Email path: `POST /api/auth/signup/start` (`name`, `email`, `role`) sends a Resend OTP;
+  `verify-otp` returns a signup token; `complete` sets the password and session.
+- `POST /api/auth/login` is email/password only. Google-only accounts get a clear
+  error to use Continue with Google instead.
+- `POST /api/auth/logout` clears the encrypted HttpOnly session cookie;
+  `GET /api/auth/me` returns the current account without the password hash.
+
+Set `GOOGLE_CLIENT_ID` and `NUXT_PUBLIC_GOOGLE_CLIENT_ID` to the same Google Cloud
+OAuth **Web** client ID (authorized JavaScript origins = your app URL).
+Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for real OTP mail; without a Resend key,
+local signup uses fixed OTP `424242`.
+
 Cross-origin browser POSTs are rejected. Session cookies use SameSite=Lax and are
-marked Secure outside development.
+marked Secure outside development. New accounts finish onboarding (avatar, then
+role-specific steps) before dashboards unlock.
 
 The `/demo` page has three password-free buttons for judges. Each button calls
 `POST /api/auth/demo`; the server permits only a specific seeded email, expected
@@ -255,8 +269,8 @@ APIs; a session with the wrong role gets HTTP 403. Role checks read MongoDB so a
 changed or deleted account does not retain access through an old cookie.
 To run the HTTP checks locally, start `npm run dev -- --port 3001` in one terminal,
 then run `npm run test:auth` in another. The check covers all three role guards,
-cookie flags, demo sessions, registration, login, and logout. It removes its own
-temporary registration record. Set `AUTH_TEST_URL` if the server uses another URL.
+cookie flags, demo sessions, email-first registration, login, and logout. It removes
+its own temporary registration record. Set `AUTH_TEST_URL` if the server uses another URL.
 
 ## Health and MongoDB
 

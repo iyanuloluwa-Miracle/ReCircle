@@ -142,8 +142,16 @@ try {
     assert.equal((await post('/api/analyze-waste', '', { wasteItemId: draft.id })).status, 401)
     assert.equal((await post('/api/analyze-waste', recyclerCookie, { wasteItemId: draft.id })).status, 403)
     assert.equal((await post('/api/analyze-waste', cookie, { wasteItemId: 'invalid' })).status, 400)
-    const outsider = await post('/api/auth/register', '', {
-      name: 'Analysis Route Test', email: `analysis-${randomUUID()}@example.invalid`, password: `Test-${randomUUID()}`
+    const outsiderEmail = `analysis-${randomUUID()}@example.invalid`
+    const outsiderPassword = `Test-${randomUUID()}`
+    assert.equal((await post('/api/auth/signup/start', '', {
+      name: 'Analysis Route Test', email: outsiderEmail, role: 'user'
+    })).status, 200)
+    const verify = await post('/api/auth/signup/verify-otp', '', { email: outsiderEmail, code: '424242' })
+    assert.equal(verify.status, 200)
+    const { signupToken } = await verify.json() as { signupToken: string }
+    const outsider = await post('/api/auth/signup/complete', '', {
+      email: outsiderEmail, password: outsiderPassword, signupToken
     })
     assert.equal(outsider.status, 201)
     outsiderId = ((await outsider.json()) as AuthResponse).user.id
