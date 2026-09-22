@@ -1,7 +1,7 @@
 import { createError } from 'h3'
 import { getServerConfig } from '../utils/config'
 
-/** Native server fetch is sufficient; no AI SDK or classification is needed yet. */
+/** Keep the OpenRouter key and vision requests on the server. */
 export function getOpenRouterTransport() {
   const { openrouterApiKey, openrouterModel } = getServerConfig()
   if (!openrouterApiKey || !openrouterModel) {
@@ -15,7 +15,7 @@ export function getOpenRouterTransport() {
           method: 'POST',
           headers: { Authorization: `Bearer ${openrouterApiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...body, model: openrouterModel }),
-          signal: AbortSignal.timeout(20000)
+          signal: AbortSignal.timeout(35000)
         })
         if (!response.ok) throw new Error('Provider request failed')
         return await response.json() as unknown

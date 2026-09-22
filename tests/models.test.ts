@@ -49,6 +49,17 @@ test('a waste draft needs only its owner, image, and location', async () => {
   await assert.rejects(draft.validate())
 })
 
+test('new uppercase classifier codes validate without breaking seeded lowercase history', async () => {
+  const waste = new WasteItem({
+    userId: owner, imageUrl: 'https://example.invalid/item.png', location, status: 'analyzed',
+    materialCode: 'PET', itemName: 'Plastic bottle', recyclability: 'recyclable',
+    confidence: 0.94, disposalMethod: 'Recycle', classificationSource: 'ai'
+  })
+  assert.equal(await waste.validate(), undefined)
+  waste.materialCode = 'not-a-material'
+  await assert.rejects(waste.validate())
+})
+
 test('operational collections declare required geospatial and lookup indexes', () => {
   const hasIndex = (indexes: ReturnType<typeof Recycler.schema.indexes>, key: Record<string, number | string>) =>
     indexes.some(([candidate]) => Object.entries(key).every(([field, value]) => candidate[field] === value))

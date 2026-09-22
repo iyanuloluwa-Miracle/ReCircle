@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { loadEnvFile } from 'node:process'
@@ -6,15 +7,18 @@ import { deflateSync } from 'node:zlib'
 import { ByteshipClient } from '@byteship/js'
 import mongoose from 'mongoose'
 import { WasteItem } from '../server/models/WasteItem.ts'
+import { User } from '../server/models/User.ts'
 import type { AuthResponse } from '../types/index.ts'
 
 const envPath = resolve('.env')
 if (existsSync(envPath)) loadEnvFile(envPath)
 const base = process.env.AUTH_TEST_URL || 'http://127.0.0.1:3001'
+const verifyAnalysis = process.argv.includes('--analysis')
 let stage = 'demo login'
 let filePath: string | null = null
 let draftId: string | null = null
 let ownerId: string | null = null
+let outsiderId: string | null = null
 
 function pngChunk(name: string, data: Buffer) {
   const nameBytes = Buffer.from(name)
@@ -131,8 +135,65 @@ try {
   assert.equal(savedBody.locationSource, 'demo')
   const analysis = await fetch(new URL(`/scan/${draft.id}/analysis`, base), { headers: { cookie } })
   assert.equal(analysis.status, 200)
-  assert.match(await analysis.text(), /Ready for a closer look/)
+  assert.match(await analysis.text(), /Analyze this photo/)
   console.log('Draft persistence, retry idempotence, and analysis handoff verified')
+  if (verifyAnalysis) {
+    stage = 'classification and correction'
+    assert.equal((await post('/api/analyze-waste', '', { wasteItemId: draft.id })).status, 401)
+    assert.equal((await post('/api/analyze-waste', recyclerCookie, { wasteItemId: draft.id })).status, 403)
+    assert.equal((await post('/api/analyze-waste', cookie, { wasteItemId: 'invalid' })).status, 400)
+    const outsider = await post('/api/auth/register', '', {
+      name: 'Analysis Route Test', email: `analysis-${randomUUID()}@example.invalid`, password: `Test-${randomUUID()}`
+    })
+    assert.equal(outsider.status, 201)
+    outsiderId = ((await outsider.json()) as AuthResponse).user.id
+    const outsiderCookie = outsider.headers.get('set-cookie')?.split(';')[0]
+    assert.ok(outsiderCookie)
+    assert.equal((await post('/api/analyze-waste', outsiderCookie, { wasteItemId: draft.id })).status, 404)
+    const first = await post('/api/analyze-waste', cookie, { wasteItemId: draft.id })
+    const firstBody = await first.text()
+    assert.equal(first.status, 200, `OpenRouter analysis returned ${first.status}: ${firstBody.slice(0, 200)}`)
+    const firstResult = JSON.parse(firstBody) as { cached: boolean }
+    assert.equal(firstResult.cached, false)
+    const operatorLogin = await post('/api/auth/demo', '', { role: 'waste_operator' })
+    assert.equal(operatorLogin.status, 200)
+    const operatorCookie = operatorLogin.headers.get('set-cookie')?.split(';')[0]
+    assert.ok(operatorCookie)
+    const operatorResult = await post('/api/analyze-waste', operatorCookie, { wasteItemId: draft.id })
+    assert.equal(operatorResult.status, 200)
+    assert.equal((await operatorResult.json() as { cached: boolean }).cached, true)
+    const repeated = await post('/api/analyze-waste', cookie, { wasteItemId: draft.id })
+    assert.equal(repeated.status, 200)
+    assert.equal((await repeated.json() as { cached: boolean }).cached, true)
+    const resultResponse = await fetch(new URL(`/api/waste-items/${draft.id}`, base), { headers: { cookie } })
+    const result = await resultResponse.json() as { status: string; materialCode: string; confidence: number; itemName: string; estimatedValueMin?: number | null }
+    assert.equal(result.status, 'analyzed')
+    assert.ok(['PET', 'HDPE', 'LDPE', 'PP', 'ALUMINUM', 'STEEL', 'GLASS', 'CARDBOARD', 'PAPER', 'EWASTE', 'ORGANIC', 'MIXED', 'UNKNOWN'].includes(result.materialCode))
+    assert.ok(result.confidence >= 0 && result.confidence <= 1)
+    assert.ok(result.itemName.length > 1)
+    assert.equal(result.estimatedValueMin, null)
+    if (result.confidence < 0.65) {
+      const earlyWeight = await fetch(new URL(`/api/waste-items/${draft.id}/analysis`, base), {
+        method: 'PATCH', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ weightKg: 1.5 })
+      })
+      assert.equal(earlyWeight.status, 409)
+    }
+    const correction = await fetch(new URL(`/api/waste-items/${draft.id}/analysis`, base), {
+      method: 'PATCH', headers: { cookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ materialCode: 'PET', recyclability: 'recyclable' })
+    })
+    assert.equal(correction.status, 200)
+    const weight = await fetch(new URL(`/api/waste-items/${draft.id}/analysis`, base), {
+      method: 'PATCH', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ weightKg: 1.5 })
+    })
+    assert.equal(weight.status, 200)
+    const final = await fetch(new URL(`/api/waste-items/${draft.id}`, base), { headers: { cookie } })
+    const finalBody = await final.json() as { materialCode: string; classificationSource: string; weightKg: number }
+    assert.equal(finalBody.materialCode, 'PET')
+    assert.equal(finalBody.classificationSource, 'manual')
+    assert.equal(finalBody.weightKg, 1.5)
+    console.log('OpenRouter classification, cache, manual correction, and separate weight save verified')
+  }
 } catch (error) {
   console.error(`Upload HTTP check failed during ${stage} (${error instanceof Error ? error.name : 'UnknownError'}).`)
   if (error instanceof assert.AssertionError) console.error(error.message)
@@ -145,6 +206,7 @@ try {
       if (draftId && ownerId && process.env.MONGODB_URI) {
         await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
         await WasteItem.deleteOne({ _id: draftId, userId: ownerId, storagePath: filePath, isDemo: true })
+        if (outsiderId) await User.deleteOne({ _id: outsiderId, email: /^analysis-/ })
       }
       console.log('Temporary demo upload and draft removed')
     } catch {

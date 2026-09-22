@@ -1,12 +1,12 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from 'mongoose'
-import { geoPointSchema, materialCodePattern } from './shared.ts'
+import { geoPointSchema } from './shared.ts'
 
 const wasteItemSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   imageUrl: { type: String, required: true },
   storagePath: { type: String, unique: true, sparse: true },
   locationSource: { type: String, enum: ['device', 'demo', 'manual'], default: null },
-  materialCode: { type: String, required: function (this: { status: string }) { return this.status !== 'draft' }, default: null, match: materialCodePattern },
+  materialCode: { type: String, required: function (this: { status: string }) { return this.status !== 'draft' }, default: null, match: /^(PET|HDPE|LDPE|PP|ALUMINUM|STEEL|GLASS|CARDBOARD|PAPER|EWASTE|ORGANIC|MIXED|UNKNOWN)$/i },
   itemName: { type: String, required: function (this: { status: string }) { return this.status !== 'draft' }, trim: true, default: null },
   recyclability: { type: String, required: function (this: { status: string }) { return this.status !== 'draft' }, enum: ['recyclable', 'conditionally_recyclable', 'non_recyclable'], default: null },
   confidence: { type: Number, required: function (this: { status: string }) { return this.status !== 'draft' }, min: 0, max: 1, default: null, validate: { validator: (value: number | null) => value === null || Number.isFinite(value) } },
@@ -19,6 +19,8 @@ const wasteItemSchema = new Schema({
   estimatedValueMax: { type: Number, min: 0, default: null, validate: { validator: (value: number | null) => value === null || Number.isFinite(value) } },
   currency: { type: String, enum: ['NGN'], default: 'NGN', required: true },
   status: { type: String, required: true, enum: ['draft', 'analyzed', 'matched', 'pickup_requested', 'picked_up', 'completed'], default: 'draft' },
+  analysisLockUntil: { type: Date, default: null },
+  classificationSource: { type: String, enum: ['ai', 'manual'], default: null },
   isDemo: { type: Boolean, default: false }
 }, { timestamps: true })
 
