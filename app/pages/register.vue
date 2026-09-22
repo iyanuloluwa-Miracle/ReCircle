@@ -1,27 +1,136 @@
 <script setup lang="ts">
-import { dashboardPathByRole } from '../../types'
+import type { UserRole } from '../../types'
+import { postAuthDestination } from '../../utils/onboarding'
 
 definePageMeta({ layout: 'auth' })
 
 const auth = useAuth()
+const step = ref<'role' | 'identity' | 'otp' | 'password'>('role')
 const name = ref('')
 const email = ref('')
+const role = ref<UserRole>('user')
+const code = ref('')
 const password = ref('')
+const confirmPassword = ref('')
 const showPassword = ref(false)
 const pending = ref(false)
 const errorMessage = ref('')
+const resendSeconds = ref(0)
+let resendTimer: ReturnType<typeof setInterval> | null = null
 
-async function submit() {
+const roles: Array<{ value: UserRole; label: string; hint: string }> = [
+  { value: 'user', label: 'Consumer', hint: 'Scan waste and request pickup' },
+  { value: 'recycler', label: 'Recycler', hint: 'Accept collections and set prices' },
+  { value: 'waste_operator', label: 'Waste operator', hint: 'Monitor the network and optimize routes' }
+]
+
+const titles: Record<typeof step.value, string> = {
+  role: 'How will you use ReCircle?',
+  identity: 'Create your account.',
+  otp: 'Check your email.',
+  password: 'Set your password.'
+}
+
+function startResendCooldown(seconds = 60) {
+  resendSeconds.value = seconds
+  if (resendTimer) clearInterval(resendTimer)
+  resendTimer = setInterval(() => {
+    resendSeconds.value -= 1
+    if (resendSeconds.value <= 0 && resendTimer) {
+      clearInterval(resendTimer)
+      resendTimer = null
+    }
+  }, 1000)
+}
+
+onUnmounted(() => {
+  if (resendTimer) clearInterval(resendTimer)
+})
+
+function continueFromRole() {
+  errorMessage.value = ''
+  step.value = 'identity'
+}
+
+async function onGoogleSuccess() {
+  const user = auth.user.value
+  if (!user) return
+  await navigateTo(postAuthDestination(user))
+}
+
+async function submitDetails() {
   pending.value = true
   errorMessage.value = ''
   try {
-    const user = await auth.register(name.value, email.value, password.value)
-    await navigateTo(dashboardPathByRole[user.role])
+    await auth.startSignup(name.value, email.value, role.value)
+    step.value = 'otp'
+    startResendCooldown()
   } catch (error) {
     const status = error && typeof error === 'object' && 'statusCode' in error ? error.statusCode : undefined
     errorMessage.value = status === 409
       ? 'That email already has an account.'
-      : 'We could not create your account. Please check your details and try again.'
+      : status === 429
+        ? 'Please wait a moment before requesting another code.'
+        : 'We could not start signup. Check your details and try again.'
+  } finally {
+    pending.value = false
+  }
+}
+
+async function submitOtp() {
+  pending.value = true
+  errorMessage.value = ''
+  try {
+    await auth.verifySignupOtp(email.value.trim().toLowerCase(), code.value)
+    step.value = 'password'
+  } catch (error) {
+    const status = error && typeof error === 'object' && 'statusCode' in error ? error.statusCode : undefined
+    errorMessage.value = status === 400
+      ? 'That code is invalid or expired.'
+      : 'We could not verify that code. Try again.'
+  } finally {
+    pending.value = false
+  }
+}
+
+async function resend() {
+  if (resendSeconds.value > 0 || pending.value) return
+  pending.value = true
+  errorMessage.value = ''
+  try {
+    await auth.resendSignupOtp(email.value.trim().toLowerCase())
+    startResendCooldown()
+  } catch (error) {
+    const status = error && typeof error === 'object' && 'statusCode' in error ? error.statusCode : undefined
+    errorMessage.value = status === 429
+      ? 'Please wait before requesting another code.'
+      : 'Could not resend the code. Start again if this keeps failing.'
+  } finally {
+    pending.value = false
+  }
+}
+
+async function submitPassword() {
+  if (password.value !== confirmPassword.value) {
+    errorMessage.value = 'Passwords do not match.'
+    return
+  }
+  const token = auth.signupToken.value
+  if (!token) {
+    errorMessage.value = 'Your verification session expired. Start again.'
+    step.value = 'identity'
+    return
+  }
+  pending.value = true
+  errorMessage.value = ''
+  try {
+    const user = await auth.completeSignup(email.value.trim().toLowerCase(), password.value, token)
+    await navigateTo(postAuthDestination(user))
+  } catch (error) {
+    const status = error && typeof error === 'object' && 'statusCode' in error ? error.statusCode : undefined
+    errorMessage.value = status === 409
+      ? 'That email already has an account.'
+      : 'We could not create your account. Try again.'
   } finally {
     pending.value = false
   }
@@ -31,35 +140,84 @@ useSeoMeta({ title: 'Create an account — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
-  <AuthSplit
-    title="Create your account."
-    visual-image="/how-it-works/value.png"
-    visual-alt="Recyclable materials sorted and ready for pickup"
-  >
-    <AuthSocialBlock />
+  <AuthSplit :title="titles[step]">
+    <form v-if="step === 'role'" class="auth-form" @submit.prevent="continueFromRole">
+      <p class="muted auth-hint">Pick one. You can finish setup after you sign in.</p>
+      <div class="role-picker" role="radiogroup" aria-label="Account role">
+        <label
+          v-for="option in roles"
+          :key="option.value"
+          class="role-picker-option"
+          :class="{ 'is-selected': role === option.value }"
+        >
+          <input v-model="role" type="radio" name="role" :value="option.value" required>
+          <span class="role-picker-title">{{ option.label }}</span>
+          <span class="role-picker-hint">{{ option.hint }}</span>
+        </label>
+      </div>
+      <BaseButton type="submit">Continue</BaseButton>
+    </form>
 
-    <form class="auth-form" @submit.prevent="submit">
-      <label for="register-name">Name*</label>
+    <template v-else-if="step === 'identity'">
+      <AuthSocialBlock mode="signup" :role="role" @success="onGoogleSuccess" />
+
+      <form class="auth-form" @submit.prevent="submitDetails">
+        <label for="register-name">Name*</label>
+        <input
+          id="register-name"
+          v-model="name"
+          autocomplete="name"
+          placeholder="Your name"
+          minlength="2"
+          maxlength="120"
+          required
+        >
+
+        <label for="register-email">Email*</label>
+        <input
+          id="register-email"
+          v-model="email"
+          type="email"
+          autocomplete="email"
+          placeholder="you@email.com"
+          required
+        >
+
+        <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+        <BaseButton type="submit" :loading="pending" :disabled="pending">Send verification code</BaseButton>
+        <BaseButton variant="ghost" type="button" :disabled="pending" @click="step = 'role'">Back</BaseButton>
+      </form>
+    </template>
+
+    <form v-else-if="step === 'otp'" class="auth-form" @submit.prevent="submitOtp">
+      <p class="muted auth-hint">
+        Enter the 6-digit code sent to <strong>{{ email.trim().toLowerCase() }}</strong>.
+      </p>
+      <label for="register-otp">Verification code*</label>
       <input
-        id="register-name"
-        v-model="name"
-        autocomplete="name"
-        placeholder="Your name"
-        minlength="2"
-        maxlength="120"
+        id="register-otp"
+        v-model="code"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        placeholder="000000"
+        pattern="\d{6}"
+        maxlength="6"
+        minlength="6"
         required
       >
-
-      <label for="register-email">Email*</label>
-      <input
-        id="register-email"
-        v-model="email"
-        type="email"
-        autocomplete="email"
-        placeholder="you@email.com"
-        required
+      <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+      <BaseButton type="submit" :loading="pending" :disabled="pending || code.length !== 6">Verify email</BaseButton>
+      <button
+        class="button button--ghost auth-resend"
+        type="button"
+        :disabled="pending || resendSeconds > 0"
+        @click="resend"
       >
+        {{ resendSeconds > 0 ? `Resend in ${resendSeconds}s` : 'Resend code' }}
+      </button>
+    </form>
 
+    <form v-else class="auth-form" @submit.prevent="submitPassword">
       <label for="register-password">Password*</label>
       <div class="auth-password">
         <input
@@ -89,13 +247,24 @@ useSeoMeta({ title: 'Create an account — ReCircle', robots: 'noindex' })
       </div>
       <p class="muted auth-hint">Use at least 12 characters.</p>
 
+      <label for="register-password-confirm">Confirm password*</label>
+      <input
+        id="register-password-confirm"
+        v-model="confirmPassword"
+        type="password"
+        autocomplete="new-password"
+        placeholder="Repeat password"
+        minlength="12"
+        maxlength="128"
+        required
+      >
+
       <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
       <BaseButton type="submit" :loading="pending" :disabled="pending">Create account</BaseButton>
     </form>
 
     <p class="auth-alternate">
       Already have an account? <NuxtLink to="/login">Sign in</NuxtLink>
-      · <NuxtLink to="/demo">Try the demo</NuxtLink>
     </p>
   </AuthSplit>
 </template>

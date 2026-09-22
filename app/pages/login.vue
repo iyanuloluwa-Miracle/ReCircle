@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { dashboardPathByRole } from '../../types'
+import { postAuthDestination } from '../../utils/onboarding'
 
 definePageMeta({ layout: 'auth' })
 
@@ -15,24 +15,31 @@ async function submit() {
   errorMessage.value = ''
   try {
     const user = await auth.login(email.value, password.value)
-    await navigateTo(dashboardPathByRole[user.role])
-  } catch {
-    errorMessage.value = 'Sign in failed. Check your email and password, then try again.'
+    await navigateTo(postAuthDestination(user))
+  } catch (error) {
+    const statusMessage = error && typeof error === 'object' && 'statusMessage' in error
+      ? String(error.statusMessage)
+      : ''
+    errorMessage.value = statusMessage.includes('Google')
+      ? 'This account uses Google sign-in. Continue with Google instead.'
+      : 'Sign in failed. Check your email and password, then try again.'
   } finally {
     pending.value = false
   }
+}
+
+async function onGoogleSuccess() {
+  const user = auth.user.value
+  if (!user) return
+  await navigateTo(postAuthDestination(user))
 }
 
 useSeoMeta({ title: 'Sign in — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
-  <AuthSplit
-    title="Welcome back to your circle."
-    visual-image="/how-it-works/scan.png"
-    visual-alt="Phone scanning recyclable materials with ReCircle"
-  >
-    <AuthSocialBlock />
+  <AuthSplit title="Welcome back to your circle.">
+    <AuthSocialBlock mode="login" @success="onGoogleSuccess" />
 
     <form class="auth-form" @submit.prevent="submit">
       <label for="login-email">Email*</label>
@@ -45,17 +52,14 @@ useSeoMeta({ title: 'Sign in — ReCircle', robots: 'noindex' })
         required
       >
 
-      <div class="auth-label-row">
-        <label for="login-password">Password*</label>
-        <NuxtLink class="auth-forgot" to="/demo">Forgot Password?</NuxtLink>
-      </div>
+      <label for="login-password">Password*</label>
       <div class="auth-password">
         <input
           id="login-password"
           v-model="password"
           :type="showPassword ? 'text' : 'password'"
           autocomplete="current-password"
-          placeholder="Min. 8 characters"
+          placeholder="Your password"
           required
         >
         <button
@@ -80,7 +84,6 @@ useSeoMeta({ title: 'Sign in — ReCircle', robots: 'noindex' })
 
     <p class="auth-alternate">
       New here? <NuxtLink to="/register">Create an account</NuxtLink>
-      · <NuxtLink to="/demo">Try the demo</NuxtLink>
     </p>
   </AuthSplit>
 </template>

@@ -13,7 +13,16 @@ export default defineEventHandler(async (event): Promise<AuthResponse> => {
   const { email, password } = await readValidatedJson(event, loginSchema)
   await connectDatabase()
   const user = await User.findOne({ email }).select('+passwordHash')
-  if (!user || !await verifyPassword(password, user.passwordHash)) {
+  if (!user) {
+    throw createError({ statusCode: 401, statusMessage: 'Invalid email or password' })
+  }
+  if (!user.passwordHash) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'This account uses Google sign-in. Continue with Google instead.'
+    })
+  }
+  if (!await verifyPassword(password, user.passwordHash)) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid email or password' })
   }
   const session = await getAuthSession(event)

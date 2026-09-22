@@ -1,20 +1,165 @@
 <script setup lang="ts">
-const socialNotice = ref('')
+import type { UserRole } from '../../types'
 
-const primary = { id: 'google', label: 'Continue with Google' } as const
-const secondary = [
-  { id: 'github', label: 'GitHub' },
-  { id: 'apple', label: 'Apple' },
-] as const
+const props = withDefaults(defineProps<{
+  mode?: 'login' | 'signup'
+  role?: UserRole
+}>(), {
+  mode: 'login'
+})
 
-function onSocial(label: string) {
-  socialNotice.value = `${label.replace('Continue with ', '')} sign-in isn’t available in this preview. Continue with email below.`
+const emit = defineEmits<{
+  success: []
+  error: [message: string]
+}>()
+
+const auth = useAuth()
+const config = useRuntimeConfig()
+const pending = ref(false)
+const notice = ref('')
+const gisHost = ref<HTMLElement | null>(null)
+const clientId = computed(() => String(config.public.googleClientId || '').trim())
+
+type CredentialResponse = { credential?: string }
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string
+            callback: (response: CredentialResponse) => void
+            auto_select?: boolean
+            cancel_on_tap_outside?: boolean
+          }) => void
+          prompt: (momentListener?: (notification: {
+            isNotDisplayed: () => boolean
+            isSkippedMoment: () => boolean
+            isDismissedMoment: () => boolean
+          }) => void) => void
+          renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void
+        }
+      }
+    }
+  }
+}
+
+let scriptPromise: Promise<void> | null = null
+
+function loadGis(): Promise<void> {
+  if (import.meta.server) return Promise.reject(new Error('GIS is client-only'))
+  if (window.google?.accounts?.id) return Promise.resolve()
+  if (scriptPromise) return scriptPromise
+  scriptPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-google-gis]')
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener('error', () => reject(new Error('Failed to load Google')), { once: true })
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.dataset.googleGis = 'true'
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Failed to load Google'))
+    document.head.appendChild(script)
+  })
+  return scriptPromise
+}
+
+async function handleCredential(credential: string) {
+  await auth.loginWithGoogle(
+    credential,
+    props.mode === 'signup' ? props.role : undefined
+  )
+  emit('success')
+}
+
+function mapError(error: unknown): string {
+  const status = error && typeof error === 'object' && 'statusCode' in error
+    ? error.statusCode
+    : undefined
+  if (status === 400) return 'Choose a role before continuing with Google.'
+  if (status === 409) return 'That Google account is already linked another way. Try email sign-in.'
+  if (status === 503) return 'Google sign-in isn’t configured yet. Continue with email below.'
+  return 'Google sign-in failed. Try again or use email.'
+}
+
+async function onGoogle() {
+  notice.value = ''
+  if (!clientId.value) {
+    notice.value = 'Google sign-in isn’t configured yet. Continue with email below.'
+    return
+  }
+  if (props.mode === 'signup' && !props.role) {
+    notice.value = 'Choose a role first, then continue with Google.'
+    return
+  }
+  pending.value = true
+  try {
+    await loadGis()
+    const callback = async (response: CredentialResponse) => {
+      try {
+        if (!response.credential) throw new Error('No credential')
+        await handleCredential(response.credential)
+      } catch (error) {
+        notice.value = mapError(error)
+        emit('error', notice.value)
+      } finally {
+        pending.value = false
+      }
+    }
+
+    window.google!.accounts.id.initialize({
+      client_id: clientId.value,
+      cancel_on_tap_outside: true,
+      callback
+    })
+
+    // Prefer One Tap; if skipped, trigger the official button under the hood.
+    window.google!.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
+        const host = gisHost.value
+        if (!host) {
+          pending.value = false
+          notice.value = 'Google sign-in was cancelled. Try again or use email.'
+          return
+        }
+        host.replaceChildren()
+        window.google!.accounts.id.renderButton(host, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+          width: 360
+        })
+        const button = host.querySelector<HTMLElement>('div[role="button"]')
+        if (button) button.click()
+        else {
+          pending.value = false
+          notice.value = 'Google sign-in was cancelled. Try again or use email.'
+        }
+      }
+    })
+  } catch {
+    pending.value = false
+    notice.value = 'Google sign-in isn’t available right now. Continue with email below.'
+  }
 }
 </script>
 
 <template>
   <div class="auth-social" role="group" aria-label="Social sign-in">
-    <button class="auth-social-btn auth-social-btn--primary" type="button" @click="onSocial(primary.label)">
+    <button
+      class="auth-social-btn"
+      type="button"
+      :disabled="pending"
+      :aria-busy="pending || undefined"
+      @click="onGoogle"
+    >
       <span class="auth-social-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="18" height="18">
           <path fill="#EA4335" d="M12 10.2v3.6h5.1c-.2 1.2-.9 2.3-1.9 3l3.1 2.4c1.8-1.7 2.9-4.1 2.9-7 0-.7-.1-1.3-.2-1.9H12Z" />
@@ -23,35 +168,15 @@ function onSocial(label: string) {
           <path fill="#FBBC05" d="M12 6.1c1.5 0 2.8.5 3.8 1.5l2.8-2.8A9.7 9.7 0 0 0 12 2a9.96 9.96 0 0 0-8.7 5.1l3.3 2.6A5.9 5.9 0 0 1 12 6.1Z" />
         </svg>
       </span>
-      <span>{{ primary.label }}</span>
+      <span>{{ pending ? 'Connecting…' : 'Continue with Google' }}</span>
     </button>
-
-    <div class="auth-social-row">
-      <button
-        v-for="provider in secondary"
-        :key="provider.id"
-        class="auth-social-btn"
-        type="button"
-        @click="onSocial(provider.label)"
-      >
-        <span class="auth-social-icon" aria-hidden="true">
-          <svg v-if="provider.id === 'github'" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.2-3.4-1.2-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.8-.3 2.8 1a9.6 9.6 0 0 1 5 0c2-.1 2.8-1 2.8-1a3.6 3.6 0 0 1 .1 2.7 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2Z" />
-          </svg>
-          <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M16.4 12.4c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.1.8-.7 0-1.7-.7-2.8-.7-1.4 0-2.8.9-3.5 2.2-1.5 2.6-.4 6.5 1.1 8.6.7 1 1.6 2.2 2.8 2.1 1.1 0 1.5-.7 2.9-.7s1.7.7 2.9.7c1.2 0 1.9-1 2.6-2 .8-1.2 1.1-2.3 1.2-2.4-.1 0-2.1-.8-2.1-3.1ZM14.4 6.5c.6-.8 1.1-1.8.9-2.9-1 .1-2.1.7-2.7 1.5-.6.7-1.1 1.8-.9 2.8 1.1.1 2.1-.5 2.7-1.4Z" />
-          </svg>
-        </span>
-        <span>{{ provider.label }}</span>
-      </button>
-    </div>
-
-    <p v-if="socialNotice" class="auth-social-notice" role="status">{{ socialNotice }}</p>
+    <div ref="gisHost" class="auth-gis-host" aria-hidden="true" />
+    <p v-if="notice" class="auth-social-notice" role="status">{{ notice }}</p>
   </div>
 
   <div class="auth-divider" role="separator">
     <span class="auth-divider-line" aria-hidden="true" />
-    <span class="auth-divider-label">Or</span>
+    <span class="auth-divider-label">Or continue with email</span>
     <span class="auth-divider-line" aria-hidden="true" />
   </div>
 </template>
