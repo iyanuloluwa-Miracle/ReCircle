@@ -2,7 +2,7 @@ import { ByteshipClient } from '@byteship/js'
 import { createError } from 'h3'
 import { getServerConfig } from '../utils/config'
 
-/** Server-only factory. Upload routes and policies belong to the upload phase. */
+/** Project API key stays on the server; browser uploads use scoped tokens. */
 export function getByteshipClient() {
   const { byteshipApiKey } = getServerConfig()
   if (!byteshipApiKey) {

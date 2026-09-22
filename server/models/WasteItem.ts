@@ -1,14 +1,16 @@
-import mongoose, { Schema, type InferSchemaType } from 'mongoose'
+import mongoose, { Schema, type InferSchemaType, type Model } from 'mongoose'
 import { geoPointSchema, materialCodePattern } from './shared.ts'
 
 const wasteItemSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   imageUrl: { type: String, required: true },
-  materialCode: { type: String, required: true, match: materialCodePattern },
-  itemName: { type: String, required: true, trim: true },
-  recyclability: { type: String, required: true, enum: ['recyclable', 'conditionally_recyclable', 'non_recyclable'] },
-  confidence: { type: Number, required: true, min: 0, max: 1, validate: Number.isFinite },
-  disposalMethod: { type: String, required: true },
+  storagePath: { type: String, unique: true, sparse: true },
+  locationSource: { type: String, enum: ['device', 'demo', 'manual'], default: null },
+  materialCode: { type: String, required: function (this: { status: string }) { return this.status !== 'draft' }, default: null, match: materialCodePattern },
+  itemName: { type: String, required: function (this: { status: string }) { return this.status !== 'draft' }, trim: true, default: null },
+  recyclability: { type: String, required: function (this: { status: string }) { return this.status !== 'draft' }, enum: ['recyclable', 'conditionally_recyclable', 'non_recyclable'], default: null },
+  confidence: { type: Number, required: function (this: { status: string }) { return this.status !== 'draft' }, min: 0, max: 1, default: null, validate: { validator: (value: number | null) => value === null || Number.isFinite(value) } },
+  disposalMethod: { type: String, required: function (this: { status: string }) { return this.status !== 'draft' }, default: null },
   preparationInstructions: { type: [String], default: [] },
   hazardWarning: { type: String, default: null },
   weightKg: { type: Number, min: 0, default: null, validate: { validator: (value: number | null) => value === null || Number.isFinite(value) } },
@@ -28,4 +30,4 @@ wasteItemSchema.index({ userId: 1, createdAt: -1 })
 wasteItemSchema.index({ status: 1, createdAt: -1 })
 
 export type WasteItemDocument = InferSchemaType<typeof wasteItemSchema>
-export const WasteItem = mongoose.models.WasteItem || mongoose.model('WasteItem', wasteItemSchema)
+export const WasteItem: Model<WasteItemDocument> = (mongoose.models.WasteItem as Model<WasteItemDocument> | undefined) ?? mongoose.model<WasteItemDocument>('WasteItem', wasteItemSchema)

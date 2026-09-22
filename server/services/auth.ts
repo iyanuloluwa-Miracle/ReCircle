@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { AuthUser, UserRole } from '../../types'
+import type { AuthUser, GeoPoint, UserRole } from '../../types'
 
 export const registerSchema = z.strictObject({
   name: z.string().trim().min(2).max(120),
@@ -27,6 +27,7 @@ export function toAuthUser(user: {
   role: string
   avatarUrl?: string | null
   isDemo?: boolean
+  location?: GeoPoint | null
 }): AuthUser {
   return {
     id: user._id.toString(),
@@ -34,6 +35,7 @@ export function toAuthUser(user: {
     email: user.email,
     role: user.role as UserRole,
     avatarUrl: user.avatarUrl ?? null,
-    isDemo: user.isDemo ?? false
+    isDemo: user.isDemo ?? false,
+    location: user.location ?? null
   }
 }

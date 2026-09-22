@@ -42,6 +42,13 @@ test('waste value range and confidence are bounded', async () => {
   await assert.rejects(waste.validate())
 })
 
+test('a waste draft needs only its owner, image, and location', async () => {
+  const draft = new WasteItem({ userId: owner, imageUrl: 'https://example.invalid/draft.png', location, status: 'draft' })
+  assert.equal(await draft.validate(), undefined)
+  draft.status = 'analyzed'
+  await assert.rejects(draft.validate())
+})
+
 test('operational collections declare required geospatial and lookup indexes', () => {
   const hasIndex = (indexes: ReturnType<typeof Recycler.schema.indexes>, key: Record<string, number | string>) =>
     indexes.some(([candidate]) => Object.entries(key).every(([field, value]) => candidate[field] === value))

@@ -1,5 +1,10 @@
 export type UserRole = 'user' | 'recycler' | 'waste_operator'
 
+export interface GeoPoint {
+  type: 'Point'
+  coordinates: [number, number]
+}
+
 export const dashboardPathByRole: Record<UserRole, string> = {
   user: '/dashboard/user',
   recycler: '/dashboard/recycler',
@@ -13,6 +18,7 @@ export interface AuthUser {
   role: UserRole
   avatarUrl: string | null
   isDemo: boolean
+  location: GeoPoint | null
 }
 
 export interface AuthResponse { user: AuthUser }
