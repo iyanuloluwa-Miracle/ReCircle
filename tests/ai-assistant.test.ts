@@ -59,7 +59,7 @@ test('assistant system prompt forbids inventing operational facts', () => {
   ]) {
     assert.match(assistantSystemPrompt, new RegExp(phrase, 'i'))
   }
-  assert.match(assistantSystemPrompt, /From your Recykle data/i)
+  assert.match(assistantSystemPrompt, /From your ReCircle data/i)
   assert.match(assistantSystemPrompt, /General recycling advice/i)
 })
 

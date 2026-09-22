@@ -2,7 +2,7 @@
 import { formatNaira, formatNumber } from '~~/utils/format'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useSeoMeta({ title: 'Analytics — Recykle AI', robots: 'noindex' })
+useSeoMeta({ title: 'Analytics — ReCircle', robots: 'noindex' })
 
 interface ChartSeries {
   label: string

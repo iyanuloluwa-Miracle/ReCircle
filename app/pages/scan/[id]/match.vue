@@ -3,7 +3,7 @@ import { formatNaira } from '~~/utils/format'
 import type { PickupRequestView } from '../../../../types'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useSeoMeta({ title: 'Waste valuation — Recykle AI', robots: 'noindex' })
+useSeoMeta({ title: 'Waste valuation — ReCircle', robots: 'noindex' })
 
 interface MatchRow {
   recyclerId: string

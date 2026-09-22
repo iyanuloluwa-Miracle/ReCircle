@@ -25,7 +25,7 @@ export async function optimizeCollectionBatches(options?: {
   if (requests.length === 0) {
     return {
       zoneId,
-      explanation: 'Recykle groups nearby pickups to reduce unnecessary collection travel.',
+      explanation: 'ReCircle groups nearby pickups to reduce unnecessary collection travel.',
       disclaimer: 'Straight-line estimates only — not road-routing optimization.',
       zones: [
         { id: ALL_LAGOS_ZONE_ID, name: 'All Lagos' },
@@ -71,7 +71,7 @@ export async function optimizeCollectionBatches(options?: {
 
   return {
     zoneId,
-    explanation: 'Recykle groups nearby pickups to reduce unnecessary collection travel.',
+    explanation: 'ReCircle groups nearby pickups to reduce unnecessary collection travel.',
     disclaimer: 'Suggested collection sequence uses straight-line nearest-neighbour heuristics — not actual road routing.',
     zones: [
       { id: ALL_LAGOS_ZONE_ID, name: 'All Lagos' },

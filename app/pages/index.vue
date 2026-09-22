@@ -20,7 +20,7 @@ const roles = [
         <h1>Good things<br>deserve a<br><span>second life.</span></h1>
         <p class="hero-description">That bottle isn't the end of the story. We're building a simpler way to turn everyday recyclables into everyday value.</p>
         <div class="hero-actions">
-          <BaseButton to="/demo">Explore Recykle AI <span aria-hidden="true">↗</span></BaseButton>
+          <BaseButton to="/demo">Explore ReCircle <span aria-hidden="true">↗</span></BaseButton>
           <BaseButton variant="ghost" to="/#how-it-works">See how it works <span aria-hidden="true">↓</span></BaseButton>
         </div>
         <div class="hero-footnote"><span class="mini-orbit" aria-hidden="true">↻</span> Less waste. More value. One connected circle.</div>
@@ -72,10 +72,10 @@ const roles = [
     </section>
 
     <section id="the-mission" class="section container">
-      <div class="mission-panel"><div><p class="eyebrow">Made for the Lagos we believe in</p><h2>Waste is a challenge.<br>What comes next is<br><span>an opportunity.</span></h2></div><div class="mission-copy"><p>We believe recycling should feel like a natural next step. Recykle AI is a hackathon prototype exploring how technology can help people, recyclers and waste operators work better together.</p><BaseButton variant="secondary" @click="showPreview = true">About this preview <span aria-hidden="true">↗</span></BaseButton></div></div>
+      <div class="mission-panel"><div><p class="eyebrow">Made for the Lagos we believe in</p><h2>Waste is a challenge.<br>What comes next is<br><span>an opportunity.</span></h2></div><div class="mission-copy"><p>We believe recycling should feel like a natural next step. ReCircle is a hackathon prototype exploring how technology can help people, recyclers and waste operators work better together.</p><BaseButton variant="secondary" @click="showPreview = true">About this preview <span aria-hidden="true">↗</span></BaseButton></div></div>
     </section>
 
-    <BaseModal v-model:open="showPreview" title="A first step for Recykle AI">
+    <BaseModal v-model:open="showPreview" title="A first step for ReCircle">
       <p class="muted">You're exploring our application foundation: the public website and workspace shell. Material identification, pricing, pickup coordination and analytics are planned for later phases.</p>
       <template #footer><BaseButton @click="showPreview = false">Got it</BaseButton></template>
     </BaseModal>

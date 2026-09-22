@@ -39,7 +39,7 @@ async function signOut() {
       </aside>
       <div class="workspace-body">
         <header class="workspace-header">
-          <span>Recykle AI / Workspace</span>
+          <span>ReCircle / Workspace</span>
           <div class="workspace-header-actions">
             <BaseBadge v-if="user?.isDemo" tone="lime">DEMO</BaseBadge>
             <BaseButton v-if="user" variant="ghost" size="sm" :loading="loggingOut" @click="signOut">Sign out</BaseButton>

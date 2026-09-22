@@ -16,7 +16,7 @@ export function getAuthSession(event: H3Event) {
     throw createError({ statusCode: 503, statusMessage: 'Authentication is not configured' })
   }
   return useSession<{ userId?: string }>(event, {
-    name: 'recykle-session',
+    name: 'recircle-session',
     password: sessionSecret,
     maxAge: 60 * 60 * 24,
     sessionHeader: false,

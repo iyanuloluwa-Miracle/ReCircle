@@ -15,9 +15,9 @@ export const loginSchema = z.strictObject({
 export const demoSchema = z.strictObject({ role: z.enum(['user', 'recycler', 'waste_operator']) })
 
 export const demoEmailByRole: Record<UserRole, string> = {
-  user: 'consumer@recykle-demo.example',
-  recycler: 'recycler1@recykle-demo.example',
-  waste_operator: 'operator@recykle-demo.example'
+  user: 'consumer@recircle-demo.example',
+  recycler: 'recycler1@recircle-demo.example',
+  waste_operator: 'operator@recircle-demo.example'
 }
 
 export function toAuthUser(user: {

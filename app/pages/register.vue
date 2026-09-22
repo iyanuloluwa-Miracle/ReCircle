@@ -22,7 +22,7 @@ async function submit() {
   }
 }
 
-useSeoMeta({ title: 'Create an account — Recykle AI', robots: 'noindex' })
+useSeoMeta({ title: 'Create an account — ReCircle', robots: 'noindex' })
 </script>
 
 <template>

@@ -19,12 +19,12 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'Recykle AI — A new life for your recyclables',
+      title: 'ReCircle — A new life for your recyclables',
       meta: [
-        { name: 'description', content: 'Recykle AI is building a simpler way for Lagos to identify recyclables and coordinate recycling. Explore our hackathon prototype.' },
+        { name: 'description', content: 'ReCircle is building a simpler way for Lagos to identify recyclables and coordinate recycling. Explore our hackathon prototype.' },
         { name: 'theme-color', content: '#123f32' }
       ],
-      link: [{ rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' }]
+      link: [{ rel: 'icon', type: 'image/png', href: '/recircle-logo.png' }]
     }
   },
   vite: { plugins: [tailwindcss()] }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useSeoMeta({ title: 'Scan waste — Recykle AI', robots: 'noindex' })
+useSeoMeta({ title: 'Scan waste — ReCircle', robots: 'noindex' })
 
 const upload = useWasteUpload()
 const pickup = usePickupLocation()
@@ -39,7 +39,7 @@ async function saveDraft() {
 
     <div class="scanner-grid">
       <section class="scanner-card" aria-label="Waste image upload">
-        <div class="scanner-card-top"><span>RECYKLE / SCANNER</span><BaseBadge tone="lime">PHOTO FIRST</BaseBadge></div>
+        <div class="scanner-card-top"><span>RECIRCLE / SCANNER</span><BaseBadge tone="lime">PHOTO FIRST</BaseBadge></div>
         <div
           class="scanner-dropzone" :class="{ 'is-dragging': dragging, 'has-preview': upload.previewUrl.value }"
           @dragenter.prevent="dragging = true" @dragover.prevent="dragging = true"

@@ -20,7 +20,7 @@ async function submit() {
   }
 }
 
-useSeoMeta({ title: 'Sign in — Recykle AI', robots: 'noindex' })
+useSeoMeta({ title: 'Sign in — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
@@ -28,7 +28,7 @@ useSeoMeta({ title: 'Sign in — Recykle AI', robots: 'noindex' })
     <div class="auth-panel">
       <p class="eyebrow">Welcome back</p>
       <h1 class="page-title">Sign in to your circle.</h1>
-      <p class="muted">Access your Recykle AI workspace.</p>
+      <p class="muted">Access your ReCircle workspace.</p>
       <form class="auth-form" @submit.prevent="submit">
         <label for="login-email">Email</label>
         <input id="login-email" v-model="email" type="email" autocomplete="email" required>

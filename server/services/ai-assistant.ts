@@ -10,7 +10,7 @@ const historySchema = z.array(z.strictObject({
   content: z.string().trim().min(1).max(2000)
 })).max(8)
 
-export async function askRecykleAssistant(options: {
+export async function askReCircleAssistant(options: {
   user: AuthUser
   message: string
   wasteItemId?: string
@@ -63,7 +63,7 @@ export async function askRecykleAssistant(options: {
   return {
     reply: content,
     factsUsed,
-    disclaimer: 'Numbers and statuses come from your Recykle MongoDB records. General recycling tips are advice only and do not change your data.',
+    disclaimer: 'Numbers and statuses come from your ReCircle MongoDB records. General recycling tips are advice only and do not change your data.',
     role: facts.role
   }
 }

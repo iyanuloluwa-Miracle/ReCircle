@@ -3,7 +3,7 @@ import { formatNaira, formatNumber } from '~~/utils/format'
 import type { PickupRequestView } from '../../../types'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useSeoMeta({ title: 'Consumer workspace — Recykle AI', robots: 'noindex' })
+useSeoMeta({ title: 'Consumer workspace — ReCircle', robots: 'noindex' })
 
 interface ConsumerDashboard {
   user: { name: string; email: string; isDemo: boolean }

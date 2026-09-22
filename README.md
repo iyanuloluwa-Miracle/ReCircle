@@ -1,7 +1,7 @@
-# Recykle AI — Phase 11
+# ReCircle — Phase 11
 
 A Lagos-focused recycling coordination hackathon prototype built with Nuxt 4,
-strict TypeScript and Tailwind CSS 4. Phase 11 adds a grounded Recykle AI
+strict TypeScript and Tailwind CSS 4. Phase 11 adds a grounded ReCircle
 assistant that explains platform data from MongoDB and never invents pricing,
 earnings, status, distance, or confidence.
 
@@ -196,14 +196,14 @@ recycler utilization, and zone distribution from coordinate buckets). The
 `/dashboard/analytics` page renders donut, line, bar, and horizontal-bar charts
 with loading and empty states. Charts do not invent trees-saved or CO₂ claims.
 
-## Recykle AI assistant
+## ReCircle assistant
 
 `POST /api/ai-recommendation` accepts a short chat message (optional history and
 focus IDs). The server loads role-scoped facts from MongoDB — recent items,
 requests, earnings, demo recycler pricing, distances, and classification fields —
 then calls OpenRouter with a grounding prompt. The model must not invent recycler
 pricing, pickup availability, earnings, transaction status, recycler distance, or
-classification confidence. Answers should separate **From your Recykle data** from
+classification confidence. Answers should separate **From your ReCircle data** from
 **General recycling advice**. The assistant never writes or updates records.
 
 A compact `AiAssistantDrawer` sits on the dashboard layout (floating button + side

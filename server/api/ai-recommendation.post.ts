@@ -1,7 +1,7 @@
 import { defineEventHandler } from 'h3'
 import { Types } from 'mongoose'
 import { z } from 'zod'
-import { askRecykleAssistant } from '../services/ai-assistant'
+import { askReCircleAssistant } from '../services/ai-assistant'
 import { assertSameOrigin } from '../utils/origin'
 import { requireSessionUser } from '../utils/session'
 import { readValidatedJson } from '../utils/validation'
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   assertSameOrigin(event)
   const user = await requireSessionUser(event, ['user', 'recycler', 'waste_operator'])
   const body = await readValidatedJson(event, bodySchema)
-  return askRecykleAssistant({
+  return askReCircleAssistant({
     user,
     message: body.message,
     wasteItemId: body.wasteItemId,

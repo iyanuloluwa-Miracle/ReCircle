@@ -23,13 +23,13 @@ async function enterDemo(role: UserRole) {
   }
 }
 
-useSeoMeta({ title: 'Try the demo — Recykle AI', robots: 'noindex' })
+useSeoMeta({ title: 'Try the demo — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
   <section class="auth-page container">
     <div class="auth-intro">
-      <p class="eyebrow">Explore Recykle AI</p>
+      <p class="eyebrow">Explore ReCircle</p>
       <h1 class="page-title">Choose your place in the circle.</h1>
       <p class="muted">Three seeded accounts let you explore each role. Everything here is demo data.</p>
     </div>

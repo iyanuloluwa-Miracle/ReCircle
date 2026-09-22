@@ -3,7 +3,7 @@ import { formatNaira, formatNumber } from '~~/utils/format'
 import type { PickupRequestView } from '../../../types'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useSeoMeta({ title: 'Operator workspace — Recykle AI', robots: 'noindex' })
+useSeoMeta({ title: 'Operator workspace — ReCircle', robots: 'noindex' })
 
 interface OperatorDashboard {
   user: { name: string; email: string; isDemo: boolean }
@@ -145,7 +145,7 @@ async function optimizePickups() {
       <DashboardSection
         class="dash-span-2"
         title="Smart Collection Batch"
-        description="Recykle groups nearby pickups to reduce unnecessary collection travel."
+        description="ReCircle groups nearby pickups to reduce unnecessary collection travel."
       >
         <div class="optimize-controls">
           <label for="optimize-zone">

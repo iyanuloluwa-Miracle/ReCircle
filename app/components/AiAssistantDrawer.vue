@@ -91,7 +91,7 @@ function onKeydown(event: KeyboardEvent) {
       aria-controls="ai-assistant-drawer"
       @click="toggle"
     >
-      {{ open ? 'Close' : 'Ask Recykle AI' }}
+      {{ open ? 'Close' : 'Ask ReCircle' }}
     </button>
 
     <aside
@@ -99,11 +99,11 @@ function onKeydown(event: KeyboardEvent) {
       class="ai-assistant-drawer"
       :class="{ 'is-open': open }"
       :aria-hidden="!open"
-      aria-label="Recykle AI assistant"
+      aria-label="ReCircle assistant"
     >
       <header class="ai-assistant-header">
         <div>
-          <p class="eyebrow">Recykle AI</p>
+          <p class="eyebrow">ReCircle</p>
           <h2>Assistant</h2>
         </div>
         <button class="icon-button" type="button" aria-label="Close assistant" @click="open = false">×</button>

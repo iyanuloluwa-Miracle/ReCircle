@@ -2,7 +2,7 @@
 import { materialCodes, recyclabilityValues } from '~~/utils/classification'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useSeoMeta({ title: 'Waste analysis — Recykle AI', robots: 'noindex' })
+useSeoMeta({ title: 'Waste analysis — ReCircle', robots: 'noindex' })
 
 interface AnalysisItem {
   id: string
