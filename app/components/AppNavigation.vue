@@ -8,8 +8,18 @@ watch(() => route.fullPath, () => { open.value = false })
   <header class="site-header">
     <nav class="container nav-bar" aria-label="Main navigation">
       <BrandMark />
-      <button class="menu-toggle" type="button" :aria-expanded="open" aria-controls="main-links" @click="open = !open">
-        {{ open ? 'Close' : 'Menu' }} <span aria-hidden="true">{{ open ? '−' : '+' }}</span>
+      <button
+        class="menu-toggle"
+        type="button"
+        :class="{ 'is-open': open }"
+        :aria-expanded="open"
+        aria-controls="main-links"
+        :aria-label="open ? 'Close menu' : 'Open menu'"
+        @click="open = !open"
+      >
+        <span class="menu-toggle-bar" aria-hidden="true" />
+        <span class="menu-toggle-bar" aria-hidden="true" />
+        <span class="menu-toggle-bar" aria-hidden="true" />
       </button>
       <div id="main-links" class="nav-links" :class="{ 'is-open': open }">
         <NuxtLink to="/#what-you-can-recycle" @click="open = false">What we take</NuxtLink>
