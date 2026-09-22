@@ -24,14 +24,14 @@ const roles = [
     <section class="hero container">
       <div class="hero-copy">
         <div class="location-label"><span class="status-dot" /> Recycling made rewarding</div>
-        <h1>The smarter way to turn waste<br>into <span>value.</span></h1>
+        <h1>Turn waste into <span>value.</span></h1>
         <form class="hero-email-form" @submit.prevent="submitEmail">
           <label class="sr-only" for="hero-email">Lagos area</label>
           <input id="hero-email" v-model="email" autocomplete="address-level2" placeholder="Enter your Lagos area" required>
           <BaseButton type="submit">Keep me posted <span aria-hidden="true">→</span></BaseButton>
         </form>
         <p v-if="emailSubmitted" class="hero-email-confirmation" role="status">Thanks — we’ll be in touch.</p>
-        <p class="hero-description">Photograph your recyclable waste, discover its material and fair value, then connect with a trusted recycler near you.</p>
+        <p class="hero-description">Snap it. Know its value. Find a recycler nearby.</p>
         <p class="hero-scan-note">Or scan first—we'll help you find the right recycler afterward.</p>
         <div class="hero-actions">
           <BaseButton to="/demo">Explore ReCircle <span aria-hidden="true">↗</span></BaseButton>
