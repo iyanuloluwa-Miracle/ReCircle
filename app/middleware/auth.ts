@@ -8,6 +8,7 @@ const roleByPath: Record<string, UserRole> = {
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const requiredRole = roleByPath[to.path]
+    ?? (to.path === '/scan' || to.path.startsWith('/scan/') ? 'user' : undefined)
   if (!requiredRole) return
   const auth = useAuth()
   let user

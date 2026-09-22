@@ -29,6 +29,7 @@ async function signOut() {
       <nav aria-label="Workspace navigation">
         <NuxtLink v-if="user" :to="dashboardPathByRole[user.role]" class="workspace-nav-item"><span aria-hidden="true">◈</span> Overview</NuxtLink>
         <NuxtLink v-else to="/workspace" class="workspace-nav-item"><span aria-hidden="true">◈</span> Preview</NuxtLink>
+        <NuxtLink v-if="user?.role === 'user'" to="/scan" class="workspace-nav-item"><span aria-hidden="true">▣</span> Scan an item</NuxtLink>
         <NuxtLink to="/demo" class="workspace-nav-item"><span aria-hidden="true">↗</span> Switch demo role</NuxtLink>
         <NuxtLink to="/" class="workspace-nav-item"><span aria-hidden="true">↗</span> Back to home</NuxtLink>
       </nav>

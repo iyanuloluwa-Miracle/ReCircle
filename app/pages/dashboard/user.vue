@@ -7,8 +7,10 @@ useSeoMeta({ title: 'Consumer workspace — Recykle AI', robots: 'noindex' })
   <DashboardWelcome
     eyebrow="Consumer workspace"
     title="Your next good turn starts here."
-    description="Welcome to your recycling space. Photo analysis and pickup requests arrive in a later phase."
+    description="Welcome to your recycling space. Start with a photo; AI analysis and pickups arrive in a later phase."
     empty-title="No waste items yet"
-    empty-description="When waste analysis is available, your items and pickup requests will appear here."
+    empty-description="Upload a recyclable photo to start a draft. Analysis and pickup requests will follow in a later phase."
+    action-to="/scan"
+    action-label="Scan an item"
   />
 </template>

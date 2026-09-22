@@ -5,6 +5,8 @@ defineProps<{
   description: string
   emptyTitle: string
   emptyDescription: string
+  actionTo?: string
+  actionLabel?: string
 }>()
 const { user } = useAuth()
 </script>
@@ -23,7 +25,9 @@ const { user } = useAuth()
       <BaseBadge v-if="user?.isDemo" tone="lime">DEMO ACCOUNT</BaseBadge>
     </BaseCard>
     <BaseCard>
-      <EmptyState :title="emptyTitle" :description="emptyDescription" />
+      <EmptyState :title="emptyTitle" :description="emptyDescription">
+        <BaseButton v-if="actionTo && actionLabel" :to="actionTo">{{ actionLabel }}</BaseButton>
+      </EmptyState>
     </BaseCard>
   </div>
 </template>
