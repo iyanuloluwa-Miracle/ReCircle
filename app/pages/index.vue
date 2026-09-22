@@ -24,7 +24,7 @@ const roles = [
     <section class="hero container">
       <div class="hero-copy">
         <div class="location-label"><span class="status-dot" /> A new circle. Starting in Lagos.</div>
-        <h1>Good things<br>deserve a<br><span>second life.</span></h1>
+        <h1>Good things deserve<br>a <span>second life.</span></h1>
         <form class="hero-email-form" @submit.prevent="submitEmail">
           <label class="sr-only" for="hero-email">Email address</label>
           <input id="hero-email" v-model="email" type="email" autocomplete="email" placeholder="Enter your email address" required>
