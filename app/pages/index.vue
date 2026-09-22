@@ -23,43 +23,27 @@ const roles = [
   <div>
     <section class="hero container">
       <div class="hero-copy">
-        <div class="location-label"><span class="status-dot" /> Recycling made rewarding</div>
-        <h1>Turn waste<br>into <span>value.</span></h1>
-        <p class="hero-description">Snap it. Know its value. Find a recycler nearby.</p>
+        <p class="location-label">ReCircle Pickups</p>
+        <h1>The scan that turns waste into <span>value.</span></h1>
+        <p class="hero-description">
+          Snap it. Know its worth. Find a recycler nearby.
+        </p>
         <form class="hero-email-form" @submit.prevent="submitEmail">
-          <label class="sr-only" for="hero-email">Lagos area</label>
-          <input id="hero-email" v-model="email" autocomplete="address-level2" placeholder="Enter your Lagos area" required>
-          <BaseButton type="submit">Keep me posted <span aria-hidden="true">→</span></BaseButton>
+          <div class="hero-email-fields">
+            <label for="hero-email">See what we offer in your neighborhood</label>
+            <input
+              id="hero-email"
+              v-model="email"
+              type="email"
+              autocomplete="email"
+              placeholder="Enter your email"
+              required
+            >
+          </div>
+          <BaseButton type="submit">Get started</BaseButton>
         </form>
         <p v-if="emailSubmitted" class="hero-email-confirmation" role="status">Thanks — we’ll be in touch.</p>
-        <p class="hero-scan-note">Or scan first—we'll help you find the right recycler afterward.</p>
-        <div class="hero-actions">
-          <BaseButton to="/demo">Explore ReCircle <span aria-hidden="true">↗</span></BaseButton>
-          <BaseButton variant="ghost" to="/#how-it-works">See how it works <span aria-hidden="true">↓</span></BaseButton>
-        </div>
-        <div class="hero-footnote"><span class="mini-orbit" aria-hidden="true">↻</span> Less waste. More value. One connected circle.</div>
-      </div>
-      <div class="hero-art" role="img" aria-label="Illustration of a reusable bottle surrounded by a circular path, representing a second life for materials">
-        <div class="art-topline"><span>RETHINK. RECYCLE. REPEAT.</span><span aria-hidden="true">↗</span></div>
-        <div class="orbit orbit-one" /><div class="orbit orbit-two" />
-        <span class="orbit-label orbit-label-top">A little change</span>
-        <svg class="bottle-art" viewBox="0 0 240 370" fill="none" aria-hidden="true">
-          <defs>
-            <linearGradient id="bottle-fill" x1="55" y1="130" x2="186" y2="275" gradientUnits="userSpaceOnUse"><stop stop-color="#D1E7B5" /><stop offset=".48" stop-color="#A8CA8F" /><stop offset="1" stop-color="#6D9A6C" /></linearGradient>
-            <linearGradient id="bottle-shine" x1="70" y1="150" x2="104" y2="150" gradientUnits="userSpaceOnUse"><stop stop-color="white" stop-opacity=".55" /><stop offset="1" stop-color="white" stop-opacity="0" /></linearGradient>
-          </defs>
-          <ellipse cx="123" cy="339" rx="68" ry="12" fill="#082D24" opacity=".2" />
-          <path d="M96 54h48v38c0 22 41 36 41 66v146c0 19-13 28-30 28H85c-17 0-30-9-30-28V158c0-30 41-44 41-66V54Z" fill="url(#bottle-fill)" stroke="#DDF0C6" stroke-width="2" />
-          <path d="M102 68v23c0 29-34 43-34 68v142c0 12 6 18 18 18h9V157c0-33 21-38 21-68V68h-14Z" fill="url(#bottle-shine)" />
-          <rect x="90" y="40" width="60" height="30" rx="8" fill="#D5F491" />
-          <path d="M99 44v21m10-21v21m11-21v21m11-21v21m10-21v21" stroke="#97B56A" stroke-width="2" />
-          <path d="M56 184h129v86H56z" fill="#F5F4E9" />
-          <path d="m119 202 15 9-5 9m5-9-12 2m19 25-16 9-5-9m5 9 5-11m-28-19v19h10m-10 0 6-10" stroke="#214F3C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M67 286h106M67 303h106" stroke="#648D62" stroke-opacity=".4" stroke-width="3" />
-        </svg>
-        <div class="material-note"><span class="material-icon" aria-hidden="true">↻</span><div><strong>New life. Same material.</strong><span>Keep the good going.</span></div></div>
-        <span class="orbit-label orbit-label-bottom">A bigger possibility</span>
-        <div class="art-bottomline"><span>THE FUTURE IS CIRCULAR</span><span>01 / LAGOS</span></div>
+        <a class="hero-email-why" href="#how-it-works">Why do we need your email?</a>
       </div>
     </section>
 
