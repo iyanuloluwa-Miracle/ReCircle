@@ -5,7 +5,7 @@ import { getServerConfig } from './config'
 
 const identitySchema = z.object({
   userId: z.string().min(1),
-  role: z.enum(['consumer', 'recycler', 'operator'])
+  role: z.enum(['user', 'recycler', 'waste_operator'])
 })
 
 export function getAuthSession(event: H3Event) {

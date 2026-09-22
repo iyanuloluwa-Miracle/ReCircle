@@ -1,4 +1,4 @@
-export type UserRole = 'consumer' | 'recycler' | 'operator'
+export type UserRole = 'user' | 'recycler' | 'waste_operator'
 
 export interface SessionUser {
   id: string
