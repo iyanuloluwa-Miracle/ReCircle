@@ -1,8 +1,9 @@
-# Recykle AI — Phase 8
+# Recykle AI — Phase 9
 
 A Lagos-focused recycling coordination hackathon prototype built with Nuxt 4,
-strict TypeScript and Tailwind CSS 4. Phase 8 adds polished multi-role dashboards
-with live MongoDB metrics for consumers, recyclers, and waste operators.
+strict TypeScript and Tailwind CSS 4. Phase 9 adds Smart Collection Batch on the
+operator dashboard: deterministic geographic grouping of nearby pickups into
+suggested collection sequences (straight-line heuristics, not road routing).
 
 ## Local setup
 
@@ -172,6 +173,17 @@ never hard-coded in the UI.
 
 All three layouts share the same metric cards, section shells, empty states, and
 loading skeletons, and are tuned for 375px mobile, tablet, and desktop widths.
+
+
+## Smart Collection Batch
+
+`GET /api/optimize-pickups?zoneId=` is an operator-only, read-only planner. It loads
+pending and accepted requests, filters by a Lagos zone, clusters nearby pickups with
+a deterministic radius heuristic, then orders each cluster with nearest-neighbour.
+The UI labels this a **Suggested collection sequence** and compares naive vs suggested
+straight-line distance. An SVG marker map is included; no paid routing API is used.
+This endpoint never mutates WasteItem, Request, or capacity state, so the scan → match
+→ request flow stays unchanged.
 
 ## Why MongoDB
 
