@@ -82,8 +82,8 @@ async function runSeed(mongodbUri: string) {
     const consumerId = id(1)
     const operatorId = id(2)
     const consumerPoint = point(3.3947, 6.4541)
-    await insertDemo(User, { _id: consumerId, name: 'Demo Consumer', email: 'consumer@recircle-demo.example', passwordHash, role: 'user', location: consumerPoint, isDemo: true })
-    await insertDemo(User, { _id: operatorId, name: 'Demo Waste Operator', email: 'operator@recircle-demo.example', passwordHash, role: 'waste_operator', location: consumerPoint, isDemo: true })
+    await insertDemo(User, { _id: consumerId, name: 'Demo Consumer', email: 'consumer@recircle-demo.example', passwordHash, role: 'user', location: consumerPoint, avatarUrl: 'emoji:♻️', emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
+    await insertDemo(User, { _id: operatorId, name: 'Demo Waste Operator', email: 'operator@recircle-demo.example', passwordHash, role: 'waste_operator', location: consumerPoint, avatarUrl: 'emoji:🌍', emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
 
     // Fictional businesses and invented prices for product demonstration only.
     const businesses = [
@@ -94,7 +94,7 @@ async function runSeed(mongodbUri: string) {
     ]
     for (const [index, business] of businesses.entries()) {
       const userId = id(10 + index)
-      await insertDemo(User, { _id: userId, name: `${business.name} Team`, email: `recycler${index + 1}@recircle-demo.example`, passwordHash, role: 'recycler', location: business.coords, isDemo: true })
+      await insertDemo(User, { _id: userId, name: `${business.name} Team`, email: `recycler${index + 1}@recircle-demo.example`, passwordHash, role: 'recycler', location: business.coords, avatarUrl: 'emoji:🪴', emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
       await insertDemo(Recycler, {
         _id: id(20 + index), userId, businessName: business.name, location: business.coords,
         acceptedMaterials: business.materials,
