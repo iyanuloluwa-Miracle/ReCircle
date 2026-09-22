@@ -1,5 +1,12 @@
 <script setup lang="ts">
 const showPreview = ref(false)
+const email = ref('')
+const emailSubmitted = ref(false)
+
+function submitEmail() {
+  emailSubmitted.value = true
+}
+
 const steps = [
   { number: '01', title: 'See the potential.', description: 'The planned experience starts with a photo to help identify your recyclable material.', symbol: '⌁' },
   { number: '02', title: 'Know its value.', description: 'Add the weight. Recycler prices will power a transparent estimate, calculated by the platform.', symbol: '₦' },
@@ -18,6 +25,12 @@ const roles = [
       <div class="hero-copy">
         <div class="location-label"><span class="status-dot" /> A new circle. Starting in Lagos.</div>
         <h1>Good things<br>deserve a<br><span>second life.</span></h1>
+        <form class="hero-email-form" @submit.prevent="submitEmail">
+          <label class="sr-only" for="hero-email">Email address</label>
+          <input id="hero-email" v-model="email" type="email" autocomplete="email" placeholder="Enter your email address" required>
+          <BaseButton type="submit">Keep me posted <span aria-hidden="true">→</span></BaseButton>
+        </form>
+        <p v-if="emailSubmitted" class="hero-email-confirmation" role="status">Thanks — we’ll be in touch.</p>
         <p class="hero-description">That bottle isn't the end of the story. We're building a simpler way to turn everyday recyclables into everyday value.</p>
         <div class="hero-actions">
           <BaseButton to="/demo">Explore ReCircle <span aria-hidden="true">↗</span></BaseButton>
