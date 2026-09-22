@@ -1,9 +1,9 @@
-# Recykle AI — Phase 2
+# Recykle AI — Phase 3
 
 A Lagos-focused recycling coordination hackathon prototype built with Nuxt 4,
-strict TypeScript and Tailwind CSS 4. Phase 2 adds MongoDB operational models,
-geospatial indexes, and clearly marked demo seed data to the application foundation.
-The UI has **no live classification, quotes, matching, pickup workflows or dashboards**.
+strict TypeScript and Tailwind CSS 4. Phase 3 adds secure account sessions and
+three role workspaces to the MongoDB foundation. The UI has **no live
+classification, quotes, matching, pickup workflows or analytics dashboards**.
 
 ## Local setup
 
@@ -17,8 +17,8 @@ Use Node.js 24 LTS and npm.
    `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
 5. Run `npm run dev` and open http://localhost:3000.
 
-External AI, storage and payment keys may remain empty through Phase 2.
-Authentication helpers reject missing/short secrets; there is no sign-in endpoint yet.
+External AI, storage and payment keys may remain empty through Phase 3.
+Set `SESSION_SECRET` to at least 32 random characters before using authentication.
 
 ## Commands
 
@@ -28,6 +28,7 @@ Authentication helpers reject missing/short secrets; there is no sign-in endpoin
 - `npm test`: password hashing checks
 - `npm run build`: production build
 - `npm run seed`: insert labelled demo data and verify MongoDB indexes
+- `npm run test:auth`: HTTP auth checks against a running dev server on port 3001
 - `npm run preview`: local production preview
 
 ## Structure
@@ -41,7 +42,7 @@ app/
   components/     Brand, navigation, Button, Card, Badge, Modal,
                   EmptyState, LoadingSkeleton, StatCard
   composables/    Lazy Chart.js loader and health request
-  middleware/     Future client navigation guards
+  middleware/     Role-aware navigation guards
   assets/css/     Tailwind entry, design tokens and responsive styles
 server/
   api/            HTTP endpoints
@@ -86,6 +87,27 @@ Prices, estimates, and payouts are stored as numeric NGN amounts. The demo uses
 whole naira. Future payment logic should define rounding and precision rules before
 any real transaction is processed.
 
+## Accounts and role access
+
+`POST /api/auth/register` creates consumer accounts only. `POST /api/auth/login`
+checks a salted scrypt password hash. `POST /api/auth/logout` clears the encrypted
+HttpOnly session cookie, and `GET /api/auth/me` returns the current account without
+the password hash. Public registration cannot assign recycler or operator roles.
+Cross-origin browser POSTs are rejected. Session cookies use SameSite=Lax and are
+marked Secure outside development.
+
+The `/demo` page has three password-free buttons for judges. Each button calls
+`POST /api/auth/demo`; the server permits only a specific seeded email, expected
+role, and `isDemo: true` record. The client never receives a demo password.
+`/dashboard/user`, `/dashboard/recycler`, and `/dashboard/operator` have navigation
+guards and server API authorization. An absent session gets HTTP 401 on protected
+APIs; a session with the wrong role gets HTTP 403. Role checks read MongoDB so a
+changed or deleted account does not retain access through an old cookie.
+To run the HTTP checks locally, start `npm run dev -- --port 3001` in one terminal,
+then run `npm run test:auth` in another. The check covers all three role guards,
+cookie flags, demo sessions, registration, login, and logout. It removes its own
+temporary registration record. Set `AUTH_TEST_URL` if the server uses another URL.
+
 ## Health and MongoDB
 
 `GET /api/health` connects lazily through Mongoose and performs a real database ping.
@@ -118,8 +140,9 @@ Payment processing is not implemented. Future payment work must enforce TEST mod
 Sessions use H3 encrypted, integrity-protected HttpOnly cookies, SameSite=Lax,
 a one-day lifetime and Secure outside development. Header-based sessions are disabled.
 Passwords use salted scrypt and timing-safe verification; no JWT or hashing package
-is necessary. Session revocation, sign-in rate limiting and CSRF protection for
-state-changing endpoints belong to the authentication phase, before exposing them.
+is necessary. Auth POST endpoints check request origin. Session revocation across
+devices and distributed sign-in rate limiting remain future hardening work before
+any production launch.
 
 ## Integrations
 

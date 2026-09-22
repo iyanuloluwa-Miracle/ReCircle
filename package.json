@@ -11,7 +11,8 @@
     "lint": "nuxt prepare && eslint .",
     "typecheck": "nuxt typecheck && tsc --project tsconfig.scripts.json",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "seed": "node --experimental-strip-types scripts/seed.ts"
+    "seed": "node --experimental-strip-types scripts/seed.ts",
+    "test:auth": "node --experimental-strip-types scripts/verify-auth.ts"
   },
   "dependencies": {
     "@byteship/js": "^0.1.5",
