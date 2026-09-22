@@ -376,6 +376,47 @@ h1, h2, h3, p { margin: 0; }
 .platform-role-copy { padding: 22px 4px 0; display: grid; gap: 10px; }
 .platform-role-copy h3 { font-size: clamp(22px, 2.2vw, 28px); letter-spacing: -.035em; line-height: 1.15; font-weight: 650; color: #0d2a22; }
 .platform-role-copy p { margin: 0; color: #5a6b60; font-size: 15px; line-height: 1.7; max-width: 34ch; }
+.home-faq { background: #f8f8f0; color: #123f32; padding-block: 96px; border-top: 1px solid #e4ebe0; text-align: center; }
+.home-faq-intro { max-width: 720px; margin: 0 auto 40px; }
+.home-faq-intro .eyebrow { color: #5f8a3d; margin-bottom: 18px; }
+.home-faq-intro h2 { font-size: clamp(32px, 4.6vw, 48px); letter-spacing: -.05em; line-height: 1.08; font-weight: 600; color: #0d2a22; }
+.home-faq-list { max-width: 820px; margin-inline: auto; display: grid; gap: 0; border-top: 1px solid #dce3d2; text-align: left; }
+.home-faq-item { border-bottom: 1px solid #dce3d2; }
+.home-faq-item h3 { margin: 0; font-size: inherit; font-weight: inherit; }
+.home-faq-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 4px;
+  border: 0;
+  background: transparent;
+  color: #0d2a22;
+  text-align: left;
+  font-size: clamp(17px, 1.7vw, 20px);
+  font-weight: 600;
+  letter-spacing: -.025em;
+  line-height: 1.35;
+}
+.home-faq-trigger:hover { color: #22523f; }
+.home-faq-trigger:focus-visible { outline: 3px solid #61892d; outline-offset: 4px; border-radius: 8px; }
+.home-faq-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #edf1e4;
+  color: #123f32;
+  font-size: 22px;
+  line-height: 1;
+  transition: background .2s ease, color .2s ease;
+}
+.home-faq-item.is-open .home-faq-icon { background: #123f32; color: #d3f28a; }
+.home-faq-panel { padding: 0 48px 22px 4px; }
+.home-faq-panel p { margin: 0; color: #5a6b60; font-size: 15px; line-height: 1.75; max-width: 62ch; }
 @keyframes pulse { 50% { opacity: .45; } } @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 1000px) {
   .nav-links { gap: 18px; }.hero h1 { font-size: clamp(42px, 8vw, 66px); }
@@ -388,6 +429,8 @@ h1, h2, h3, p { margin: 0; }
   .platform-roles { padding-block: 72px; }
   .platform-roles-grid { gap: 16px; }
   .platform-role-copy h3 { font-size: 22px; }
+  .home-faq { padding-block: 72px; }
+  .home-faq-trigger { padding-block: 20px; }
   .dash-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dash-grid { grid-template-columns: 1fr; }
   .incoming-card { grid-template-columns: 120px 1fr; }
@@ -445,6 +488,13 @@ h1, h2, h3, p { margin: 0; }
   .platform-role-media { border-radius: 18px; }
   .platform-role-copy { padding-top: 16px; }
   .platform-role-copy p { max-width: none; font-size: 14px; }
+  .home-faq { padding-block: 56px; }
+  .home-faq-intro { margin-bottom: 28px; }
+  .home-faq-intro h2 { font-size: clamp(28px, 7.5vw, 36px); }
+  .home-faq-trigger { font-size: 16px; gap: 14px; padding-block: 18px; }
+  .home-faq-icon { width: 30px; height: 30px; font-size: 20px; }
+  .home-faq-panel { padding: 0 38px 18px 2px; }
+  .home-faq-panel p { font-size: 14px; }
   .section { padding-block: 56px; }.section-heading { align-items: start; flex-direction: column; gap: 18px; margin-bottom: 28px; }.section-heading > p br { display: none; }
   .steps-grid, .roles-grid { grid-template-columns: 1fr; gap: 16px; }.card { padding: 25px; }.step-top { margin-bottom: 26px; }.preview-caption { align-items: start; line-height: 1.7; font-size: 10px; }.role-card { padding-block: 20px; }.role-index { margin-bottom: 16px; }.role-card h3 { max-width: none; }
   .mission-panel { padding: 30px 25px; grid-template-columns: 1fr; gap: 26px; }.mission-copy p { font-size: 13px; }.site-footer { flex-direction: column; align-items: start; gap: 17px; padding-block: 28px; }

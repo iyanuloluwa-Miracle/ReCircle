@@ -65,6 +65,8 @@ function submitArea() {
 
     <PlatformRoles />
 
+    <HomeFaq />
+
     <section id="the-mission" class="section container">
       <div class="mission-panel"><div><p class="eyebrow">Made for the Lagos we believe in</p><h2>Waste is a challenge.<br>What comes next is<br><span>an opportunity.</span></h2></div><div class="mission-copy"><p>We believe recycling should feel like a natural next step. ReCircle is a hackathon prototype exploring how technology can help people, recyclers and waste operators work better together.</p><BaseButton variant="secondary" @click="showPreview = true">About this preview <span aria-hidden="true">↗</span></BaseButton></div></div>
     </section>
