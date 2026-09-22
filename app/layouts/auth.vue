@@ -1,8 +1,6 @@
 <template>
-  <div>
+  <div class="auth-shell">
     <a class="skip-link" href="#main-content">Skip to content</a>
-    <AppNavigation />
-    <main id="main-content"><slot /></main>
-    <AppFooter />
+    <main id="main-content" class="auth-shell-main"><slot /></main>
   </div>
 </template>
