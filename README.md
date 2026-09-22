@@ -1,9 +1,9 @@
-# Recykle AI — Phase 3
+# Recykle AI — Phase 4
 
 A Lagos-focused recycling coordination hackathon prototype built with Nuxt 4,
-strict TypeScript and Tailwind CSS 4. Phase 3 adds secure account sessions and
-three role workspaces to the MongoDB foundation. The UI has **no live
-classification, quotes, matching, pickup workflows or analytics dashboards**.
+strict TypeScript and Tailwind CSS 4. Phase 4 adds a consumer waste scanner,
+Byteship image uploads, and MongoDB drafts. The UI has **no live AI classification,
+quotes, matching, pickup workflows or analytics dashboards**.
 
 ## Local setup
 
@@ -17,7 +17,7 @@ Use Node.js 24 LTS and npm.
    `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
 5. Run `npm run dev` and open http://localhost:3000.
 
-External AI, storage and payment keys may remain empty through Phase 3.
+The scanner needs `BYTESHIP_API_KEY`. AI and payment keys may remain empty.
 Set `SESSION_SECRET` to at least 32 random characters before using authentication.
 
 ## Commands
@@ -25,10 +25,11 @@ Set `SESSION_SECRET` to at least 32 random characters before using authenticatio
 - `npm run dev`: development server
 - `npm run lint`: ESLint
 - `npm run typecheck`: strict Nuxt/Vue TypeScript checks
-- `npm test`: password hashing checks
+- `npm test`: password, model and image validation checks
 - `npm run build`: production build
 - `npm run seed`: insert labelled demo data and verify MongoDB indexes
 - `npm run test:auth`: HTTP auth checks against a running dev server on port 3001
+- `npm run test:upload`: live Byteship upload and draft check against port 3001
 - `npm run preview`: local production preview
 
 ## Structure
@@ -37,28 +38,51 @@ Nuxt 4 frontend directories live under `app/`; do not add duplicate root pages o
 
 ```text
 app/
-  pages/          Landing page and public workspace preview
+  pages/          Landing, accounts, role pages, scanner and analysis handoff
   layouts/        Public and dashboard shells
   components/     Brand, navigation, Button, Card, Badge, Modal,
                   EmptyState, LoadingSkeleton, StatCard
-  composables/    Lazy Chart.js loader and health request
+  composables/    Auth, scanner upload, pickup location, chart and health state
   middleware/     Role-aware navigation guards
   assets/css/     Tailwind entry, design tokens and responsive styles
 server/
   api/            HTTP endpoints
   middleware/     Response headers
   models/         Mongoose operational models and GeoJSON validation
-scripts/           Repeatable labelled demo seed and index verification
-  services/       Password hashing and integration clients
+  services/       Password hashing, image policy and integration clients
   utils/          Configuration, database, sessions and validation
+scripts/           Demo seed and live HTTP verification
 types/            Shared contracts; never put secrets here
-utils/            Pure presentation utilities
-tests/            Security utility tests
+utils/            Pure formatting and image validation utilities
+tests/            Password, model and image validation tests
 ```
 
-Frontend components own presentation only. Future request bodies use Zod through
-`readValidatedJson`. Future protected endpoints use server authorization; client
+Frontend components own presentation only. Request bodies use Zod through
+`readValidatedJson`. Protected endpoints use server authorization; client
 middleware is not an authorization boundary.
+
+## Waste scanner and uploads
+
+Consumers can open `/scan` from their workspace. The page accepts JPEG, PNG, and
+WEBP images up to 5 MB, including a phone camera input where supported. Device
+location requires browser permission; manual coordinates are available if it fails.
+Seeded consumer accounts start with an explicitly labelled demo Lagos pickup point.
+No location is inferred from an image.
+
+`POST /api/upload-token` asks Byteship for a public, 15-minute token scoped to
+`waste-images/<user id>` with a 5 MB upload limit. The project API key stays on the
+server. Byteship's token API does not provide a MIME allowlist, so the browser
+checks type and file signature before upload, and `POST /api/waste-items/draft`
+checks provider metadata and image bytes before saving. A retry after a completed
+upload reuses the same storage path and draft. The draft contains an image URL,
+pickup location and source, but no guessed material, weight, or value. The next
+route shows an analysis handoff, with AI intentionally deferred.
+
+Run `npm run test:upload` against a dev server on port 3001 to verify a scoped token,
+public upload, draft creation, retry, and analysis handoff. The check attempts to
+remove its temporary demo image and draft; cleanup needs a Byteship key with delete
+permission. See [Byteship browser uploads](https://byteship.dev/docs/browser-uploads)
+and [API reference](https://byteship.dev/docs/api-reference).
 
 ## Why MongoDB
 

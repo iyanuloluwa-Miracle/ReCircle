@@ -12,7 +12,8 @@
     "typecheck": "nuxt typecheck && tsc --project tsconfig.scripts.json",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "seed": "node --experimental-strip-types scripts/seed.ts",
-    "test:auth": "node --experimental-strip-types scripts/verify-auth.ts"
+    "test:auth": "node --experimental-strip-types scripts/verify-auth.ts",
+    "test:upload": "node --experimental-strip-types scripts/verify-upload.ts"
   },
   "dependencies": {
     "@byteship/js": "^0.1.5",
