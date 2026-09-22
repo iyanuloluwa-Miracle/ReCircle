@@ -15,7 +15,8 @@ watch(() => route.fullPath, () => { open.value = false })
         <NuxtLink to="/#how-it-works" @click="open = false">How it works</NuxtLink>
         <NuxtLink to="/#our-circle" @click="open = false">Our circle</NuxtLink>
         <NuxtLink to="/#the-mission" @click="open = false">The mission</NuxtLink>
-        <BaseButton to="/workspace" size="sm">Explore the preview <span aria-hidden="true">↗</span></BaseButton>
+        <NuxtLink to="/login" @click="open = false">Sign in</NuxtLink>
+        <BaseButton to="/demo" size="sm">Try the demo <span aria-hidden="true">↗</span></BaseButton>
       </div>
     </nav>
   </header>

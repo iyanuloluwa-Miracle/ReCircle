@@ -9,8 +9,8 @@ useSeoMeta({ title: 'Workspace preview — Recykle AI', robots: 'noindex' })
     <h1 class="page-title">Room for what comes next.</h1>
     <p class="muted workspace-intro">A first look at your Recykle AI workspace.</p>
     <BaseCard>
-      <EmptyState title="Your workspace is taking shape" description="This is a public preview. Accounts, recycling requests and activity will arrive in a later phase.">
-        <BaseButton to="/">Explore the idea <span aria-hidden="true">↗</span></BaseButton>
+      <EmptyState title="Your workspace is taking shape" description="This is a public preview. Accounts are ready; recycling requests and activity arrive in a later phase.">
+        <BaseButton to="/demo">Try the demo <span aria-hidden="true">↗</span></BaseButton>
       </EmptyState>
     </BaseCard>
   </div>

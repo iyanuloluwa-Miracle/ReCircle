@@ -20,7 +20,7 @@ const roles = [
         <h1>Good things<br>deserve a<br><span>second life.</span></h1>
         <p class="hero-description">That bottle isn't the end of the story. We're building a simpler way to turn everyday recyclables into everyday value.</p>
         <div class="hero-actions">
-          <BaseButton to="/workspace">Explore Recykle AI <span aria-hidden="true">↗</span></BaseButton>
+          <BaseButton to="/demo">Explore Recykle AI <span aria-hidden="true">↗</span></BaseButton>
           <BaseButton variant="ghost" to="/#how-it-works">See how it works <span aria-hidden="true">↓</span></BaseButton>
         </div>
         <div class="hero-footnote"><span class="mini-orbit" aria-hidden="true">↻</span> Less waste. More value. One connected circle.</div>

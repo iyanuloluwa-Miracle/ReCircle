@@ -1,5 +1,6 @@
 # Route middleware
 
-Add authentication navigation guards when sign-in routes exist. Frontend guards
-are only navigation helpers: protected APIs must also use server-side authorization.
-The Phase 1 workspace is a public shell preview and contains no user data.
+`auth.ts` redirects guests from role dashboards to `/demo` and signed-in users
+to the dashboard for their current role. The guard calls `/api/auth/me`, which
+reads the role from MongoDB on every request. Server API routes still call
+`requireSessionUser`; client navigation is not the authorization boundary.
