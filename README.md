@@ -1,9 +1,9 @@
-# Recykle AI — Phase 9
+# Recykle AI — Phase 11
 
 A Lagos-focused recycling coordination hackathon prototype built with Nuxt 4,
-strict TypeScript and Tailwind CSS 4. Phase 9 adds Smart Collection Batch on the
-operator dashboard: deterministic geographic grouping of nearby pickups into
-suggested collection sequences (straight-line heuristics, not road routing).
+strict TypeScript and Tailwind CSS 4. Phase 11 adds a grounded Recykle AI
+assistant that explains platform data from MongoDB and never invents pricing,
+earnings, status, distance, or confidence.
 
 ## Local setup
 
@@ -27,7 +27,7 @@ Set `SESSION_SECRET` to at least 32 random characters before using authenticatio
 - `npm run dev`: development server
 - `npm run lint`: ESLint
 - `npm run typecheck`: strict Nuxt/Vue TypeScript checks
-- `npm test`: password, model, classification, matching, lifecycle and dashboard helper checks
+- `npm test`: password, model, classification, matching, lifecycle, dashboard and assistant helper checks
 - `npm run build`: production build
 - `npm run seed`: insert labelled demo data and verify MongoDB indexes
 - `npm run test:auth`: HTTP auth checks against a running dev server on port 3001
@@ -45,7 +45,8 @@ app/
   layouts/        Public and dashboard shells
   components/     Brand, navigation, Button, Card, Badge, Modal,
                   EmptyState, LoadingSkeleton, StatCard, StatusTimeline, RequestCard,
-                  DashboardMetrics, IncomingRequestCard, BreakdownList, CapacityMeter
+                  DashboardMetrics, IncomingRequestCard, BreakdownList, CapacityMeter,
+                  AnalyticsChart, AiAssistantDrawer
   composables/    Auth, scanner upload, pickup location, chart and health state
   middleware/     Role-aware navigation guards
   assets/css/     Tailwind entry, design tokens and responsive styles
@@ -53,12 +54,13 @@ server/
   api/            HTTP endpoints
   middleware/     Response headers
   models/         Mongoose operational models and GeoJSON validation
-  services/       Password hashing, classification, matching, pickup requests and clients
+  services/       Password hashing, classification, matching, pickup requests,
+                  analytics, assistant context and clients
   utils/          Configuration, database, sessions and validation
 scripts/           Demo seed and live HTTP verification
 types/            Shared contracts; never put secrets here
-utils/            Pure formatting, classification, matching and lifecycle utilities
-tests/            Password, model, classification, matching and lifecycle tests
+utils/            Pure formatting, classification, matching, lifecycle and assistant utilities
+tests/            Password, model, classification, matching, lifecycle and assistant tests
 ```
 
 Frontend components own presentation only. Request bodies use Zod through
@@ -185,6 +187,29 @@ straight-line distance. An SVG marker map is included; no paid routing API is us
 This endpoint never mutates WasteItem, Request, or capacity state, so the scan → match
 → request flow stays unchanged.
 
+
+## Analytics
+
+`GET /api/analytics` returns role-scoped chart data from `AnalyticsService`.
+Aggregations run in MongoDB (monthly kg, payouts, material mix, status counts,
+recycler utilization, and zone distribution from coordinate buckets). The
+`/dashboard/analytics` page renders donut, line, bar, and horizontal-bar charts
+with loading and empty states. Charts do not invent trees-saved or CO₂ claims.
+
+## Recykle AI assistant
+
+`POST /api/ai-recommendation` accepts a short chat message (optional history and
+focus IDs). The server loads role-scoped facts from MongoDB — recent items,
+requests, earnings, demo recycler pricing, distances, and classification fields —
+then calls OpenRouter with a grounding prompt. The model must not invent recycler
+pricing, pickup availability, earnings, transaction status, recycler distance, or
+classification confidence. Answers should separate **From your Recykle data** from
+**General recycling advice**. The assistant never writes or updates records.
+
+A compact `AiAssistantDrawer` sits on the dashboard layout (floating button + side
+panel) so judges can ask about prep steps, habits, classifications, pickup status,
+estimated value, and recycling opportunities without leaving the workspace.
+
 ## Why MongoDB
 
 Waste classification can vary by material, packaging, and disposal guidance, so
@@ -275,13 +300,12 @@ any production launch.
 - Mongoose: shared, bounded-timeout database connection.
 - Zod: request validation and password/session constraints.
 - Byteship: official `@byteship/js` SDK and scoped browser upload tokens.
-- OpenRouter: server-side vision request with strict JSON schema, timeout and sanitized provider errors.
-- Chart.js: lazy client loading with cleanup; no chart/dashboard data yet.
+- OpenRouter: server-side vision classification and grounded assistant chat; timeout and sanitized provider errors.
+- Chart.js: lazy client loading with cleanup for role analytics charts.
 
-AI identifies materials only. Future financial values must come from deterministic
-server calculations using recycler pricing in MongoDB. Weight, location and
-availability must come from explicit data, never AI guesses. Any future seed data
-must be labeled as demo data.
+AI identifies materials and explains stored platform facts. Financial values come from
+deterministic server calculations using recycler pricing in MongoDB. Weight, location and
+availability come from explicit data, never AI guesses. Seed data is labelled as demo data.
 
 Documentation:
 [Nuxt](https://nuxt.com/docs/4.x),

@@ -1,11 +1,13 @@
 import { createError } from 'h3'
 import { getServerConfig } from '../utils/config'
 
-/** Keep the OpenRouter key and vision requests on the server. */
-export function getOpenRouterTransport() {
+/** Keep the OpenRouter key and model requests on the server. */
+export function getOpenRouterTransport(purpose: 'classification' | 'assistant' = 'classification') {
   const { openrouterApiKey, openrouterModel } = getServerConfig()
+  const unavailable = purpose === 'assistant' ? 'Assistant is unavailable' : 'Image identification is unavailable'
+  const unconfigured = purpose === 'assistant' ? 'Assistant is not configured' : 'Image identification is not configured'
   if (!openrouterApiKey || !openrouterModel) {
-    throw createError({ statusCode: 503, statusMessage: 'Image identification is not configured' })
+    throw createError({ statusCode: 503, statusMessage: unconfigured })
   }
   return {
     model: openrouterModel,
@@ -19,8 +21,9 @@ export function getOpenRouterTransport() {
         })
         if (!response.ok) throw new Error('Provider request failed')
         return await response.json() as unknown
-      } catch {
-        throw createError({ statusCode: 502, statusMessage: 'Image identification is unavailable' })
+      } catch (error) {
+        if (error && typeof error === 'object' && 'statusCode' in error) throw error
+        throw createError({ statusCode: 502, statusMessage: unavailable })
       }
     }
   }

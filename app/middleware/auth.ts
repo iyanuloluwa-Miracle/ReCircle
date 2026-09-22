@@ -9,6 +9,7 @@ const roleByPath: Record<string, UserRole> = {
 export default defineNuxtRouteMiddleware(async (to) => {
   const requiredRole = roleByPath[to.path]
     ?? (to.path === '/scan' || to.path.startsWith('/scan/') ? 'user' : undefined)
+    ?? (to.path === '/dashboard/analytics' ? 'any' as const : undefined)
   if (!requiredRole) return
   const auth = useAuth()
   let user
@@ -18,5 +19,5 @@ export default defineNuxtRouteMiddleware(async (to) => {
     throw createError({ statusCode: 503, statusMessage: 'Sign-in service is unavailable' })
   }
   if (!user) return navigateTo('/demo')
-  if (user.role !== requiredRole) return navigateTo(dashboardPathByRole[user.role])
+  if (requiredRole !== 'any' && user.role !== requiredRole) return navigateTo(dashboardPathByRole[user.role])
 })
