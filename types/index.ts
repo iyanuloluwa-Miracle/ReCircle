@@ -11,6 +11,12 @@ export const dashboardPathByRole: Record<UserRole, string> = {
   waste_operator: '/dashboard/operator'
 }
 
+export const onboardingPathByRole: Record<UserRole, string> = {
+  user: '/onboarding/user',
+  recycler: '/onboarding/recycler',
+  waste_operator: '/onboarding/operator'
+}
+
 export interface AuthUser {
   id: string
   name: string
@@ -19,6 +25,8 @@ export interface AuthUser {
   avatarUrl: string | null
   isDemo: boolean
   location: GeoPoint | null
+  emailVerified: boolean
+  onboardingCompletedAt: string | null
 }
 
 export interface AuthResponse { user: AuthUser }

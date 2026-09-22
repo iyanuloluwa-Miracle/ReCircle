@@ -34,7 +34,9 @@ export async function getOptionalSessionUser(event: H3Event): Promise<AuthUser |
   const parsed = identitySchema.safeParse(session.data)
   if (!parsed.success) return null
   await connectDatabase()
-  const user = await User.findById(parsed.data.userId).select('name email role avatarUrl isDemo location').lean()
+  const user = await User.findById(parsed.data.userId)
+    .select('name email role avatarUrl isDemo location emailVerified onboardingCompletedAt')
+    .lean()
   if (!user) return null
   return {
     id: user._id.toString(),
@@ -43,7 +45,11 @@ export async function getOptionalSessionUser(event: H3Event): Promise<AuthUser |
     role: user.role as UserRole,
     avatarUrl: user.avatarUrl ?? null,
     isDemo: user.isDemo ?? false,
-    location: user.location ?? null
+    location: user.location ?? null,
+    emailVerified: user.emailVerified ?? false,
+    onboardingCompletedAt: user.onboardingCompletedAt
+      ? new Date(user.onboardingCompletedAt).toISOString()
+      : null
   }
 }
 

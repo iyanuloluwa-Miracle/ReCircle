@@ -4,10 +4,20 @@ import { geoPointSchema } from './shared.ts'
 const userSchema = new Schema({
   name: { type: String, required: true, trim: true, minlength: 2, maxlength: 120 },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true, maxlength: 254, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
-  passwordHash: { type: String, required: true, select: false },
+  passwordHash: {
+    type: String,
+    select: false,
+    default: null,
+    required: function (this: { googleId?: string | null }) {
+      return !this.googleId
+    }
+  },
+  googleId: { type: String, default: null, sparse: true, unique: true, index: true },
   role: { type: String, required: true, enum: ['user', 'recycler', 'waste_operator'], index: true },
   avatarUrl: { type: String, default: null },
   location: { type: geoPointSchema, default: null },
+  emailVerified: { type: Boolean, required: true, default: false },
+  onboardingCompletedAt: { type: Date, default: null },
   isDemo: { type: Boolean, default: false }
 }, { timestamps: true })
 
