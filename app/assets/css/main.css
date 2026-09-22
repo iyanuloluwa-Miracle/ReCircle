@@ -45,11 +45,13 @@ h1, h2, h3, p { margin: 0; }
 .hero-email-form { display: flex; align-items: stretch; gap: 8px; width: min(100%, 720px); margin: 32px auto 0; padding: 5px; border: 1px solid #ced9c5; border-radius: 999px; background: #fffef9; box-shadow: 0 10px 25px #123f320d; text-align: left; }
 .hero-email-form input { min-width: 0; flex: 1; border: 0; background: transparent; padding: 10px 12px; color: #263c34; font: inherit; font-size: 13px; }
 .hero-email-form input:focus { outline: 0; }.hero-email-form:focus-within { border-color: #61892d; box-shadow: 0 0 0 3px #d3f28a88; }
-.hero-email-form .button { min-height: 52px; border-radius: 999px; padding: 10px 24px; white-space: nowrap; }
+.hero-email-form .button { min-height: 52px; border-radius: 999px; padding: 10px 24px; position: relative; color: transparent; white-space: nowrap; }
+.hero-email-form .button::after { content: 'Check pickup'; color: #fff; font-size: 13px; }
 .hero-email-confirmation { margin-top: 10px; color: #476e32; font-size: 12px; font-weight: 650; }
 .hero-description { margin: 24px auto 0; max-width: 650px; color: #657269; font-size: 15px; line-height: 1.8; }
 .hero-actions, .hero-art { display: none; }
 .hero-footnote { display: flex; justify-content: center; gap: 10px; align-items: center; margin-top: 28px; font-size: 11px; color: #667365; }
+.hero-footnote { display: none; }.hero-scan-note { margin-top: 20px; color: #667365; font-size: 11px; }
 .mini-orbit { font-size: 25px; color: #547a3b; }
 .hero-art { min-height: 515px; position: relative; border-radius: 180px 180px 20px 20px; background: #164b3b; overflow: hidden; isolation: isolate; display: grid; place-items: center; }
 .hero-art::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: .19; background-image: radial-gradient(#b6d08f .7px, transparent .7px); background-size: 7px 7px; }
