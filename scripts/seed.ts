@@ -16,7 +16,20 @@ if (!uri) {
   console.error('MONGODB_URI is required to seed and verify MongoDB indexes.')
   process.exitCode = 1
 } else {
-  await runSeed(uri)
+  try {
+    await runSeed(uri)
+  } catch (error) {
+    if (error instanceof Error && (error.message.startsWith('MONGODB_URI must') || error.message.startsWith('Set DEMO_SEED_PASSWORD'))) {
+      console.error(error.message)
+    } else {
+      const errorName = error instanceof Error ? error.name : 'UnknownError'
+      console.error(`Demo seed failed (${errorName}); check database access, model validation, and indexes.`)
+      if (error instanceof mongoose.Error.ValidationError) {
+        console.error(`Invalid fields: ${Object.keys(error.errors).join(', ')}`)
+      }
+    }
+    process.exitCode = 1
+  }
 }
 
 function id(suffix: number) {
@@ -28,10 +41,15 @@ function point(longitude: number, latitude: number) {
 }
 
 async function insertDemo(model: Model<unknown>, document: Record<string, unknown>) {
+  const insertedDocument = { ...document }
+  insertedDocument.createdAt ??= new Date()
+  if (model.schema.path('updatedAt')) insertedDocument.updatedAt ??= insertedDocument.createdAt
+  // Document validation provides the full sibling fields to cross-field validators.
+  await new model(insertedDocument).validate()
   await model.updateOne(
     { _id: document._id, isDemo: true },
-    { $setOnInsert: document },
-    { upsert: true, runValidators: true, timestamps: document.createdAt === undefined }
+    { $setOnInsert: insertedDocument },
+    { upsert: true, timestamps: false }
   )
 }
 
@@ -49,7 +67,8 @@ async function verifyIndexes(model: Model<unknown>) {
 }
 
 async function runSeed(mongodbUri: string) {
-  const databaseName = decodeURIComponent(new URL(mongodbUri).pathname.slice(1))
+  // MongoDB URIs can list several hosts; WHATWG URL rejects that valid format.
+  const databaseName = decodeURIComponent(mongodbUri.match(/^mongodb(?:\+srv)?:\/\/[^/]+\/([^?]+)/)?.[1] ?? '')
   if (!databaseName || ['admin', 'local', 'config'].includes(databaseName)) {
     throw new Error('MONGODB_URI must specify a non-system database name in its path.')
   }
@@ -119,6 +138,18 @@ async function runSeed(mongodbUri: string) {
     }
 
     for (const model of [User, Recycler, WasteItem, Request, Transaction]) await verifyIndexes(model)
+    const expectedRecords: Array<[Model<unknown>, number[]]> = [
+      [User, [1, 2, 10, 11, 12, 13]],
+      [Recycler, [20, 21, 22, 23]],
+      [WasteItem, [30, 31, 32, 33]],
+      [Request, [40, 41, 42, 43]],
+      [Transaction, [50, 51, 52, 53]]
+    ]
+    for (const [model, ids] of expectedRecords) {
+      const count = await model.countDocuments({ _id: { $in: ids.map(id) }, isDemo: true })
+      if (count !== ids.length) throw new Error(`Demo record verification failed for ${model.modelName}`)
+      console.log(`${model.modelName}: ${count} demo records verified`)
+    }
     console.log('DEMO seed complete: 1 consumer, 1 waste operator, 4 fictional recyclers, 4 historical completed requests.')
   } finally {
     await mongoose.disconnect()
