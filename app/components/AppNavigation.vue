@@ -14,6 +14,7 @@ watch(() => route.fullPath, () => { open.value = false })
       <div id="main-links" class="nav-links" :class="{ 'is-open': open }">
         <NuxtLink to="/#what-you-can-recycle" @click="open = false">What we take</NuxtLink>
         <NuxtLink to="/#platform-roles" @click="open = false">Who it’s for</NuxtLink>
+        <NuxtLink to="/#how-it-works" @click="open = false">How it works</NuxtLink>
         <NuxtLink to="/#faq" @click="open = false">FAQ</NuxtLink>
         <NuxtLink to="/#the-mission" @click="open = false">The mission</NuxtLink>
         <NuxtLink to="/login" @click="open = false">Sign in</NuxtLink>

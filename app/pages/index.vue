@@ -65,6 +65,8 @@ function submitArea() {
 
     <PlatformRoles />
 
+    <HomeHowItWorks />
+
     <HomeFaq />
 
     <section id="the-mission" class="section container">
