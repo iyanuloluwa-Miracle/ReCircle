@@ -1,9 +1,8 @@
-# Recykle AI — Phase 4
+# Recykle AI — Phase 8
 
 A Lagos-focused recycling coordination hackathon prototype built with Nuxt 4,
-strict TypeScript and Tailwind CSS 4. Phase 4 adds a consumer waste scanner,
-Byteship image uploads, and MongoDB drafts. The UI has **no live AI classification,
-quotes, matching, pickup workflows or analytics dashboards**.
+strict TypeScript and Tailwind CSS 4. Phase 8 adds polished multi-role dashboards
+with live MongoDB metrics for consumers, recyclers, and waste operators.
 
 ## Local setup
 
@@ -17,7 +16,9 @@ Use Node.js 24 LTS and npm.
    `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
 5. Run `npm run dev` and open http://localhost:3000.
 
-The scanner needs `BYTESHIP_API_KEY`. AI and payment keys may remain empty.
+The scanner needs `BYTESHIP_API_KEY`; analysis needs `OPENROUTER_API_KEY` and a
+vision model in `OPENROUTER_MODEL` that supports strict structured output.
+Payment keys may remain empty.
 Set `SESSION_SECRET` to at least 32 random characters before using authentication.
 
 ## Commands
@@ -25,11 +26,12 @@ Set `SESSION_SECRET` to at least 32 random characters before using authenticatio
 - `npm run dev`: development server
 - `npm run lint`: ESLint
 - `npm run typecheck`: strict Nuxt/Vue TypeScript checks
-- `npm test`: password, model and image validation checks
+- `npm test`: password, model, classification, matching, lifecycle and dashboard helper checks
 - `npm run build`: production build
 - `npm run seed`: insert labelled demo data and verify MongoDB indexes
 - `npm run test:auth`: HTTP auth checks against a running dev server on port 3001
 - `npm run test:upload`: live Byteship upload and draft check against port 3001
+- `npm run test:analysis`: live upload, OpenRouter classification, auth, cache and correction check against port 3001
 - `npm run preview`: local production preview
 
 ## Structure
@@ -38,10 +40,11 @@ Nuxt 4 frontend directories live under `app/`; do not add duplicate root pages o
 
 ```text
 app/
-  pages/          Landing, accounts, role pages, scanner and analysis handoff
+  pages/          Landing, accounts, role pages, scanner, analysis, valuation and requests
   layouts/        Public and dashboard shells
   components/     Brand, navigation, Button, Card, Badge, Modal,
-                  EmptyState, LoadingSkeleton, StatCard
+                  EmptyState, LoadingSkeleton, StatCard, StatusTimeline, RequestCard,
+                  DashboardMetrics, IncomingRequestCard, BreakdownList, CapacityMeter
   composables/    Auth, scanner upload, pickup location, chart and health state
   middleware/     Role-aware navigation guards
   assets/css/     Tailwind entry, design tokens and responsive styles
@@ -49,12 +52,12 @@ server/
   api/            HTTP endpoints
   middleware/     Response headers
   models/         Mongoose operational models and GeoJSON validation
-  services/       Password hashing, image policy and integration clients
+  services/       Password hashing, classification, matching, pickup requests and clients
   utils/          Configuration, database, sessions and validation
 scripts/           Demo seed and live HTTP verification
 types/            Shared contracts; never put secrets here
-utils/            Pure formatting and image validation utilities
-tests/            Password, model and image validation tests
+utils/            Pure formatting, classification, matching and lifecycle utilities
+tests/            Password, model, classification, matching and lifecycle tests
 ```
 
 Frontend components own presentation only. Request bodies use Zod through
@@ -75,14 +78,100 @@ server. Byteship's token API does not provide a MIME allowlist, so the browser
 checks type and file signature before upload, and `POST /api/waste-items/draft`
 checks provider metadata and image bytes before saving. A retry after a completed
 upload reuses the same storage path and draft. The draft contains an image URL,
-pickup location and source, but no guessed material, weight, or value. The next
-route shows an analysis handoff, with AI intentionally deferred.
+pickup location and source, but no guessed material, weight, or value.
+
+## AI material analysis
+
+`POST /api/analyze-waste` accepts a WasteItem ID. The owner or a waste operator
+can request analysis; other consumers get 404 and other roles get 403. A short
+MongoDB lock prevents concurrent calls on the same draft. Successful results are
+cached on the item and reused on later requests. OpenRouter receives only the
+verified public image URL and a conservative classifier prompt. Its response must
+match a strict JSON schema and pass server Zod validation before the item advances
+to `analyzed`. Provider failures leave the draft available for retry.
+`UNKNOWN` and `MIXED` results are capped below the confirmation threshold even if
+the model reports higher confidence.
+
+The review screen displays the photo, material, recyclability, confidence, safety
+warning, and preparation instructions. Below 65% AI confidence, the consumer must
+confirm or correct the material before saving weight. Manual corrections and weight
+are validated on `PATCH /api/waste-items/:id/analysis`; neither is inferred by AI.
+Changing material clears potentially misleading AI preparation instructions.
+Historical lowercase demo material codes remain readable; new classifier output uses
+the uppercase contract.
+
+## Waste valuation and recycler matching
+
+`POST /api/match-recycler` accepts `{ wasteItemId, weightKg }` and never calls an LLM.
+The server loads the classified WasteItem, requires `weightKg > 0`, then uses MongoDB
+`$geoNear` on the recycler `2dsphere` index. Eligible recyclers must accept the
+material (including `ALUMINUM` ↔ `aluminium` aliases), be `available`, have remaining
+daily capacity for the load, sit within their own `serviceRadiusKm`, and publish a
+pricing rule for that material.
+
+Each candidate is scored out of 100 with fixed weights: distance 40, offered price 35,
+and remaining capacity 25, normalized across the eligible pool. The response returns
+the top three matches plus the recommended recycler, each with human-readable reasons
+such as distance, NGN/kg, accepted material, and capacity percentage. The WasteItem
+stores `weightKg`, `estimatedValueMin`, `estimatedValueMax`, and advances to `matched`
+when at least one recycler qualifies.
+
+The analysis review offers **Get valuation & matches** after weight is saved. The
+valuation screen at `/scan/:id/match` shows the NGN range, best match, match score,
+why-selected reasons, and a **Compare 3 recyclers** toggle. Matching decisions stay
+deterministic server logic; MongoDB only stores inputs and results.
+
+## Pickup request workflow
+
+`POST /api/create-request` accepts `{ wasteItemId, recyclerId }` for consumers. The
+server re-checks recycler eligibility, creates a `pending` Request (or reopens a
+cancelled/rejected one for the same waste item), and sets the WasteItem to
+`pickup_requested`. Multi-document writes run inside a MongoDB transaction.
+
+`GET /api/requests` is role-scoped: consumers see their requests, recyclers see
+jobs assigned to their profile, and waste operators see all requests for monitoring.
+`PATCH /api/requests/:id/status` enforces a strict lifecycle:
+
+`pending → accepted → picked_up → completed`, with `pending → rejected|cancelled`.
+Illegal moves such as `completed → pending` or `rejected → picked_up` return 409.
+Consumers may only cancel pending requests. Recyclers may accept, reject, mark
+picked up, and complete. Operators view only.
+
+Accepting a request reserves daily capacity (`currentLoadKg += weightKg`) with a
+conditional update. Completion marks the WasteItem `completed` and creates a
+completed mock `Transaction` for the expected payout. Responses include audit
+timestamps (`acceptedAt`, `pickedUpAt`, `completedAt`, `rejectedAt`, `cancelledAt`)
+and a reusable status timeline (Analyzed → Recycler matched → Pickup requested →
+Recycler accepted → Collected → Payment).
+
+Role dashboards render request cards with that timeline and the allowed actions.
 
 Run `npm run test:upload` against a dev server on port 3001 to verify a scoped token,
 public upload, draft creation, retry, and analysis handoff. The check attempts to
 remove its temporary demo image and draft; cleanup needs a Byteship key with delete
 permission. See [Byteship browser uploads](https://byteship.dev/docs/browser-uploads)
 and [API reference](https://byteship.dev/docs/api-reference).
+
+## Multi-role dashboards
+
+`GET /api/dashboard/user`, `GET /api/dashboard/recycler`, and
+`GET /api/dashboard/operator` return session-scoped metrics aggregated from
+WasteItem, Request, Transaction, and Recycler collections. Dashboard numbers are
+never hard-coded in the UI.
+
+- **Consumer:** waste diverted (kg), total earned (NGN), active pickups, recycling
+  streak, plus active pickup, recent scans, wallet activity, and tips. Primary CTA
+  is **Scan waste**.
+- **Recycler:** available supply, jobs today, potential purchase value, completed
+  collections, incoming matched waste cards (photo, material, weight, distance,
+  purchase price, pickup area, Accept/Reject), accepted pickups, material breakdown,
+  and current capacity.
+- **Operator:** active pickups, kg awaiting collection, completed today, total
+  payouts, status distribution chart, recent activity, recycler utilization, and
+  the live collection queue.
+
+All three layouts share the same metric cards, section shells, empty states, and
+loading skeletons, and are tuned for 375px mobile, tablet, and desktop widths.
 
 ## Why MongoDB
 
@@ -159,7 +248,8 @@ Set production environment variables through the host, then run
 `node --env-file=.env .output/server/index.mjs`.
 
 `PAYSTACK_PUBLIC_KEY` stays private in this phase along with the secret key.
-Payment processing is not implemented. Future payment work must enforce TEST mode.
+Completing a pickup creates a mock `Transaction` only. Real Paystack payouts are
+not implemented. Future payment work must enforce TEST mode.
 
 Sessions use H3 encrypted, integrity-protected HttpOnly cookies, SameSite=Lax,
 a one-day lifetime and Secure outside development. Header-based sessions are disabled.
@@ -172,11 +262,11 @@ any production launch.
 
 - Mongoose: shared, bounded-timeout database connection.
 - Zod: request validation and password/session constraints.
-- Byteship: official `@byteship/js` SDK, server-only factory; no upload endpoint yet.
-- OpenRouter: native server fetch with timeout and sanitized provider errors.
+- Byteship: official `@byteship/js` SDK and scoped browser upload tokens.
+- OpenRouter: server-side vision request with strict JSON schema, timeout and sanitized provider errors.
 - Chart.js: lazy client loading with cleanup; no chart/dashboard data yet.
 
-AI will identify materials only. Future financial values must come from deterministic
+AI identifies materials only. Future financial values must come from deterministic
 server calculations using recycler pricing in MongoDB. Weight, location and
 availability must come from explicit data, never AI guesses. Any future seed data
 must be labeled as demo data.

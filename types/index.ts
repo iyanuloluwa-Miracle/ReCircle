@@ -26,3 +26,40 @@ export interface AuthResponse { user: AuthUser }
 export type HealthResponse =
   | { status: 'ok'; database: 'connected' }
   | { status: 'error'; database: 'not_configured' | 'unavailable' }
+
+export interface TimelineStepView {
+  id: string
+  label: string
+  state: 'complete' | 'current' | 'pending'
+  at: string | null
+}
+
+export interface PickupRequestView {
+  id: string
+  wasteItemId: string
+  status: string
+  businessName: string | null
+  itemName: string | null
+  materialCode: string | null
+  weightKg: number | null
+  expectedPayout: number
+  pricePerKg: number
+  distanceKm: number
+  matchScore: number
+  imageUrl?: string | null
+  pickupArea?: string | null
+  acceptedAt: string | null
+  pickedUpAt: string | null
+  completedAt: string | null
+  rejectedAt: string | null
+  cancelledAt: string | null
+  createdAt: string | null
+  updatedAt: string | null
+  timeline: TimelineStepView[]
+}
+
+export interface DashboardMetric {
+  label: string
+  value: string
+  detail?: string
+}

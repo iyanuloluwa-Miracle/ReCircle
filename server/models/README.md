@@ -8,3 +8,10 @@ logic must calculate and validate values on the server.
 Waste items can begin as `draft` records with an image and pickup location; material
 classification fields become required when status advances. `storagePath` is sparse
 and unique so a retried upload confirmation returns the same draft.
+`analysisLockUntil` coordinates concurrent OpenRouter requests. A successful
+classification records `classificationSource: ai`; consumer confirmation changes it
+to `manual`. Weight is supplied by the consumer. Valuation fields
+`estimatedValueMin` / `estimatedValueMax` and status `matched` are written by
+deterministic matching — never by the classifier. Pickup requests advance the
+item through `pickup_requested`, `picked_up`, and `completed`, with audit
+timestamps stored on the Request document.
