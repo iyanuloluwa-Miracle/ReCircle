@@ -32,7 +32,7 @@ const faqs = [
   }
 ]
 
-const openId = ref<string | null>(faqs[0]!.id)
+const openId = ref<string | null>(null)
 
 function toggle(id: string) {
   openId.value = openId.value === id ? null : id
