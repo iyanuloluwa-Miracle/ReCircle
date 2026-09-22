@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { loadEnvFile } from 'node:process'
-import mongoose, { Types, type Model } from 'mongoose'
+import mongoose, { Types, type Model, type QueryFilter, type UpdateQuery } from 'mongoose'
 import { User } from '../server/models/User.ts'
 import { Recycler } from '../server/models/Recycler.ts'
 import { WasteItem } from '../server/models/WasteItem.ts'
@@ -40,20 +40,20 @@ function point(longitude: number, latitude: number) {
   return { type: 'Point' as const, coordinates: [longitude, latitude] as [number, number] }
 }
 
-async function insertDemo(model: Model<unknown>, document: Record<string, unknown>) {
+async function insertDemo<T>(model: Model<T>, document: Record<string, unknown>) {
   const insertedDocument = { ...document }
   insertedDocument.createdAt ??= new Date()
   if (model.schema.path('updatedAt')) insertedDocument.updatedAt ??= insertedDocument.createdAt
   // Document validation provides the full sibling fields to cross-field validators.
   await new model(insertedDocument).validate()
   await model.updateOne(
-    { _id: document._id, isDemo: true },
-    { $setOnInsert: insertedDocument },
+    { _id: document._id, isDemo: true } as QueryFilter<T>,
+    { $setOnInsert: insertedDocument } as UpdateQuery<T>,
     { upsert: true, timestamps: false }
   )
 }
 
-async function verifyIndexes(model: Model<unknown>) {
+async function verifyIndexes<T>(model: Model<T>) {
   await model.createIndexes()
   const actual = await model.collection.listIndexes().toArray()
   for (const [key, options] of model.schema.indexes()) {
@@ -137,19 +137,21 @@ async function runSeed(mongodbUri: string) {
       })
     }
 
-    for (const model of [User, Recycler, WasteItem, Request, Transaction]) await verifyIndexes(model)
-    const expectedRecords: Array<[Model<unknown>, number[]]> = [
-      [User, [1, 2, 10, 11, 12, 13]],
-      [Recycler, [20, 21, 22, 23]],
-      [WasteItem, [30, 31, 32, 33]],
-      [Request, [40, 41, 42, 43]],
-      [Transaction, [50, 51, 52, 53]]
-    ]
-    for (const [model, ids] of expectedRecords) {
+    await verifyIndexes(User)
+    await verifyIndexes(Recycler)
+    await verifyIndexes(WasteItem)
+    await verifyIndexes(Request)
+    await verifyIndexes(Transaction)
+    async function verifyDemoRecords<T>(model: Model<T>, ids: number[]) {
       const count = await model.countDocuments({ _id: { $in: ids.map(id) }, isDemo: true })
       if (count !== ids.length) throw new Error(`Demo record verification failed for ${model.modelName}`)
       console.log(`${model.modelName}: ${count} demo records verified`)
     }
+    await verifyDemoRecords(User, [1, 2, 10, 11, 12, 13])
+    await verifyDemoRecords(Recycler, [20, 21, 22, 23])
+    await verifyDemoRecords(WasteItem, [30, 31, 32, 33])
+    await verifyDemoRecords(Request, [40, 41, 42, 43])
+    await verifyDemoRecords(Transaction, [50, 51, 52, 53])
     console.log('DEMO seed complete: 1 consumer, 1 waste operator, 4 fictional recyclers, 4 historical completed requests.')
   } finally {
     await mongoose.disconnect()

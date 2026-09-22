@@ -1,4 +1,4 @@
-import mongoose, { Schema, type InferSchemaType } from 'mongoose'
+import mongoose, { Schema, type InferSchemaType, type Model } from 'mongoose'
 import { geoPointSchema } from './shared.ts'
 
 const userSchema = new Schema({
@@ -12,4 +12,4 @@ const userSchema = new Schema({
 }, { timestamps: true })
 
 export type UserDocument = InferSchemaType<typeof userSchema>
-export const User = mongoose.models.User || mongoose.model('User', userSchema)
+export const User: Model<UserDocument> = (mongoose.models.User as Model<UserDocument> | undefined) ?? mongoose.model<UserDocument>('User', userSchema)

@@ -1,11 +1,13 @@
 import { createError, useSession, type H3Event } from 'h3'
 import { z } from 'zod'
-import type { UserRole } from '../../types'
+import { Types } from 'mongoose'
+import type { AuthUser, UserRole } from '../../types'
+import { User } from '../models/User'
+import { connectDatabase } from './db'
 import { getServerConfig } from './config'
 
 const identitySchema = z.object({
-  userId: z.string().min(1),
-  role: z.enum(['user', 'recycler', 'waste_operator'])
+  userId: z.string().refine(value => Types.ObjectId.isValid(value))
 })
 
 export function getAuthSession(event: H3Event) {
@@ -13,7 +15,7 @@ export function getAuthSession(event: H3Event) {
   if (sessionSecret.length < 32) {
     throw createError({ statusCode: 503, statusMessage: 'Authentication is not configured' })
   }
-  return useSession<{ userId?: string; role?: UserRole }>(event, {
+  return useSession<{ userId?: string }>(event, {
     name: 'recykle-session',
     password: sessionSecret,
     maxAge: 60 * 60 * 24,
@@ -27,13 +29,29 @@ export function getAuthSession(event: H3Event) {
   })
 }
 
-/** All protected API handlers must enforce authorization on the server. */
-export async function requireSessionUser(event: H3Event, allowedRoles?: readonly UserRole[]) {
+export async function getOptionalSessionUser(event: H3Event): Promise<AuthUser | null> {
   const session = await getAuthSession(event)
   const parsed = identitySchema.safeParse(session.data)
-  if (!parsed.success) throw createError({ statusCode: 401, statusMessage: 'Sign in required' })
-  if (allowedRoles && !allowedRoles.includes(parsed.data.role)) {
+  if (!parsed.success) return null
+  await connectDatabase()
+  const user = await User.findById(parsed.data.userId).select('name email role avatarUrl isDemo').lean()
+  if (!user) return null
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role as UserRole,
+    avatarUrl: user.avatarUrl ?? null,
+    isDemo: user.isDemo ?? false
+  }
+}
+
+/** Every protected API must authorize against the current MongoDB role. */
+export async function requireSessionUser(event: H3Event, allowedRoles?: readonly UserRole[]): Promise<AuthUser> {
+  const user = await getOptionalSessionUser(event)
+  if (!user) throw createError({ statusCode: 401, statusMessage: 'Sign in required' })
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
     throw createError({ statusCode: 403, statusMessage: 'Access denied' })
   }
-  return { id: parsed.data.userId, role: parsed.data.role }
+  return user
 }
