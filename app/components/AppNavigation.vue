@@ -13,8 +13,7 @@ watch(() => route.fullPath, () => { open.value = false })
       </button>
       <div id="main-links" class="nav-links" :class="{ 'is-open': open }">
         <NuxtLink to="/#what-you-can-recycle" @click="open = false">What we take</NuxtLink>
-        <NuxtLink to="/#how-it-works" @click="open = false">How it works</NuxtLink>
-        <NuxtLink to="/#our-circle" @click="open = false">Our circle</NuxtLink>
+        <NuxtLink to="/#platform-roles" @click="open = false">Who it’s for</NuxtLink>
         <NuxtLink to="/#the-mission" @click="open = false">The mission</NuxtLink>
         <NuxtLink to="/login" @click="open = false">Sign in</NuxtLink>
         <BaseButton to="/demo" size="sm">Try the demo <span aria-hidden="true">↗</span></BaseButton>
