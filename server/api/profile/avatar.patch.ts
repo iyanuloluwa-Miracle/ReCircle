@@ -1,7 +1,7 @@
 import { createError, defineEventHandler } from 'h3'
 import { z } from 'zod'
 import type { AuthResponse } from '../../../types'
-import { isAllowedEmojiAvatar } from '../../../utils/avatar-presets'
+import { isAllowedAvatarPreset } from '../../../utils/avatar-presets'
 import { User } from '../../models/User'
 import { toAuthUser } from '../../services/auth'
 import { verifyReadyAvatarImage } from '../../services/avatar-upload'
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event): Promise<AuthResponse> => {
 
   let avatarUrl: string
   if (body.avatarUrl) {
-    if (!isAllowedEmojiAvatar(body.avatarUrl)) {
+    if (!isAllowedAvatarPreset(body.avatarUrl)) {
       throw createError({ statusCode: 400, statusMessage: 'Avatar preset is not allowed' })
     }
     avatarUrl = body.avatarUrl

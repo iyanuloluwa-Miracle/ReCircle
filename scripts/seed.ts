@@ -8,6 +8,7 @@ import { WasteItem } from '../server/models/WasteItem.ts'
 import { Request } from '../server/models/Request.ts'
 import { Transaction } from '../server/models/Transaction.ts'
 import { hashPassword } from '../server/services/password.ts'
+import { AVATAR_PRESETS } from '../utils/avatar-presets.ts'
 
 const envPath = resolve('.env')
 if (existsSync(envPath)) loadEnvFile(envPath)
@@ -82,8 +83,8 @@ async function runSeed(mongodbUri: string) {
     const consumerId = id(1)
     const operatorId = id(2)
     const consumerPoint = point(3.3947, 6.4541)
-    await insertDemo(User, { _id: consumerId, name: 'Demo Consumer', email: 'consumer@recircle-demo.example', passwordHash, role: 'user', location: consumerPoint, avatarUrl: 'emoji:♻️', emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
-    await insertDemo(User, { _id: operatorId, name: 'Demo Waste Operator', email: 'operator@recircle-demo.example', passwordHash, role: 'waste_operator', location: consumerPoint, avatarUrl: 'emoji:🌍', emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
+    await insertDemo(User, { _id: consumerId, name: 'Demo Consumer', email: 'consumer@recircle-demo.example', passwordHash, role: 'user', location: consumerPoint, avatarUrl: AVATAR_PRESETS[0], emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
+    await insertDemo(User, { _id: operatorId, name: 'Demo Waste Operator', email: 'operator@recircle-demo.example', passwordHash, role: 'waste_operator', location: consumerPoint, avatarUrl: AVATAR_PRESETS[4], emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
 
     // Fictional businesses and invented prices for product demonstration only.
     const businesses = [
@@ -94,7 +95,7 @@ async function runSeed(mongodbUri: string) {
     ]
     for (const [index, business] of businesses.entries()) {
       const userId = id(10 + index)
-      await insertDemo(User, { _id: userId, name: `${business.name} Team`, email: `recycler${index + 1}@recircle-demo.example`, passwordHash, role: 'recycler', location: business.coords, avatarUrl: 'emoji:🪴', emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
+      await insertDemo(User, { _id: userId, name: `${business.name} Team`, email: `recycler${index + 1}@recircle-demo.example`, passwordHash, role: 'recycler', location: business.coords, avatarUrl: AVATAR_PRESETS[6 + index], emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
       await insertDemo(Recycler, {
         _id: id(20 + index), userId, businessName: business.name, location: business.coords,
         acceptedMaterials: business.materials,
@@ -103,12 +104,17 @@ async function runSeed(mongodbUri: string) {
         availability: 'available', serviceRadiusKm: business.radius, isDemo: true
       })
     }
+    // Refresh passwords on re-seed; insert path only sets them on first create.
+    await User.updateMany(
+      { isDemo: true, email: /@recircle-demo\.example$/ },
+      { $set: { passwordHash, emailVerified: true, onboardingCompletedAt: new Date() } }
+    )
 
     const historical = [
-      { material: 'pet', item: 'PET bottles', weight: 4, recycler: 20, price: 80, daysAgo: 25 },
-      { material: 'aluminium', item: 'Aluminium cans', weight: 2, recycler: 20, price: 260, daysAgo: 18 },
-      { material: 'paper', item: 'Paper bundle', weight: 7, recycler: 21, price: 25, daysAgo: 11 },
-      { material: 'glass', item: 'Glass bottles', weight: 6, recycler: 22, price: 20, daysAgo: 4 }
+      { material: 'PET', item: 'PET bottles', weight: 4, recycler: 20, price: 80, daysAgo: 25 },
+      { material: 'ALUMINUM', item: 'Aluminium cans', weight: 2, recycler: 20, price: 260, daysAgo: 18 },
+      { material: 'PAPER', item: 'Paper bundle', weight: 7, recycler: 21, price: 25, daysAgo: 11 },
+      { material: 'GLASS', item: 'Glass bottles', weight: 6, recycler: 22, price: 20, daysAgo: 4 }
     ]
     for (const [index, item] of historical.entries()) {
       const completedAt = new Date(Date.now() - item.daysAgo * 86400000)

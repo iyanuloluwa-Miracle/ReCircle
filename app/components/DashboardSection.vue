@@ -8,11 +8,13 @@ defineProps<{
 <template>
   <section class="dash-section">
     <header class="dash-section-head">
-      <div>
+      <div class="dash-section-copy">
         <h2>{{ title }}</h2>
         <p v-if="description" class="muted">{{ description }}</p>
       </div>
-      <div v-if="$slots.action" class="dash-section-action"><slot name="action" /></div>
+      <div v-if="$slots.action" class="dash-section-action">
+        <slot name="action" />
+      </div>
     </header>
     <div class="dash-section-body">
       <slot />

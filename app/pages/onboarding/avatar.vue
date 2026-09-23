@@ -1,22 +1,29 @@
 <script setup lang="ts">
-import { AVATAR_EMOJI_PRESETS, emojiAvatarUrl, parseEmojiAvatar } from '../../../utils/avatar-presets'
+import { AVATAR_PRESETS, isAllowedAvatarPreset } from '../../../utils/avatar-presets'
 import { imageExtension, validateImageFile, type ImageMimeType } from '../../../utils/waste-image'
 import { onboardingPathByRole } from '../../../types'
 
 definePageMeta({ layout: 'auth', middleware: 'auth' })
 
 const auth = useAuth()
-const selected = ref<string | null>(parseEmojiAvatar(auth.user.value?.avatarUrl ?? null)
-  ? auth.user.value!.avatarUrl
-  : auth.user.value?.avatarUrl?.startsWith('http') ? auth.user.value.avatarUrl : null)
+const current = auth.user.value?.avatarUrl ?? null
+const selected = ref<string | null>(
+  current && (isAllowedAvatarPreset(current) || current.startsWith('http'))
+    ? current
+    : null
+)
 const pending = ref(false)
 const uploadPending = ref(false)
 const errorMessage = ref('')
 const previewUrl = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
-async function chooseEmoji(emoji: string) {
-  selected.value = emojiAvatarUrl(emoji)
+const previewSrc = computed(() => previewUrl.value || (
+  selected.value?.startsWith('http') ? selected.value : null
+))
+
+function choosePreset(url: string) {
+  selected.value = url
   errorMessage.value = ''
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value)
@@ -55,7 +62,7 @@ async function onFileChange(event: Event) {
     selected.value = result.user.avatarUrl
     auth.user.value = { ...auth.user.value!, avatarUrl: result.user.avatarUrl }
   } catch {
-    errorMessage.value = 'Photo upload failed. Try again or pick an emoji instead.'
+    errorMessage.value = 'Photo upload failed. Try again or pick a preset instead.'
     if (previewUrl.value) {
       URL.revokeObjectURL(previewUrl.value)
       previewUrl.value = null
@@ -70,7 +77,7 @@ async function continueOnboarding() {
   pending.value = true
   errorMessage.value = ''
   try {
-    if (selected.value.startsWith('emoji:')) {
+    if (isAllowedAvatarPreset(selected.value)) {
       const result = await $fetch<{ user: typeof auth.user.value }>('/api/profile/avatar', {
         method: 'PATCH', body: { avatarUrl: selected.value }
       })
@@ -99,27 +106,26 @@ useSeoMeta({ title: 'Choose your avatar — ReCircle', robots: 'noindex' })
 <template>
   <AuthSplit title="Choose your avatar.">
     <div class="avatar-picker">
-      <p class="muted auth-hint">Pick a preset or upload a photo. Required before you continue.</p>
+      <p class="muted auth-hint">Pick a DiceBear preset or upload a photo. Required before you continue.</p>
 
       <div class="avatar-preview" aria-hidden="true">
-        <img v-if="previewUrl || (selected && selected.startsWith('http'))" :src="previewUrl || selected!" alt="">
-        <span v-else-if="selected?.startsWith('emoji:')" class="avatar-emoji">{{ selected.slice(6) }}</span>
+        <img v-if="previewSrc" :src="previewSrc" alt="">
         <span v-else class="avatar-emoji avatar-emoji--empty">?</span>
       </div>
 
-      <div class="avatar-grid" role="listbox" aria-label="Emoji avatars">
+      <div class="avatar-grid" role="listbox" aria-label="DiceBear avatar presets">
         <button
-          v-for="emoji in AVATAR_EMOJI_PRESETS"
-          :key="emoji"
+          v-for="url in AVATAR_PRESETS"
+          :key="url"
           type="button"
           class="avatar-grid-item"
-          :class="{ 'is-selected': selected === emojiAvatarUrl(emoji) }"
+          :class="{ 'is-selected': selected === url }"
           role="option"
-          :aria-selected="selected === emojiAvatarUrl(emoji)"
+          :aria-selected="selected === url"
           :disabled="uploadPending"
-          @click="chooseEmoji(emoji)"
+          @click="choosePreset(url)"
         >
-          {{ emoji }}
+          <img :src="url" alt="" width="64" height="64" loading="lazy">
         </button>
       </div>
 

@@ -36,10 +36,13 @@ interface ConsumerDashboard {
   tips: Array<{ title: string; body: string }>
 }
 
+const { user } = useAuth()
 const { data, pending, error, refresh } = await useAsyncData('consumer-dashboard', async () => {
   const fetcher = import.meta.server ? useRequestFetch() : $fetch
   return fetcher<ConsumerDashboard>('/api/dashboard/user')
 })
+
+const firstName = computed(() => user.value?.name?.split(/\s+/)[0] || 'there')
 
 const metrics = computed(() => {
   const m = data.value?.metrics
@@ -54,21 +57,32 @@ const metrics = computed(() => {
 function onUpdated() {
   refresh()
 }
+
+function scanLink(scan: ConsumerDashboard['recentScans'][number]) {
+  if (scan.status === 'draft' || scan.status === 'analyzed') return `/scan/${scan.id}/analysis`
+  if (scan.status === 'matched') return `/scan/${scan.id}/match`
+  return '/dashboard/user'
+}
 </script>
 
 <template>
   <div class="dash-page">
     <div class="dash-hero">
-      <div>
+      <div class="dash-hero-copy">
         <p class="eyebrow">Consumer workspace</p>
-        <h1 class="page-title">Your recycling at a glance.</h1>
-        <p class="muted workspace-intro">Live totals from your scans, pickups, and mock rewards — nothing invented on the page.</p>
+        <h1 class="page-title">Welcome back, {{ firstName }}.</h1>
+        <p class="muted workspace-intro">
+          Live totals from your scans, pickups, and rewards — pulled straight from your account.
+        </p>
       </div>
-      <BaseButton to="/scan" class="dash-cta">Scan waste</BaseButton>
+      <div class="dash-hero-actions">
+        <BaseButton to="/scan" class="dash-cta">Scan waste</BaseButton>
+        <BaseButton to="/dashboard/analytics" variant="secondary" class="dash-cta">View analytics</BaseButton>
+      </div>
     </div>
 
-    <LoadingSkeleton v-if="pending" :lines="8" label="Loading consumer dashboard" />
-    <BaseCard v-else-if="error">
+    <LoadingSkeleton v-if="pending" variant="dashboard" label="Loading consumer dashboard" />
+    <BaseCard v-else-if="error" class="dash-error-card">
       <EmptyState title="Could not load your dashboard" description="Check your connection and try again.">
         <BaseButton @click="refresh()">Retry</BaseButton>
       </EmptyState>
@@ -77,7 +91,7 @@ function onUpdated() {
       <DashboardMetrics :metrics="metrics" />
 
       <div class="dash-grid">
-        <DashboardSection title="Active pickup" description="Requests still moving through the lifecycle.">
+        <DashboardSection title="Active pickups" description="Requests still moving through the lifecycle.">
           <div v-if="data.activePickups.length" class="request-list">
             <RequestCard
               v-for="request in data.activePickups"
@@ -89,57 +103,65 @@ function onUpdated() {
           </div>
           <EmptyState
             v-else
+            compact
+            symbol="◈"
             title="No active pickups"
             description="Match a recycler and request pickup to track progress here."
           >
-            <BaseButton to="/scan">Scan waste</BaseButton>
+            <BaseButton to="/scan" size="sm">Scan waste</BaseButton>
           </EmptyState>
         </DashboardSection>
 
-        <DashboardSection title="Recent scans" description="Your latest waste items from MongoDB.">
+        <DashboardSection title="Recent scans" description="Your latest waste items.">
           <div v-if="data.recentScans.length" class="scan-strip">
             <NuxtLink
               v-for="scan in data.recentScans"
               :key="scan.id"
               class="scan-chip"
-              :to="scan.status === 'draft' || scan.status === 'analyzed' || scan.status === 'matched'
-                ? `/scan/${scan.id}/${scan.status === 'draft' || scan.status === 'analyzed' ? 'analysis' : 'match'}`
-                : '/dashboard/user'"
+              :to="scanLink(scan)"
             >
               <img :src="scan.imageUrl" :alt="scan.itemName || 'Waste scan'">
-              <div>
+              <div class="scan-chip-copy">
                 <strong>{{ scan.itemName || scan.materialCode || 'Draft item' }}</strong>
-                <span class="muted">{{ scan.status.replaceAll('_', ' ') }}{{ scan.weightKg != null ? ` · ${formatNumber(scan.weightKg)} kg` : '' }}</span>
+                <span class="muted">
+                  {{ scan.status.replaceAll('_', ' ') }}{{ scan.weightKg != null ? ` · ${formatNumber(scan.weightKg)} kg` : '' }}
+                </span>
               </div>
             </NuxtLink>
           </div>
           <EmptyState
             v-else
+            compact
+            symbol="▣"
             title="No scans yet"
             description="Upload a photo to start your first draft."
           >
-            <BaseButton to="/scan">Scan waste</BaseButton>
+            <BaseButton to="/scan" size="sm">Scan waste</BaseButton>
           </EmptyState>
         </DashboardSection>
 
-        <DashboardSection title="Wallet activity" description="Completed mock recycling rewards.">
+        <DashboardSection title="Wallet activity" description="Completed recycling rewards.">
           <ul v-if="data.walletActivity.length" class="wallet-list">
             <li v-for="entry in data.walletActivity" :key="entry.id">
               <div>
                 <strong>{{ formatNaira(entry.amount) }}</strong>
                 <span class="muted">{{ entry.provider }} · {{ entry.status }}</span>
               </div>
-              <time v-if="entry.createdAt" :datetime="entry.createdAt">{{ new Date(entry.createdAt).toLocaleDateString('en-NG') }}</time>
+              <time v-if="entry.createdAt" :datetime="entry.createdAt">
+                {{ new Date(entry.createdAt).toLocaleDateString('en-NG') }}
+              </time>
             </li>
           </ul>
           <EmptyState
             v-else
+            compact
+            symbol="◈"
             title="No wallet activity"
             description="Rewards appear after a recycler marks a pickup completed."
           />
         </DashboardSection>
 
-        <DashboardSection title="Recycling tips" description="Practical habits that improve acceptance and payout quality.">
+        <DashboardSection title="Recycling tips" description="Habits that improve acceptance and payout quality.">
           <ul class="tips-list">
             <li v-for="tip in data.tips" :key="tip.title">
               <strong>{{ tip.title }}</strong>

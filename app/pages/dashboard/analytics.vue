@@ -67,30 +67,32 @@ function values(key: string) {
 <template>
   <div class="dash-page">
     <div class="dash-hero">
-      <div>
+      <div class="dash-hero-copy">
         <p class="eyebrow">Analytics</p>
         <h1 class="page-title">{{ roleTitle }}</h1>
         <p class="muted workspace-intro">
-          Live MongoDB aggregations for your role. No invented environmental equivalents — only measured kg, payouts, and utilization.
+          Live aggregations for your role — measured kg, payouts, and utilization only.
         </p>
       </div>
-      <BaseButton variant="ghost" size="sm" @click="refresh()">Refresh</BaseButton>
+      <div class="dash-hero-actions">
+        <BaseButton variant="ghost" size="sm" @click="refresh()">Refresh</BaseButton>
+      </div>
     </div>
 
-    <LoadingSkeleton v-if="pending" :lines="8" label="Loading analytics" />
-    <BaseCard v-else-if="error">
+    <LoadingSkeleton v-if="pending" variant="dashboard" label="Loading analytics" />
+    <BaseCard v-else-if="error" class="dash-error-card">
       <EmptyState title="Could not load analytics" description="Try again in a moment.">
         <BaseButton @click="refresh()">Retry</BaseButton>
       </EmptyState>
     </BaseCard>
     <template v-else-if="data">
-      <DashboardMetrics :metrics="summaryCards" :loading="pending" />
+      <DashboardMetrics :metrics="summaryCards" />
 
       <div class="dash-grid analytics-grid">
         <DashboardSection
           v-if="data.role === 'user' || data.role === 'waste_operator' || data.role === 'recycler'"
           title="Waste material distribution"
-          description="Donut chart of material share by weight."
+          description="Material share by weight."
         >
           <AnalyticsChart
             type="doughnut"
@@ -99,15 +101,15 @@ function values(key: string) {
             :values="values(data.role === 'recycler' ? 'supplyByMaterial' : data.role === 'user' ? 'materialDistribution' : 'wasteByMaterial')"
             dataset-label="Kg by material"
             empty-title="No material data yet"
-            empty-description="Completed collections will populate this donut chart."
+            empty-description="Completed collections will populate this chart."
           />
         </DashboardSection>
 
         <DashboardSection
           :title="data.role === 'recycler' ? 'Completed requests by month' : 'Kg recycled over time'"
           :description="data.role === 'recycler'
-            ? 'Line chart of completed pickup jobs each month.'
-            : 'Line chart of monthly recycled weight.'"
+            ? 'Completed pickup jobs each month.'
+            : 'Monthly recycled weight.'"
         >
           <AnalyticsChart
             type="line"
@@ -123,8 +125,8 @@ function values(key: string) {
         <DashboardSection
           :title="data.role === 'recycler' ? 'Value purchased by month' : 'Monthly payouts'"
           :description="data.role === 'recycler'
-            ? 'Bar chart of expected payout value completed each month.'
-            : 'Bar chart of NGN rewards by month.'"
+            ? 'Expected payout value completed each month.'
+            : 'NGN rewards by month.'"
         >
           <AnalyticsChart
             type="bar"
@@ -133,14 +135,14 @@ function values(key: string) {
             :values="values(data.role === 'recycler' ? 'monthlyPurchaseValue' : 'monthlyPayouts')"
             dataset-label="NGN"
             empty-title="No payout history"
-            empty-description="Mock reward transactions will show here after completions."
+            empty-description="Rewards show here after completed pickups."
           />
         </DashboardSection>
 
         <DashboardSection
           v-if="data.role === 'waste_operator'"
           title="Recycler utilization"
-          description="Horizontal bar of daily load versus capacity."
+          description="Daily load versus capacity."
         >
           <AnalyticsChart
             type="bar"
@@ -150,14 +152,14 @@ function values(key: string) {
             :values="values('recyclerUtilization')"
             dataset-label="Utilization %"
             empty-title="No recycler profiles"
-            empty-description="Seeded or registered recyclers appear here with capacity load."
+            empty-description="Recyclers appear here with capacity load."
           />
         </DashboardSection>
 
         <DashboardSection
           v-if="data.role === 'waste_operator'"
           title="Request status distribution"
-          description="How pickup requests are spread across the lifecycle."
+          description="How pickups are spread across the lifecycle."
         >
           <AnalyticsChart
             type="doughnut"
@@ -166,14 +168,14 @@ function values(key: string) {
             :values="values('statusDistribution')"
             dataset-label="Requests"
             empty-title="No requests yet"
-            empty-description="Status counts will appear once pickups are created."
+            empty-description="Status counts appear once pickups are created."
           />
         </DashboardSection>
 
         <DashboardSection
           v-if="data.role === 'waste_operator'"
           title="Geographic / zone distribution"
-          description="Kg attributed to nearest Nigerian area from pickup coordinates."
+          description="Kg attributed to nearest Nigerian area."
         >
           <AnalyticsChart
             type="bar"
@@ -182,7 +184,7 @@ function values(key: string) {
             :values="values('zoneDistribution')"
             dataset-label="Kg by zone"
             empty-title="No geo distribution yet"
-            empty-description="Pickup locations are mapped to Nigerian zones when requests exist."
+            empty-description="Pickup locations map to Nigerian zones when requests exist."
           />
         </DashboardSection>
       </div>

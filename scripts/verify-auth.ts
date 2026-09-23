@@ -128,7 +128,8 @@ try {
     const onboardingGate = await expectStatus('/dashboard/operator', 302, registrationCookie)
     assert.equal(new URL(onboardingGate.headers.get('location')!, baseUrl).pathname, '/onboarding/avatar')
 
-    const avatar = await request('/api/profile/avatar', 'PATCH', { avatarUrl: 'emoji:♻️' }, registrationCookie)
+    const { AVATAR_PRESETS } = await import('../utils/avatar-presets.ts')
+    const avatar = await request('/api/profile/avatar', 'PATCH', { avatarUrl: AVATAR_PRESETS[0] }, registrationCookie)
     assert.equal(avatar.status, 200)
 
     const stillGated = await expectStatus('/dashboard/operator', 302, registrationCookie)

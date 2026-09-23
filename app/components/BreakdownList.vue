@@ -21,5 +21,10 @@ const total = computed(() => props.items.reduce((sum, item) => sum + item.value,
       </div>
     </div>
   </div>
-  <EmptyState v-else title="No material data yet" description="Completed and accepted pickups will appear here by material." />
+  <EmptyState
+    v-else
+    compact
+    title="No material data yet"
+    description="Completed and accepted pickups will appear here by material."
+  />
 </template>

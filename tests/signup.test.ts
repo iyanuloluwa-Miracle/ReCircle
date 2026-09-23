@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { AVATAR_EMOJI_PRESETS, emojiAvatarUrl, isAllowedEmojiAvatar } from '../utils/avatar-presets.ts'
+import { AVATAR_PRESETS, isAllowedAvatarPreset } from '../utils/avatar-presets.ts'
 import { generateOtpCode, hashOtp, verifyOtpHash } from '../server/services/otp.ts'
 
-test('avatar presets are allowlisted emoji URLs', () => {
-  assert.equal(AVATAR_EMOJI_PRESETS.length, 12)
-  assert.equal(isAllowedEmojiAvatar(emojiAvatarUrl('♻️')), true)
-  assert.equal(isAllowedEmojiAvatar('emoji:👾'), false)
-  assert.equal(isAllowedEmojiAvatar('https://cdn.byteship.cloud/x.jpg'), false)
+test('avatar presets are allowlisted DiceBear URLs', () => {
+  assert.equal(AVATAR_PRESETS.length, 12)
+  assert.equal(isAllowedAvatarPreset(AVATAR_PRESETS[0]), true)
+  assert.match(AVATAR_PRESETS[0], /^https:\/\/api\.dicebear\.com\/10\.x\/lorelei\/svg\?/)
+  assert.equal(isAllowedAvatarPreset('https://api.dicebear.com/10.x/lorelei/svg?seed=hacker'), false)
+  assert.equal(isAllowedAvatarPreset('https://cdn.byteship.cloud/x.jpg'), false)
+  assert.equal(isAllowedAvatarPreset('emoji:♻️'), false)
 })
 
 test('otp hashes verify and reject wrong codes', async () => {

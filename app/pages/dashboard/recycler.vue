@@ -56,26 +56,31 @@ function onUpdated() {
 <template>
   <div class="dash-page">
     <div class="dash-hero">
-      <div>
+      <div class="dash-hero-copy">
         <p class="eyebrow">Recycler workspace</p>
         <h1 class="page-title">{{ data?.recycler?.businessName || 'Your recycling desk' }}</h1>
-        <p class="muted workspace-intro">Incoming matched waste, capacity, and purchase value are calculated from live MongoDB records.</p>
+        <p class="muted workspace-intro">
+          Incoming matched waste, capacity, and purchase value from live records.
+        </p>
       </div>
-      <BaseBadge v-if="data?.recycler" :tone="data.recycler.availability === 'available' ? 'green' : 'warning'">
-        {{ data.recycler.availability.toUpperCase() }}
-      </BaseBadge>
+      <div class="dash-hero-actions">
+        <BaseBadge v-if="data?.recycler" :tone="data.recycler.availability === 'available' ? 'green' : 'warning'">
+          {{ data.recycler.availability.toUpperCase() }}
+        </BaseBadge>
+        <BaseButton to="/dashboard/analytics" variant="secondary" class="dash-cta">View analytics</BaseButton>
+      </div>
     </div>
 
-    <LoadingSkeleton v-if="pending" :lines="8" label="Loading recycler dashboard" />
-    <BaseCard v-else-if="error">
+    <LoadingSkeleton v-if="pending" variant="dashboard" label="Loading recycler dashboard" />
+    <BaseCard v-else-if="error" class="dash-error-card">
       <EmptyState title="Could not load recycler dashboard" description="Refresh the page or try again shortly.">
         <BaseButton @click="refresh()">Retry</BaseButton>
       </EmptyState>
     </BaseCard>
-    <BaseCard v-else-if="data && !data.recycler">
+    <BaseCard v-else-if="data && !data.recycler" class="dash-error-card">
       <EmptyState
         title="Recycler profile missing"
-        description="This account has no Recycler document linked yet, so supply metrics cannot be computed."
+        description="This account has no recycler profile linked yet, so supply metrics cannot be computed."
       />
     </BaseCard>
     <template v-else-if="data">
@@ -97,6 +102,8 @@ function onUpdated() {
           </div>
           <EmptyState
             v-else
+            compact
+            symbol="◈"
             title="No incoming requests"
             description="When consumers request your business, photo, material, weight, and purchase price appear here."
           />
@@ -114,6 +121,8 @@ function onUpdated() {
           </div>
           <EmptyState
             v-else
+            compact
+            symbol="◈"
             title="No accepted pickups"
             description="Accepted and in-transit jobs will list here with timeline controls."
           />
@@ -131,7 +140,12 @@ function onUpdated() {
             :remaining-capacity-kg="data.capacity.remainingCapacityKg"
             :utilization-pct="data.capacity.utilizationPct"
           />
-          <EmptyState v-else title="Capacity unavailable" description="Recycler capacity fields are missing." />
+          <EmptyState
+            v-else
+            compact
+            title="Capacity unavailable"
+            description="Recycler capacity fields are missing."
+          />
         </DashboardSection>
       </div>
     </template>

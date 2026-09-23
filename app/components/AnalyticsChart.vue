@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   loading: false,
   emptyTitle: 'No data yet',
-  emptyDescription: 'Charts appear once matching activity is recorded in MongoDB.',
+  emptyDescription: 'Charts appear once matching activity is recorded.',
   horizontal: false,
   datasetLabel: 'Value'
 })
@@ -22,27 +22,34 @@ const props = withDefaults(defineProps<{
 const canvas = ref<HTMLCanvasElement | null>(null)
 const { render } = useChart()
 
-const palette = ['#123f32', '#60813f', '#d3f28a', '#91a47d', '#c9b27c', '#833c27', '#4f6f52', '#a3b18a']
+const palette = ['#123f32', '#60813f', '#91a47d', '#d3f28a', '#c9b27c', '#4f6f52', '#833c27', '#a3b18a']
 const hasData = computed(() => props.labels.length > 0 && props.values.some(value => value > 0))
 
 watchEffect(async () => {
   if (!canvas.value || props.loading || !hasData.value) return
   const colors = props.labels.map((_, index) => palette[index % palette.length]!)
+  const isRing = props.type === 'doughnut' || props.type === 'pie'
+  const dataset = {
+    label: props.datasetLabel,
+    data: props.values,
+    backgroundColor: props.type === 'line' ? '#d3f28a66' : colors,
+    borderColor: props.type === 'line' ? '#123f32' : isRing ? '#f8f8f0' : colors,
+    borderWidth: props.type === 'line' ? 2.5 : isRing ? 3 : 0,
+    fill: props.type === 'line',
+    tension: 0.4,
+    pointRadius: props.type === 'line' ? 3.5 : undefined,
+    pointBackgroundColor: props.type === 'line' ? '#123f32' : undefined,
+    pointHoverRadius: props.type === 'line' ? 5 : undefined,
+    borderRadius: props.type === 'bar' ? 8 : undefined,
+    borderSkipped: props.type === 'bar' ? false : undefined,
+    maxBarThickness: 36,
+    ...(props.type === 'doughnut' ? { cutout: '68%' } : {})
+  }
   await render(canvas.value, {
     type: props.type,
     data: {
       labels: props.labels,
-      datasets: [{
-        label: props.datasetLabel,
-        data: props.values,
-        backgroundColor: props.type === 'line' ? '#60813f55' : colors,
-        borderColor: props.type === 'line' ? '#123f32' : colors,
-        borderWidth: props.type === 'line' ? 2 : 0,
-        fill: props.type === 'line',
-        tension: 0.35,
-        pointRadius: props.type === 'line' ? 3 : undefined,
-        borderRadius: props.type === 'bar' ? 6 : undefined
-      }]
+      datasets: [dataset as never]
     },
     options: {
       responsive: true,
@@ -50,17 +57,42 @@ watchEffect(async () => {
       indexAxis: props.horizontal ? 'y' : 'x',
       plugins: {
         legend: {
-          display: props.type === 'doughnut' || props.type === 'pie',
+          display: isRing,
           position: 'bottom',
-          labels: { boxWidth: 12, font: { size: 11 } }
+          labels: {
+            boxWidth: 10,
+            boxHeight: 10,
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 16,
+            font: { size: 11, weight: 550 },
+            color: '#4f6257'
+          }
         },
-        title: { display: Boolean(props.title), text: props.title || '', font: { size: 13 } }
+        title: { display: Boolean(props.title), text: props.title || '', font: { size: 13 } },
+        tooltip: {
+          backgroundColor: '#123f32',
+          titleFont: { size: 12, weight: 650 },
+          bodyFont: { size: 12 },
+          padding: 10,
+          cornerRadius: 8,
+          displayColors: true
+        }
       },
-      scales: props.type === 'doughnut' || props.type === 'pie'
+      scales: isRing
         ? undefined
         : {
-            x: { grid: { color: '#e5ebdc' }, ticks: { font: { size: 11 } } },
-            y: { beginAtZero: true, grid: { color: '#e5ebdc' }, ticks: { font: { size: 11 } } }
+            x: {
+              grid: { color: '#e8eedf' },
+              ticks: { font: { size: 11 }, color: '#657269', maxRotation: 0 },
+              border: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#e8eedf' },
+              ticks: { font: { size: 11 }, color: '#657269' },
+              border: { display: false }
+            }
           }
     }
   })
@@ -72,9 +104,13 @@ watchEffect(async () => {
     <LoadingSkeleton v-if="loading" :lines="5" label="Loading chart" />
     <EmptyState
       v-else-if="!hasData"
+      compact
+      symbol="▤"
       :title="emptyTitle"
       :description="emptyDescription"
     />
-    <canvas v-else ref="canvas" />
+    <div v-else class="analytics-chart-canvas">
+      <canvas ref="canvas" />
+    </div>
   </div>
 </template>
