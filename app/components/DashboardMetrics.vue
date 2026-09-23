@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 defineProps<{
   metrics: Array<{ label: string; value: string; detail?: string }>
   loading?: boolean
@@ -6,7 +6,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="dash-metrics" aria-label="Key metrics">
+  <div class="dash-metrics" role="group" aria-label="Key metrics" :aria-busy="loading || undefined">
     <StatCard
       v-for="(metric, index) in metrics"
       :key="metric.label"
@@ -18,3 +18,4 @@ defineProps<{
     />
   </div>
 </template>
+

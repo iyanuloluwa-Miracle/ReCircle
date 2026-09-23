@@ -1,6 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useSeoMeta({ title: 'Scan waste — ReCircle', robots: 'noindex' })
+useSeoMeta({ title: 'Scan an item — ReCircle', robots: 'noindex' })
 
 const upload = useWasteUpload()
 const pickup = usePickupLocation()
@@ -30,68 +30,53 @@ async function saveDraft() {
   if (id) await navigateTo(`/scan/${id}/analysis`)
 }
 </script>
-
 <template>
-  <div class="scanner-page">
-    <p class="eyebrow">01 / Capture your material</p>
-    <h1 class="page-title">See the value in what you have.</h1>
-    <p class="muted workspace-intro">Take or choose a clear photo. We’ll save it as a draft for analysis.</p>
+  <div class="scan-workspace">
+    <header class="scan-page-heading">
+      <div><p class="scan-eyebrow">A little action. A new beginning.</p><h1>Scan an item<span>.</span></h1><p>Find out what it is, what it’s worth, and where it can go next.</p></div>
+      <span class="scan-heading-chip"><ScanIcon name="sparkles" :size="16" /> AI-powered identification</span>
+    </header>
+    <ScanSteps :current="1" />
 
-    <div class="scanner-grid">
-      <section class="scanner-card" aria-label="Waste image upload">
-        <div class="scanner-card-top"><span>RECIRCLE / SCANNER</span><BaseBadge tone="lime">PHOTO FIRST</BaseBadge></div>
+    <div class="scan-capture-grid">
+      <section class="scan-panel scan-photo-panel" aria-labelledby="photo-heading">
+        <header class="scan-panel-heading"><div class="scan-heading-with-icon"><span class="scan-icon-box"><ScanIcon name="camera" /></span><div><h2 id="photo-heading">Start with a photo</h2><p>One material at a time works best.</p></div></div><span class="scan-small-number">01</span></header>
         <div
-          class="scanner-dropzone" :class="{ 'is-dragging': dragging, 'has-preview': upload.previewUrl.value }"
-          @dragenter.prevent="dragging = true" @dragover.prevent="dragging = true"
-          @dragleave.prevent="dragging = false" @drop.prevent="drop"
+          class="scan-dropzone" :class="{ 'is-dragging': dragging, 'has-preview': upload.previewUrl.value }"
+          role="button" :tabindex="upload.busy.value ? -1 : 0" :aria-disabled="upload.busy.value" :aria-label="upload.previewUrl.value ? 'Change selected photo' : 'Choose a photo of your recyclable item'"
+          @click="!upload.busy.value && picker?.click()" @keydown.enter.prevent="!upload.busy.value && picker?.click()" @keydown.space.prevent="!upload.busy.value && picker?.click()"
+          @dragenter.prevent="dragging = true" @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false" @drop.prevent="drop"
         >
-          <img v-if="upload.previewUrl.value" :src="upload.previewUrl.value" alt="Preview of selected recyclable item" class="scanner-preview">
-          <div v-else class="scanner-empty">
-            <div class="scanner-reticle" aria-hidden="true"><span>◌</span></div>
-            <p class="scanner-empty-title">Place your recyclable in focus.</p>
-            <p>Drag an image here or choose one below.</p>
+          <template v-if="upload.previewUrl.value"><img :src="upload.previewUrl.value" alt="Preview of your selected recyclable item" class="scan-photo-preview"><span class="scan-photo-ready"><ScanIcon name="check" :size="14" /> Photo selected</span></template>
+          <div v-else class="scan-upload-empty">
+            <div class="scan-viewfinder" aria-hidden="true"><svg viewBox="0 0 100 112" fill="none"><path d="M38 12h24v13l7 12v53c0 7-38 7-38 0V37l7-12V12Z" fill="#d3f28a" fill-opacity=".6" stroke="#123f32" stroke-width="2.5" stroke-linejoin="round"/><path d="M38 12V6h24v6M38 25h24M31 45h38M31 76h38M42 54l-5 9h8m13 2 5-9-5-3m-6 20H42l-4-6m13-14 4-7 5 7" stroke="#123f32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <h3>Your next good move starts here.</h3><p>Drop a photo here, or choose one from your device.</p><span class="scan-file-type">JPG, PNG or WEBP <span>·</span> Up to 5 MB</span>
           </div>
-          <span v-if="upload.previewUrl.value" class="scanner-frame-label">READY TO UPLOAD</span>
         </div>
-        <input ref="picker" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" :disabled="upload.busy.value" @change="choose">
-        <input ref="camera" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" :disabled="upload.busy.value" @change="choose">
-        <div class="scanner-actions">
-          <BaseButton variant="secondary" :disabled="upload.busy.value" @click="picker?.click()">Choose photo</BaseButton>
-          <BaseButton variant="ghost" :disabled="upload.busy.value" @click="camera?.click()">Use camera</BaseButton>
-          <BaseButton v-if="upload.file.value" variant="ghost" :disabled="upload.busy.value" @click="upload.clearFile()">Remove</BaseButton>
-        </div>
-        <p class="scanner-file-note">JPEG, PNG or WEBP · Up to 5 MB</p>
-        <p v-if="upload.file.value" class="scanner-filename">{{ upload.file.value.name }} · {{ (upload.file.value.size / 1024 / 1024).toFixed(2) }} MB</p>
-        <div v-if="upload.busy.value" class="scanner-progress" role="status" aria-live="polite">
-          <div class="scanner-progress-head"><span>{{ upload.stage.value === 'token' ? 'Preparing secure upload' : upload.stage.value === 'saving' ? 'Saving your draft' : 'Uploading image' }}</span><strong>{{ upload.progress.value }}%</strong></div>
-          <div class="scanner-progress-track"><span :style="{ width: `${upload.progress.value}%` }" /></div>
-        </div>
-        <p v-if="upload.error.value" class="form-error" role="alert">{{ upload.error.value }}</p>
+        <input ref="picker" class="sr-only" tabindex="-1" aria-label="Choose item photo" type="file" accept="image/jpeg,image/png,image/webp" :disabled="upload.busy.value" @change="choose">
+        <input ref="camera" class="sr-only" tabindex="-1" aria-label="Take item photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" :disabled="upload.busy.value" @change="choose">
+        <div class="scan-photo-actions"><BaseButton :disabled="upload.busy.value" @click="picker?.click()"><ScanIcon name="upload" :size="17" />{{ upload.file.value ? 'Change photo' : 'Choose photo' }}</BaseButton><BaseButton variant="ghost" class="scan-outline-button" :disabled="upload.busy.value" @click="camera?.click()"><ScanIcon name="camera" :size="18" />Use camera</BaseButton><button v-if="upload.file.value" type="button" class="scan-icon-button" aria-label="Remove selected photo" :disabled="upload.busy.value" @click="upload.clearFile()"><ScanIcon name="trash" :size="18" /></button></div>
+        <div v-if="upload.file.value" class="scan-selected-file"><ScanIcon name="image" :size="17" /><span>{{ upload.file.value.name }}</span><small>{{ (upload.file.value.size / 1024 / 1024).toFixed(2) }} MB</small></div>
+        <p v-if="upload.error.value" class="scan-alert scan-alert--error" role="alert">{{ upload.error.value }}</p>
+        <div class="scan-photo-tips"><span><ScanIcon name="check" :size="15" /> Good lighting</span><span><ScanIcon name="check" :size="15" /> Clear background</span><span><ScanIcon name="check" :size="15" /> Item in focus</span></div>
       </section>
 
-      <aside class="scanner-side">
-        <BaseCard tone="soft" class="scanner-location-card">
-          <p class="eyebrow">02 / Pickup point</p>
-          <h2>Where is this material?</h2>
-          <p class="muted">We’ll use this location for the draft. Later it can help find a nearby recycler.</p>
-          <div class="scanner-location-status"><span class="status-dot" />{{ pickup.label.value }}</div>
-          <p v-if="pickup.source.value === 'demo'" class="scanner-demo-note">This is the seeded demo pickup point, not your live location.</p>
-          <BaseButton variant="ghost" :loading="pickup.pending.value" :disabled="pickup.pending.value" @click="pickup.useDeviceLocation()">Use current location</BaseButton>
-          <details class="scanner-manual">
-            <summary>Enter coordinates instead</summary>
-            <div class="scanner-coordinates">
-              <label>Latitude<input v-model="pickup.latitude.value" type="number" step="any" min="-90" max="90" placeholder="6.4541"></label>
-              <label>Longitude<input v-model="pickup.longitude.value" type="number" step="any" min="-180" max="180" placeholder="3.3947"></label>
-            </div>
-            <BaseButton variant="ghost" size="sm" @click="pickup.useManualLocation()">Set location</BaseButton>
-          </details>
-          <p v-if="pickup.error.value" class="form-error" role="alert">{{ pickup.error.value }}</p>
-        </BaseCard>
-        <div class="scanner-next">
-          <p class="eyebrow">Next step</p>
-          <p>Your image is saved as a draft before analysis. No material or price is guessed here.</p>
-          <BaseButton :disabled="!upload.file.value || upload.busy.value" :loading="upload.busy.value" @click="saveDraft">{{ upload.uploadedPath.value ? 'Retry saving draft' : 'Upload and continue' }}</BaseButton>
-        </div>
+      <aside class="scan-side-stack">
+        <section class="scan-panel scan-location-panel" aria-labelledby="pickup-heading">
+          <header class="scan-heading-with-icon"><span class="scan-icon-box"><ScanIcon name="pin" /></span><div><h2 id="pickup-heading">Set a pickup point</h2><p>A nearby recycler starts here.</p></div></header>
+          <div class="scan-location-state" :class="{ 'is-ready': pickup.location.value }"><ScanIcon :name="pickup.location.value ? 'check' : 'pin'" :size="18" /><div><strong>{{ pickup.location.value ? 'Pickup location set' : 'Where is your item?' }}</strong><p>{{ pickup.label.value }}</p></div></div>
+          <p v-if="pickup.source.value === 'demo'" class="scan-demo-note">You’re using the demo pickup point in Nigeria. You can set your own below.</p>
+          <BaseButton variant="ghost" class="scan-outline-button scan-full-button" :loading="pickup.pending.value" :disabled="pickup.pending.value || upload.busy.value" @click="pickup.useDeviceLocation()"><ScanIcon v-if="!pickup.pending.value" name="pin" :size="17" />{{ pickup.pending.value ? 'Finding your location…' : 'Use current location' }}</BaseButton>
+          <details class="scan-manual-location"><summary>Enter coordinates manually<ScanIcon name="chevron" :size="14" /></summary><div class="scan-coordinate-fields"><label for="pickup-latitude">Latitude<input id="pickup-latitude" v-model="pickup.latitude.value" type="number" step="any" min="-90" max="90" placeholder="6.4541" :disabled="upload.busy.value"></label><label for="pickup-longitude">Longitude<input id="pickup-longitude" v-model="pickup.longitude.value" type="number" step="any" min="-180" max="180" placeholder="3.3947" :disabled="upload.busy.value"></label></div><BaseButton variant="ghost" size="sm" :disabled="upload.busy.value" @click="pickup.useManualLocation()">Save pickup point<ScanIcon name="check" :size="15" /></BaseButton></details>
+          <p v-if="pickup.error.value" class="scan-alert scan-alert--error" role="alert">{{ pickup.error.value }}</p>
+        </section>
+        <section class="scan-continue-panel" aria-labelledby="next-heading">
+          <div class="scan-continue-title"><span class="scan-dark-icon"><ScanIcon name="leaf" :size="22" /></span><h2 id="next-heading">Ready for a second life?</h2></div><p>We’ll save your photo and pickup point, then help identify the material.</p>
+          <ul class="scan-readiness"><li :class="{ 'is-ready': upload.file.value }"><span><ScanIcon v-if="upload.file.value" name="check" :size="12" /></span>{{ upload.file.value ? 'Photo added' : 'Add an item photo' }}</li><li :class="{ 'is-ready': pickup.location.value }"><span><ScanIcon v-if="pickup.location.value" name="check" :size="12" /></span>{{ pickup.location.value ? 'Pickup point set' : 'Set a pickup point' }}</li></ul>
+          <div v-if="upload.busy.value" class="scan-upload-progress" role="status" aria-live="polite"><div><span>{{ upload.stage.value === 'token' ? 'Preparing your upload' : upload.stage.value === 'saving' ? 'Saving your item' : 'Uploading photo' }}</span><strong>{{ upload.progress.value }}%</strong></div><progress :value="upload.progress.value" max="100" aria-label="Photo upload progress" /></div>
+          <BaseButton variant="secondary" class="scan-full-button" :disabled="!upload.file.value || upload.busy.value" :loading="upload.busy.value" @click="saveDraft">{{ upload.uploadedPath.value ? 'Retry saving item' : 'Upload & continue' }}<ScanIcon v-if="!upload.busy.value" name="arrow" :size="18" /></BaseButton>
+          <small>You can review the result before requesting pickup.</small>
+        </section>
       </aside>
     </div>
   </div>

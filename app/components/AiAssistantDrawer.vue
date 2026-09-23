@@ -1,17 +1,18 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
 }
 
 const open = ref(false)
+const triggerEl = ref<HTMLButtonElement | null>(null)
 const message = ref('')
 const sending = ref(false)
 const errorMessage = ref('')
 const messages = ref<ChatMessage[]>([
   {
     role: 'assistant',
-    content: 'Ask about prep steps, classifications, pickup status, or how estimates were calculated. Money and status answers use your MongoDB records only.'
+    content: 'Ask about prep steps, classifications, pickup status, or how estimates were calculated. Answers about your activity are based on your account.'
   }
 ])
 const listEl = ref<HTMLElement | null>(null)
@@ -25,9 +26,9 @@ const suggestions = [
 ]
 
 watch(open, async (isOpen) => {
-  if (!isOpen) return
   await nextTick()
-  inputEl.value?.focus()
+  if (isOpen) inputEl.value?.focus()
+  else triggerEl.value?.focus()
 })
 
 watch(messages, async () => {
@@ -85,6 +86,7 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <div class="ai-assistant">
     <button
+      ref="triggerEl"
       class="ai-assistant-fab"
       type="button"
       :aria-expanded="open"
@@ -99,7 +101,10 @@ function onKeydown(event: KeyboardEvent) {
       class="ai-assistant-drawer"
       :class="{ 'is-open': open }"
       :aria-hidden="!open"
+      :inert="!open"
+
       aria-label="ReCircle assistant"
+      @keydown.esc="open = false"
     >
       <header class="ai-assistant-header">
         <div>
@@ -110,7 +115,7 @@ function onKeydown(event: KeyboardEvent) {
       </header>
 
       <p class="ai-assistant-note muted">
-        Facts (pricing, earnings, status, distance, confidence) come from MongoDB. Advice is general and does not change your data.
+        Get guidance for your next step, with activity and estimates from your account. General recycling advice is labelled separately.
       </p>
 
       <div ref="listEl" class="ai-assistant-messages" role="log" aria-live="polite">
@@ -156,3 +161,6 @@ function onKeydown(event: KeyboardEvent) {
     </aside>
   </div>
 </template>
+
+
+

@@ -33,5 +33,14 @@ export default defineNuxtConfig({
       link: [{ rel: 'icon', type: 'image/png', href: '/recircle-logo.png' }]
     }
   },
-  vite: { plugins: [tailwindcss()] }
+  vite: {
+    plugins: [tailwindcss()],
+    // OneDrive on Windows can briefly lock files during sync and trip Vite HMR with EBUSY.
+    server: {
+      watch: {
+        usePolling: true,
+        interval: 400
+      }
+    }
+  }
 })
