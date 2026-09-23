@@ -56,11 +56,23 @@ useSeoMeta({ title: 'Consumer setup — ReCircle', robots: 'noindex' })
         </BaseButton>
       </div>
       <div class="auth-form">
-        <label for="onboard-lat">Latitude</label>
-        <input id="onboard-lat" v-model="pickup.latitude.value" inputmode="decimal" placeholder="6.45">
-        <label for="onboard-lng">Longitude</label>
-        <input id="onboard-lng" v-model="pickup.longitude.value" inputmode="decimal" placeholder="3.39">
-        <BaseButton variant="ghost" type="button" @click="pickup.useManualLocation()">Use these coordinates</BaseButton>
+        <label for="onboard-address">Address</label>
+        <input
+          id="onboard-address"
+          v-model="pickup.address.value"
+          type="text"
+          autocomplete="street-address"
+          placeholder="12 Admiralty Way, Lekki, Lagos"
+        >
+        <BaseButton
+          variant="ghost"
+          type="button"
+          :loading="pickup.pending.value"
+          :disabled="pickup.pending.value"
+          @click="pickup.useAddressLocation()"
+        >
+          Use this address
+        </BaseButton>
       </div>
       <p v-if="pickup.error.value || errorMessage" class="form-error" role="alert">
         {{ pickup.error.value || errorMessage }}

@@ -2,6 +2,11 @@ import type { GeoPoint } from '../../types'
 
 export type PickupLocationSource = 'device' | 'demo' | 'manual'
 
+type GeocodeResponse = {
+  location: GeoPoint
+  label: string
+}
+
 export function usePickupLocation() {
   const auth = useAuth()
   const location = ref<GeoPoint | null>(null)
@@ -9,6 +14,7 @@ export function usePickupLocation() {
   const label = ref('Choose a pickup location')
   const error = ref('')
   const pending = ref(false)
+  const address = ref('')
   const latitude = ref('')
   const longitude = ref('')
 
@@ -21,7 +27,7 @@ export function usePickupLocation() {
   async function useDeviceLocation() {
     error.value = ''
     if (!import.meta.client || !navigator.geolocation) {
-      error.value = 'Location is unavailable on this device. Enter coordinates instead.'
+      error.value = 'Location is unavailable on this device. Enter a location instead.'
       return
     }
     pending.value = true
@@ -33,7 +39,7 @@ export function usePickupLocation() {
       source.value = 'device'
       label.value = 'Current device location'
     } catch {
-      error.value = 'Could not access your location. Allow location access or enter coordinates below.'
+      error.value = 'Could not access your location. Allow location access or enter a location below.'
     } finally {
       pending.value = false
     }
@@ -53,5 +59,47 @@ export function usePickupLocation() {
     label.value = 'Manually entered pickup location'
   }
 
-  return { location, source, label, error, pending, latitude, longitude, useDeviceLocation, useManualLocation }
+  async function useAddressLocation() {
+    error.value = ''
+    const query = address.value.trim()
+    if (query.length < 3) {
+      error.value = 'Enter a fuller street address (at least a few characters).'
+      return
+    }
+    pending.value = true
+    try {
+      const result = await $fetch<GeocodeResponse>('/api/geocode', {
+        method: 'POST',
+        body: { query }
+      })
+      location.value = result.location
+      source.value = 'manual'
+      label.value = result.label
+    } catch (err: unknown) {
+      const status = typeof err === 'object' && err && 'statusCode' in err
+        ? Number((err as { statusCode?: number }).statusCode)
+        : undefined
+      if (status === 404) {
+        error.value = 'No matching address found in Nigeria. Try a clearer street or area name.'
+      } else {
+        error.value = 'Could not look up that address. Try again in a moment.'
+      }
+    } finally {
+      pending.value = false
+    }
+  }
+
+  return {
+    location,
+    source,
+    label,
+    error,
+    pending,
+    address,
+    latitude,
+    longitude,
+    useDeviceLocation,
+    useManualLocation,
+    useAddressLocation
+  }
 }
