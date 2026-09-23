@@ -10,7 +10,9 @@ export async function sendSignupOtpEmail(email: string, code: string): Promise<v
 
   if (!resendApiKey) {
     if (import.meta.dev) {
-      console.info(`[dev] Signup OTP for ${email}: ${code}`)
+      console.warn(
+        `[dev] RESEND_API_KEY missing — email skipped. Signup OTP for ${email}: ${code}`
+      )
       return
     }
     throw createError({ statusCode: 503, statusMessage: 'Email delivery is not configured' })
@@ -20,6 +22,7 @@ export async function sendSignupOtpEmail(email: string, code: string): Promise<v
   const resend = new Resend(resendApiKey)
   const { error } = await resend.emails.send({ from, to: email, subject, text, html })
   if (error) {
+    console.error('[resend] Failed to send signup OTP:', error.message || error)
     throw createError({ statusCode: 502, statusMessage: 'Could not send verification email' })
   }
 }

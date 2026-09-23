@@ -15,8 +15,8 @@ export default defineNuxtConfig({
     sessionSecret: '',
     paystackSecretKey: '',
     paystackPublicKey: '',
-    resendApiKey: '',
-    resendFromEmail: '',
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    resendFromEmail: process.env.RESEND_FROM_EMAIL || '',
     googleClientId: '',
     public: {
       appUrl: 'http://localhost:3000',

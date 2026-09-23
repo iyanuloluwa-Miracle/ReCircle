@@ -11,8 +11,18 @@ export function getServerConfig() {
     sessionSecret: process.env.SESSION_SECRET || config.sessionSecret,
     paystackSecretKey: process.env.PAYSTACK_SECRET_KEY || config.paystackSecretKey,
     paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || config.paystackPublicKey,
-    resendApiKey: process.env.RESEND_API_KEY || config.resendApiKey,
-    resendFromEmail: process.env.RESEND_FROM_EMAIL || config.resendFromEmail,
+    resendApiKey: (
+      process.env.RESEND_API_KEY
+      || process.env.NUXT_RESEND_API_KEY
+      || config.resendApiKey
+      || ''
+    ).trim(),
+    resendFromEmail: (
+      process.env.RESEND_FROM_EMAIL
+      || process.env.NUXT_RESEND_FROM_EMAIL
+      || config.resendFromEmail
+      || ''
+    ).trim(),
     googleClientId: process.env.GOOGLE_CLIENT_ID
       || process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID
       || config.googleClientId
