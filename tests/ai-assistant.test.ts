@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   assistantSystemPrompt,
   buildGroundedUserPrompt,
+  formatAssistantReplyHtml,
   type AssistantFactBundle
 } from '../utils/ai-assistant.ts'
 
@@ -61,6 +62,8 @@ test('assistant system prompt forbids inventing operational facts', () => {
   }
   assert.match(assistantSystemPrompt, /From your ReCircle data/i)
   assert.match(assistantSystemPrompt, /General recycling advice/i)
+  assert.match(assistantSystemPrompt, /ONLY answer questions about recycling/i)
+  assert.match(assistantSystemPrompt, /do NOT use Markdown/i)
 })
 
 test('grounded prompt embeds MongoDB facts JSON for the model', () => {
@@ -73,5 +76,18 @@ test('grounded prompt embeds MongoDB facts JSON for the model', () => {
   assert.match(prompt, /"pricePerKg": 150/)
   assert.match(prompt, /"totalCompletedPayoutNgn": 4200/)
   assert.match(prompt, /How can I earn more\?/)
+  assert.match(prompt, /outside recycling or ReCircle/i)
   assert.doesNotMatch(prompt, /invent a higher price/i)
+})
+
+test('assistant reply formatter renders bold and bullets without raw asterisks', () => {
+  const html = formatAssistantReplyHtml(
+    '**From your ReCircle data:**\n- You have no recent requests.\n\n**General recycling advice:**\n- Rinse PET bottles before pickup.'
+  )
+  assert.match(html, /<strong>From your ReCircle data:<\/strong>/)
+  assert.match(html, /<strong>General recycling advice:<\/strong>/)
+  assert.match(html, /<li>You have no recent requests\.<\/li>/)
+  assert.match(html, /<li>Rinse PET bottles before pickup\.<\/li>/)
+  assert.doesNotMatch(html, /\*\*/)
+  assert.equal(formatAssistantReplyHtml('Watch <script>alert(1)</script>'), '<p>Watch &lt;script&gt;alert(1)&lt;/script&gt;</p>')
 })

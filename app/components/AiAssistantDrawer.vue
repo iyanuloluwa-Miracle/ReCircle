@@ -1,4 +1,6 @@
 ﻿<script setup lang="ts">
+import { formatAssistantReplyHtml } from '~~/utils/ai-assistant'
+
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
@@ -12,7 +14,7 @@ const errorMessage = ref('')
 const messages = ref<ChatMessage[]>([
   {
     role: 'assistant',
-    content: 'Ask about prep steps, classifications, pickup status, or how estimates were calculated. Answers about your activity are based on your account.'
+    content: 'Ask about prep steps, classifications, pickup status, or how estimates were calculated. I only answer recycling and ReCircle questions — answers about your activity are based on your account.'
   }
 ])
 const listEl = ref<HTMLElement | null>(null)
@@ -24,6 +26,11 @@ const suggestions = [
   'What does my pickup status mean?',
   'How was estimated value calculated?'
 ]
+
+function bubbleHtml(entry: ChatMessage) {
+  if (entry.role !== 'assistant') return ''
+  return formatAssistantReplyHtml(entry.content)
+}
 
 watch(open, async (isOpen) => {
   await nextTick()
@@ -93,7 +100,10 @@ function onKeydown(event: KeyboardEvent) {
       aria-controls="ai-assistant-drawer"
       @click="toggle"
     >
-      {{ open ? 'Close' : 'Ask ReCircle' }}
+      <span class="ai-assistant-fab-icon" aria-hidden="true">
+        <DashboardIcon :name="open ? 'close' : 'spark'" />
+      </span>
+      <span>{{ open ? 'Close' : 'Ask ReCircle' }}</span>
     </button>
 
     <aside
@@ -107,15 +117,20 @@ function onKeydown(event: KeyboardEvent) {
       @keydown.esc="open = false"
     >
       <header class="ai-assistant-header">
-        <div>
-          <p class="eyebrow">ReCircle</p>
-          <h2>Assistant</h2>
+        <div class="ai-assistant-heading">
+          <span class="ai-assistant-heading-icon" aria-hidden="true">
+            <DashboardIcon name="spark" />
+          </span>
+          <div>
+            <p class="eyebrow">ReCircle AI</p>
+            <h2>Assistant</h2>
+          </div>
         </div>
         <button class="icon-button" type="button" aria-label="Close assistant" @click="open = false">×</button>
       </header>
 
       <p class="ai-assistant-note muted">
-        Get guidance for your next step, with activity and estimates from your account. General recycling advice is labelled separately.
+        Get guidance for recycling and ReCircle only — prep, pickups, estimates, and your account activity.
       </p>
 
       <div ref="listEl" class="ai-assistant-messages" role="log" aria-live="polite">
@@ -125,7 +140,8 @@ function onKeydown(event: KeyboardEvent) {
           class="ai-bubble"
           :class="entry.role === 'user' ? 'ai-bubble--user' : 'ai-bubble--assistant'"
         >
-          <p>{{ entry.content }}</p>
+          <div v-if="entry.role === 'assistant'" class="ai-reply" v-html="bubbleHtml(entry)" />
+          <p v-else>{{ entry.content }}</p>
         </div>
       </div>
 
