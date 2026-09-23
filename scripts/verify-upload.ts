@@ -73,6 +73,8 @@ try {
   assert.match(scannerHtml, /Choose photo/)
   assert.match(scannerHtml, /Use camera/)
   assert.match(scannerHtml, /Demo pickup location/)
+  assert.match(scannerHtml, /Use this address/)
+  assert.match(scannerHtml, /Enter coordinates manually/)
   const guestToken = await fetch(new URL('/api/upload-token', base), { method: 'POST' })
   assert.equal(guestToken.status, 401)
   const recyclerLogin = await fetch(new URL('/api/auth/demo', base), {

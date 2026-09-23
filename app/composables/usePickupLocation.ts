@@ -7,6 +7,22 @@ type GeocodeResponse = {
   label: string
 }
 
+function geolocationErrorMessage(error: unknown): string {
+  const code = typeof error === 'object' && error && 'code' in error
+    ? Number((error as { code?: number }).code)
+    : undefined
+  if (code === 1) {
+    return 'Location access is blocked. Allow it in your browser, or enter an address or coordinates below.'
+  }
+  if (code === 2) {
+    return 'Your device could not determine a position. Enter an address or coordinates below.'
+  }
+  if (code === 3) {
+    return 'Finding your location timed out. Try again, or enter an address or coordinates below.'
+  }
+  return 'Could not access your location. Allow location access or enter a location below.'
+}
+
 export function usePickupLocation() {
   const auth = useAuth()
   const location = ref<GeoPoint | null>(null)
@@ -14,6 +30,7 @@ export function usePickupLocation() {
   const label = ref('Choose a pickup location')
   const error = ref('')
   const pending = ref(false)
+  const showFallback = ref(false)
   const address = ref('')
   const latitude = ref('')
   const longitude = ref('')
@@ -22,12 +39,17 @@ export function usePickupLocation() {
     location.value = auth.user.value.location
     source.value = 'demo'
     label.value = 'Demo pickup location · Nigeria'
+  } else if (auth.user.value?.location) {
+    location.value = auth.user.value.location
+    source.value = 'manual'
+    label.value = 'Saved pickup location'
   }
 
   async function useDeviceLocation() {
     error.value = ''
     if (!import.meta.client || !navigator.geolocation) {
       error.value = 'Location is unavailable on this device. Enter a location instead.'
+      showFallback.value = true
       return
     }
     pending.value = true
@@ -38,8 +60,10 @@ export function usePickupLocation() {
       location.value = { type: 'Point', coordinates: [position.coords.longitude, position.coords.latitude] }
       source.value = 'device'
       label.value = 'Current device location'
-    } catch {
-      error.value = 'Could not access your location. Allow location access or enter a location below.'
+      showFallback.value = false
+    } catch (err) {
+      error.value = geolocationErrorMessage(err)
+      showFallback.value = true
     } finally {
       pending.value = false
     }
@@ -75,6 +99,7 @@ export function usePickupLocation() {
       location.value = result.location
       source.value = 'manual'
       label.value = result.label
+      showFallback.value = false
     } catch (err: unknown) {
       const status = typeof err === 'object' && err && 'statusCode' in err
         ? Number((err as { statusCode?: number }).statusCode)
@@ -84,6 +109,7 @@ export function usePickupLocation() {
       } else {
         error.value = 'Could not look up that address. Try again in a moment.'
       }
+      showFallback.value = true
     } finally {
       pending.value = false
     }
@@ -95,6 +121,7 @@ export function usePickupLocation() {
     label,
     error,
     pending,
+    showFallback,
     address,
     latitude,
     longitude,

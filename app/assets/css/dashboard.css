@@ -13,7 +13,7 @@
 .workspace-app .workspace-nav-item.is-active { background: #d3f28a; color: #123f32; font-weight: 650; box-shadow: 0 4px 14px #07271c18; }
 .workspace-app .workspace-nav-item.is-active:hover { background: #e0f7ab; }
 .workspace-app .workspace-active-dot { width: .35rem; height: .35rem; border-radius: 50%; margin-left: auto; background: #123f32; }
-.workspace-app .workspace-sidebar-impact { position: relative; margin: 3rem .35rem 1.5rem; padding: 1.15rem; background: #ffffff07; border: 1px solid #ffffff20; border-radius: 1rem; }
+.workspace-app .workspace-sidebar-impact { position: relative; margin: 1.5rem .35rem 1rem; padding: 1.15rem; background: #ffffff07; border: 1px solid #ffffff20; border-radius: 1rem; }
 .workspace-app .workspace-impact-icon { display: grid; place-items: center; width: 2.15rem; height: 2.15rem; border-radius: .65rem; color: #d3f28a; background: #d3f28a16; margin-bottom: .85rem; }
 .workspace-app .workspace-sidebar-impact p { font-size: 1.1rem; line-height: 1.4; letter-spacing: -.03em; }
 .workspace-app .workspace-sidebar-impact strong { color: #d3f28a; font-weight: 600; }
@@ -93,7 +93,19 @@
 .workspace-app .workspace-account-label { border: 1px solid #e3e8db; background: #f4f7ef; border-radius: 99px; padding: .4rem .7rem; color: #52614b; font-size: .67rem; }
 .workspace-app .workspace-header-actions .button { font-size: .73rem; gap: .5rem; padding: .55rem .7rem; }
 .workspace-app .workspace-header-actions .dashboard-icon { width: 1rem; height: 1rem; }
-.workspace-app .workspace-main { max-width: 100rem; padding: 2.25rem clamp(1.25rem, 3vw, 2.75rem) 6rem; scrollbar-gutter: stable; scroll-behavior: smooth; }
+.workspace-app .workspace-main {
+  max-width: 100rem;
+  padding: 2.25rem clamp(1.25rem, 3vw, 2.75rem) 6rem;
+  scrollbar-gutter: stable;
+  scrollbar-color: #8b9b85 transparent;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+}
+.workspace-app .workspace-main::-webkit-scrollbar { width: .7rem; }
+.workspace-app .workspace-main::-webkit-scrollbar-track { background: transparent; }
+.workspace-app .workspace-main::-webkit-scrollbar-thumb { border: .22rem solid #f8f8f0; border-radius: 999px; background: #aab6a4; }
+.workspace-app .workspace-main::-webkit-scrollbar-thumb:hover { background: #74846f; }
 .workspace-app .workspace-main:focus { outline: none; }
 .workspace-app .button { border-radius: .65rem; gap: .6rem; min-height: 2.9rem; padding-inline: 1.1rem; }
 .workspace-app .button--sm { min-height: 2.75rem; }
@@ -215,5 +227,4 @@
   .workspace-app .dash-hero-actions { flex-direction: column; align-items: stretch; }
 }
 @media (prefers-reduced-motion: reduce) { .workspace-app .workspace-main { scroll-behavior: auto; } }
-
 

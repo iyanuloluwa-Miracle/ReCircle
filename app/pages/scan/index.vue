@@ -29,6 +29,10 @@ async function saveDraft() {
   const id = await upload.submit(pickup.location.value, pickup.source.value)
   if (id) await navigateTo(`/scan/${id}/analysis`)
 }
+
+function onFallbackToggle(event: Event) {
+  pickup.showFallback.value = (event.currentTarget as HTMLDetailsElement).open
+}
 </script>
 <template>
   <div class="scan-workspace">
@@ -66,8 +70,22 @@ async function saveDraft() {
           <header class="scan-heading-with-icon"><span class="scan-icon-box"><ScanIcon name="pin" /></span><div><h2 id="pickup-heading">Set a pickup point</h2><p>A nearby recycler starts here.</p></div></header>
           <div class="scan-location-state" :class="{ 'is-ready': pickup.location.value }"><ScanIcon :name="pickup.location.value ? 'check' : 'pin'" :size="18" /><div><strong>{{ pickup.location.value ? 'Pickup location set' : 'Where is your item?' }}</strong><p>{{ pickup.label.value }}</p></div></div>
           <p v-if="pickup.source.value === 'demo'" class="scan-demo-note">You’re using the demo pickup point in Nigeria. You can set your own below.</p>
+          <p v-else-if="pickup.label.value === 'Saved pickup location'" class="scan-demo-note">Using your saved pickup location. Change it below if this item is elsewhere.</p>
           <BaseButton variant="ghost" class="scan-outline-button scan-full-button" :loading="pickup.pending.value" :disabled="pickup.pending.value || upload.busy.value" @click="pickup.useDeviceLocation()"><ScanIcon v-if="!pickup.pending.value" name="pin" :size="17" />{{ pickup.pending.value ? 'Finding your location…' : 'Use current location' }}</BaseButton>
-          <details class="scan-manual-location"><summary>Enter coordinates manually<ScanIcon name="chevron" :size="14" /></summary><div class="scan-coordinate-fields"><label for="pickup-latitude">Latitude<input id="pickup-latitude" v-model="pickup.latitude.value" type="number" step="any" min="-90" max="90" placeholder="6.4541" :disabled="upload.busy.value"></label><label for="pickup-longitude">Longitude<input id="pickup-longitude" v-model="pickup.longitude.value" type="number" step="any" min="-180" max="180" placeholder="3.3947" :disabled="upload.busy.value"></label></div><BaseButton variant="ghost" size="sm" :disabled="upload.busy.value" @click="pickup.useManualLocation()">Save pickup point<ScanIcon name="check" :size="15" /></BaseButton></details>
+          <div class="scan-address-field">
+            <label for="pickup-address">Address
+              <input id="pickup-address" v-model="pickup.address.value" type="text" autocomplete="street-address" placeholder="12 Admiralty Way, Lekki, Lagos" :disabled="upload.busy.value || pickup.pending.value">
+            </label>
+            <BaseButton variant="ghost" size="sm" class="scan-outline-button" :loading="pickup.pending.value" :disabled="upload.busy.value || pickup.pending.value" @click="pickup.useAddressLocation()">Use this address<ScanIcon v-if="!pickup.pending.value" name="check" :size="15" /></BaseButton>
+          </div>
+          <details class="scan-manual-location" :open="pickup.showFallback.value" @toggle="onFallbackToggle">
+            <summary>Enter coordinates manually<ScanIcon name="chevron" :size="14" /></summary>
+            <div class="scan-coordinate-fields">
+              <label for="pickup-latitude">Latitude<input id="pickup-latitude" v-model="pickup.latitude.value" type="number" step="any" min="-90" max="90" placeholder="6.4541" :disabled="upload.busy.value"></label>
+              <label for="pickup-longitude">Longitude<input id="pickup-longitude" v-model="pickup.longitude.value" type="number" step="any" min="-180" max="180" placeholder="3.3947" :disabled="upload.busy.value"></label>
+            </div>
+            <BaseButton variant="ghost" size="sm" :disabled="upload.busy.value" @click="pickup.useManualLocation()">Save coordinates<ScanIcon name="check" :size="15" /></BaseButton>
+          </details>
           <p v-if="pickup.error.value" class="scan-alert scan-alert--error" role="alert">{{ pickup.error.value }}</p>
         </section>
         <section class="scan-continue-panel" aria-labelledby="next-heading">
