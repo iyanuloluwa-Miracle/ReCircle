@@ -38,28 +38,30 @@ useSeoMeta({ title: 'Sign in — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
-  <AuthSplit title="Welcome back to your circle.">
-    <AuthSocialBlock mode="login" @success="onGoogleSuccess" />
-
+  <AuthSplit
+    variant="card"
+    title="Welcome back"
+    subtitle="Sign in with your email and password to continue in your circle."
+  >
     <form class="auth-form" @submit.prevent="submit">
-      <label for="login-email">Email*</label>
+      <label for="login-email">Email</label>
       <input
         id="login-email"
         v-model="email"
         type="email"
         autocomplete="email"
-        placeholder="you@email.com"
+        placeholder="you@example.com"
         required
       >
 
-      <label for="login-password">Password*</label>
+      <label for="login-password">Password</label>
       <div class="auth-password">
         <input
           id="login-password"
           v-model="password"
           :type="showPassword ? 'text' : 'password'"
           autocomplete="current-password"
-          placeholder="Your password"
+          placeholder="••••••••"
           required
         >
         <button
@@ -79,11 +81,18 @@ useSeoMeta({ title: 'Sign in — ReCircle', robots: 'noindex' })
       </div>
 
       <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
-      <BaseButton type="submit" :loading="pending" :disabled="pending">Sign in</BaseButton>
+      <BaseButton type="submit" :loading="pending" :disabled="pending">Log in</BaseButton>
     </form>
 
+    <AuthSocialBlock
+      mode="login"
+      divider-first
+      divider-label="OR"
+      @success="onGoogleSuccess"
+    />
+
     <p class="auth-alternate">
-      New here? <NuxtLink to="/register">Create an account</NuxtLink>
+      New to ReCircle? <NuxtLink to="/register">Sign up</NuxtLink>
     </p>
   </AuthSplit>
 </template>

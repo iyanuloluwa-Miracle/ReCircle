@@ -523,14 +523,122 @@ h1, h2, h3, p { margin: 0; }
   min-height: 100dvh;
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: clamp(2rem, 6vw, 4.5rem) var(--page-gutter) clamp(2.5rem, 7vw, 5rem);
   background:
     radial-gradient(ellipse 80% 50% at 50% -10%, #d3f28a33, transparent 55%),
     #f8f8f0;
 }
+.auth-simple--card {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -8%, #d3f28a28, transparent 50%),
+    radial-gradient(circle at 1px 1px, #c5d0b855 1px, transparent 0) 0 0 / 18px 18px,
+    #f8f8f0;
+}
 .auth-simple-inner {
   width: min(100%, 22.5rem);
   animation: auth-form-enter .55s ease both;
+}
+.auth-simple--card .auth-simple-inner {
+  width: min(100%, 23.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.auth-simple--card .auth-simple-inner > .brand {
+  margin-bottom: 1.15rem;
+  font-size: 1.35rem;
+}
+.auth-card {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.35rem 1.35rem 1.25rem;
+  border: 1px solid #e1e7d8;
+  border-radius: 1.15rem;
+  background: #fffef9;
+  box-shadow: 0 10px 36px #183e2a0c;
+}
+.auth-card-lead {
+  margin: -.55rem 0 1.1rem;
+  text-align: center;
+  font-size: .8125rem;
+  line-height: 1.55;
+  color: #657269;
+}
+.auth-simple--card .auth-simple-title {
+  margin: 0 0 .75rem;
+  max-width: none;
+  text-align: center;
+  font-size: clamp(1.45rem, 3vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -.04em;
+}
+.auth-simple--card .auth-form {
+  gap: .4rem;
+}
+.auth-simple--card .auth-form label {
+  margin-top: .35rem;
+  font-size: .7rem;
+}
+.auth-simple--card .auth-form input {
+  min-height: 2.65rem;
+  border-color: transparent;
+  border-radius: .75rem;
+  background: #edf1e4;
+  padding: .65rem .85rem;
+}
+.auth-simple--card .auth-form input:hover {
+  border-color: #c5d3b8;
+  background: #e8eedc;
+}
+.auth-simple--card .auth-form input:focus {
+  border-color: #61892d;
+  background: #fffef9;
+  box-shadow: 0 0 0 3px #d3f28a66;
+}
+.auth-simple--card .auth-form .button,
+.auth-simple--card .auth-social-btn {
+  min-height: 2.75rem;
+  border-radius: 999px;
+}
+.auth-simple--card .auth-form .button {
+  margin-top: .75rem;
+}
+.auth-simple--card .auth-social {
+  margin-top: .15rem;
+}
+.auth-simple--card .auth-social-btn {
+  background: #fffef9;
+  border-color: #d5ddca;
+}
+.auth-simple--card .auth-social-btn:hover {
+  background: #f3f6ec;
+  border-color: #c5d3b8;
+}
+.auth-simple--card .auth-divider {
+  margin: .85rem 0 .75rem;
+}
+.auth-simple--card .auth-divider-label {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #8a978c;
+}
+.auth-simple--card .auth-alternate {
+  margin-top: 1rem;
+  margin-bottom: 0;
+  text-align: center;
+  font-size: .8125rem;
+}
+.auth-simple--card .auth-alternate a {
+  color: #123f32;
+  text-decoration: none;
+}
+.auth-simple--card .auth-alternate a:hover {
+  color: #527737;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .auth-simple-inner:has(.role-picker) {
   display: flex;

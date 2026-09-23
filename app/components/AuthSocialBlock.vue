@@ -4,8 +4,13 @@ import type { UserRole } from '../../types'
 const props = withDefaults(defineProps<{
   mode?: 'login' | 'signup'
   role?: UserRole
+  /** When true, divider sits above the Google button (form-first layouts). */
+  dividerFirst?: boolean
+  dividerLabel?: string
 }>(), {
-  mode: 'login'
+  mode: 'login',
+  dividerFirst: false,
+  dividerLabel: 'Or continue with email'
 })
 
 const emit = defineEmits<{
@@ -153,6 +158,12 @@ async function onGoogle() {
 
 <template>
   <div class="auth-social" role="group" aria-label="Social sign-in">
+    <div v-if="dividerFirst" class="auth-divider" role="separator">
+      <span class="auth-divider-line" aria-hidden="true" />
+      <span class="auth-divider-label">{{ dividerLabel }}</span>
+      <span class="auth-divider-line" aria-hidden="true" />
+    </div>
+
     <button
       class="auth-social-btn"
       type="button"
@@ -172,11 +183,11 @@ async function onGoogle() {
     </button>
     <div ref="gisHost" class="auth-gis-host" aria-hidden="true" />
     <p v-if="notice" class="auth-social-notice" role="status">{{ notice }}</p>
-  </div>
 
-  <div class="auth-divider" role="separator">
-    <span class="auth-divider-line" aria-hidden="true" />
-    <span class="auth-divider-label">Or continue with email</span>
-    <span class="auth-divider-line" aria-hidden="true" />
+    <div v-if="!dividerFirst" class="auth-divider" role="separator">
+      <span class="auth-divider-line" aria-hidden="true" />
+      <span class="auth-divider-label">{{ dividerLabel }}</span>
+      <span class="auth-divider-line" aria-hidden="true" />
+    </div>
   </div>
 </template>
