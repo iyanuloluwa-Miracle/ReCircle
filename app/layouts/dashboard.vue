@@ -7,6 +7,7 @@ const { user } = auth
 const route = useRoute()
 const loggingOut = ref(false)
 const logoutError = ref('')
+const toast = useToast()
 const navOpen = ref(false)
 const isMobile = ref(false)
 const sidebar = ref<HTMLElement | null>(null)
@@ -85,7 +86,7 @@ async function signOut() {
   loggingOut.value = true
   logoutError.value = ''
   try { await auth.logout(); await navigateTo('/') }
-  catch { logoutError.value = 'Could not sign out. Please try again.' }
+  catch { logoutError.value = 'Could not sign out. Please try again.'; toast.error('Could not sign out', logoutError.value) }
   finally { loggingOut.value = false }
 }
 </script>
@@ -155,4 +156,3 @@ async function signOut() {
     <div v-if="user" :inert="isMobile && navOpen"><AiAssistantDrawer /></div>
   </div>
 </template>
-

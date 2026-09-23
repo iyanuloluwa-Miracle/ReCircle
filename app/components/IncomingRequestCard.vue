@@ -12,6 +12,7 @@ const emit = defineEmits<{
 
 const busy = ref(false)
 const actionError = ref('')
+const toast = useToast()
 
 function friendlyError(error: unknown, fallback: string) {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -30,8 +31,10 @@ async function setStatus(status: 'accepted' | 'rejected') {
       body: { status }
     })
     emit('updated', updated)
+    toast.success(status === 'accepted' ? 'Pickup accepted' : 'Pickup declined', 'The requester will see the updated status.')
   } catch (error) {
     actionError.value = friendlyError(error, 'Could not update this request.')
+    toast.error('Could not update request', actionError.value)
   } finally {
     busy.value = false
   }

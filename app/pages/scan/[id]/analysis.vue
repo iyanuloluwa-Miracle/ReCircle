@@ -31,10 +31,11 @@ const savingCorrection = ref(false)
 const savingWeight = ref(false)
 const matching = ref(false)
 const actionError = ref('')
+const toast = useToast()
 const editing = ref(false)
 const selectedMaterial = ref('UNKNOWN')
 const selectedRecyclability = ref('conditionally_recyclable')
-const weightInput = ref('')
+const weightInput = ref<string | number>('')
 
 watch(data, item => {
   if (!item) return
@@ -45,6 +46,14 @@ watch(data, item => {
 
 const needsConfirmation = computed(() => data.value?.confidence != null
   && data.value.confidence < 0.65 && data.value.classificationSource !== 'manual')
+
+function parseWeightKg(value: unknown) {
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+  const weightKg = Number(raw)
+  if (!Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 100000) return null
+  return weightKg
+}
 
 function friendlyError(error: unknown, fallback: string) {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -61,8 +70,10 @@ async function analyze() {
   try {
     await $fetch('/api/analyze-waste', { method: 'POST', body: { wasteItemId: id } })
     await refresh()
+    toast.success('Analysis complete', 'Your material details are ready to review.')
   } catch (error) {
     actionError.value = friendlyError(error, 'Analysis failed. Please try again.')
+    toast.error('Analysis failed', actionError.value)
   } finally { analyzing.value = false }
 }
 
@@ -75,15 +86,17 @@ async function saveCorrection() {
     } })
     await refresh()
     editing.value = false
+    toast.success('Material updated', 'Your correction has been saved.')
   } catch (error) {
     actionError.value = friendlyError(error, 'Could not save your correction. Please try again.')
+    toast.error('Could not save correction', actionError.value)
   } finally { savingCorrection.value = false }
 }
 
 async function saveWeight() {
   actionError.value = ''
-  const weightKg = Number(weightInput.value)
-  if (!weightInput.value.trim() || !Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 100000) {
+  const weightKg = parseWeightKg(weightInput.value)
+  if (weightKg == null) {
     actionError.value = 'Enter a weight greater than 0 kg.'
     return
   }
@@ -91,24 +104,28 @@ async function saveWeight() {
   try {
     await $fetch(`/api/waste-items/${id}/analysis`, { method: 'PATCH', body: { weightKg } })
     await refresh()
+    toast.success('Weight saved', 'You can now find recycler offers.')
   } catch (error) {
     actionError.value = friendlyError(error, 'Could not save the weight. Please try again.')
+    toast.error('Could not save weight', actionError.value)
   } finally { savingWeight.value = false }
 }
 
 async function findMatches() {
   actionError.value = ''
-  const weightKg = Number(weightInput.value || data.value?.weightKg)
-  if (!Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 100000) {
+  const weightKg = parseWeightKg(weightInput.value) ?? parseWeightKg(data.value?.weightKg)
+  if (weightKg == null) {
     actionError.value = 'Enter a weight greater than 0 kg.'
     return
   }
   matching.value = true
   try {
     await $fetch('/api/match-recycler', { method: 'POST', body: { wasteItemId: id, weightKg } })
+    toast.info('Finding recyclers', 'We’re preparing your local offers.')
     await navigateTo(`/scan/${id}/match`)
   } catch (error) {
     actionError.value = friendlyError(error, 'Could not match recyclers. Please try again.')
+    toast.error('Could not find recyclers', actionError.value)
   } finally { matching.value = false }
 }
 

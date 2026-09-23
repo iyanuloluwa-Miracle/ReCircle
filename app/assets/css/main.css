@@ -275,6 +275,16 @@ h1, h2, h3, p { margin: 0; }
 .spinner { height: 15px; width: 15px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
 .skip-link { position: fixed; top: -100px; left: 20px; padding: 12px 18px; background: #d3f28a; z-index: 100; }.skip-link:focus { top: 12px; }
 
+/* Global feedback, shared by dashboard and public flows. */
+.toast-region { position: fixed; z-index: 200; top: max(1rem, env(safe-area-inset-top)); right: max(1rem, env(safe-area-inset-right)); display: grid; width: min(25rem, calc(100vw - 2rem)); gap: .7rem; pointer-events: none; }
+.toast { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 2rem; align-items: start; gap: .75rem; padding: .85rem; border: 1px solid #dfe7d9; border-radius: .85rem; background: #fffefa; color: #244335; box-shadow: 0 .8rem 2rem #123f3220; pointer-events: auto; }
+.toast--success { border-color: #cfe1bd; }.toast--error { border-color: #efd0c5; }.toast--info { border-color: #d8e4d1; }
+.toast-mark { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: #eef5e7; color: #3f7635; font-size: .9rem; font-weight: 800; }
+.toast--error .toast-mark { background: #fff0ea; color: #a44431; }.toast--info .toast-mark { background: #edf3e8; color: #486642; }
+.toast-copy { min-width: 0; padding-top: .1rem; }.toast-copy strong { display: block; font-size: .8rem; font-weight: 700; line-height: 1.35; }.toast-copy p { margin: .2rem 0 0; color: #657269; font-size: .73rem; line-height: 1.5; }
+.toast-dismiss { display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: .45rem; background: transparent; color: #697565; font-size: 1.35rem; line-height: 1; }.toast-dismiss:hover { background: #eef2e9; color: #123f32; }.toast-dismiss:focus-visible { outline: 3px solid #6e974d; outline-offset: 2px; }
+.toast-enter-active, .toast-leave-active { transition: opacity .2s ease, transform .2s ease; }.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(1rem); }
+
 /* Dashboard app shell — left sidebar + main viewport */
 .workspace-app {
   min-height: 100dvh;

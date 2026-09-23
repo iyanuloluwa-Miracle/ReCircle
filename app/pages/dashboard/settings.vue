@@ -13,6 +13,7 @@ const pickup = usePickupLocation()
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref('')
+const toast = useToast()
 
 const current = user.value?.avatarUrl ?? null
 const selected = ref<string | null>(
@@ -85,8 +86,10 @@ async function onFileChange(event: Event) {
     auth.user.value = result.user
     selected.value = result.user?.avatarUrl ?? null
     avatarSuccess.value = 'Profile photo updated.'
+    toast.success('Profile photo updated')
   } catch {
     avatarError.value = 'Photo upload failed. Try again or pick a preset instead.'
+    toast.error('Photo upload failed', avatarError.value)
     if (previewUrl.value) {
       URL.revokeObjectURL(previewUrl.value)
       previewUrl.value = null
@@ -112,8 +115,10 @@ async function saveAvatar() {
     })
     auth.user.value = result.user
     avatarSuccess.value = 'Avatar updated.'
+    toast.success('Avatar updated')
   } catch {
     avatarError.value = 'Could not save your avatar. Try again.'
+    toast.error('Could not save avatar', avatarError.value)
   } finally {
     avatarPending.value = false
   }
@@ -125,6 +130,7 @@ async function savePickupAddress() {
   await pickup.useAddressLocation()
   if (pickup.error.value || !pickup.location.value) {
     saveError.value = pickup.error.value || 'Choose a pickup address first.'
+    toast.error('Pickup address needed', saveError.value)
     return
   }
   saving.value = true
@@ -135,8 +141,10 @@ async function savePickupAddress() {
     })
     auth.user.value = result.user
     saveSuccess.value = `Pickup area updated to ${pickup.label.value}.`
+    toast.success('Pickup area updated', pickup.label.value)
   } catch {
     saveError.value = 'Could not save your pickup location. Try again.'
+    toast.error('Could not save pickup area', saveError.value)
   } finally {
     saving.value = false
   }

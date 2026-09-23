@@ -4,6 +4,7 @@ useSeoMeta({ title: 'Scan an item — ReCircle', robots: 'noindex' })
 
 const upload = useWasteUpload()
 const pickup = usePickupLocation()
+const toast = useToast()
 const picker = ref<HTMLInputElement | null>(null)
 const camera = ref<HTMLInputElement | null>(null)
 const dragging = ref(false)
@@ -24,10 +25,14 @@ async function drop(event: DragEvent) {
 async function saveDraft() {
   if (!pickup.location.value || !pickup.source.value) {
     pickup.error.value = 'Choose a pickup location before continuing.'
+    toast.error('Pickup point needed', pickup.error.value)
     return
   }
   const id = await upload.submit(pickup.location.value, pickup.source.value)
-  if (id) await navigateTo(`/scan/${id}/analysis`)
+  if (id) {
+    toast.success('Photo saved', 'Your item is ready for material analysis.')
+    await navigateTo(`/scan/${id}/analysis`)
+  } else if (upload.error.value) toast.error('Could not save your item', upload.error.value)
 }
 
 function onFallbackToggle(event: Event) {

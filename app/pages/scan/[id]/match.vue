@@ -36,6 +36,7 @@ const id = String(useRoute().params.id)
 const comparing = ref(false)
 const requestingId = ref<string | null>(null)
 const actionError = ref('')
+const toast = useToast()
 const createdRequest = ref<PickupRequestView | null>(null)
 
 const pastMatching = (status: string | undefined) =>
@@ -112,9 +113,11 @@ async function requestPickup(recyclerId: string) {
     })
     createdRequest.value = result
     await refreshItem()
+    toast.success('Pickup requested', 'The recycler has been notified of your request.')
     await navigateTo('/dashboard/user')
   } catch (error) {
     actionError.value = friendlyError(error, 'Could not create the pickup request.')
+    toast.error('Could not request pickup', actionError.value)
   } finally {
     requestingId.value = null
   }

@@ -69,6 +69,7 @@ const selectedZone = ref('all_nigeria')
 const optimizing = ref(false)
 const optimizeError = ref('')
 const optimizeResult = ref<OptimizeResponse | null>(null)
+const toast = useToast()
 
 const { data, pending, error, refresh } = await useAsyncData('operator-dashboard', async () => {
   const fetcher = import.meta.server ? useRequestFetch() : $fetch
@@ -118,8 +119,10 @@ async function optimizePickups() {
     optimizeResult.value = await $fetch<OptimizeResponse>('/api/optimize-pickups', {
       query: { zoneId: selectedZone.value }
     })
+    toast.success('Collection plan ready', `${optimizeResult.value.pickupCount} pickups were grouped into suggested batches.`)
   } catch {
     optimizeError.value = 'Could not build collection batches. Please try again.'
+    toast.error('Could not build collection plan', optimizeError.value)
   } finally {
     optimizing.value = false
   }
