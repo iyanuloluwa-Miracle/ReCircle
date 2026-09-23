@@ -173,7 +173,7 @@ function values(key: string) {
         <DashboardSection
           v-if="data.role === 'waste_operator'"
           title="Geographic / zone distribution"
-          description="Kg attributed to nearest Lagos neighborhood from pickup coordinates."
+          description="Kg attributed to nearest Nigerian area from pickup coordinates."
         >
           <AnalyticsChart
             type="bar"
@@ -182,7 +182,7 @@ function values(key: string) {
             :values="values('zoneDistribution')"
             dataset-label="Kg by zone"
             empty-title="No geo distribution yet"
-            empty-description="Pickup locations are mapped to Lagos zones when requests exist."
+            empty-description="Pickup locations are mapped to Nigerian zones when requests exist."
           />
         </DashboardSection>
       </div>

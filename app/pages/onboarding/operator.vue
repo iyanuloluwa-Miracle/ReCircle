@@ -31,7 +31,7 @@ useSeoMeta({ title: 'Operator setup — ReCircle', robots: 'noindex' })
       </p>
       <ul class="howto-list">
         <li>Watch the live collection queue.</li>
-        <li>Review recycler capacity across Lagos.</li>
+        <li>Review recycler capacity across Nigeria.</li>
         <li>Run zone optimize when batches need grouping.</li>
       </ul>
       <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>

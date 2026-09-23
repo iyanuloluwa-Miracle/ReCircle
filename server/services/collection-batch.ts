@@ -2,10 +2,10 @@ import { Request } from '../models/Request'
 import { Recycler } from '../models/Recycler'
 import { WasteItem } from '../models/WasteItem'
 import {
-  ALL_LAGOS_ZONE_ID,
+  ALL_NIGERIA_ZONE_ID,
   buildCollectionBatches,
   filterPickupsByZone,
-  lagosAreas,
+  nigeriaAreas,
   type BatchPickupPoint
 } from '../../utils/collection-batch'
 
@@ -15,7 +15,7 @@ export async function optimizeCollectionBatches(options?: {
   zoneId?: string
   clusterRadiusKm?: number
 }) {
-  const zoneId = options?.zoneId ?? ALL_LAGOS_ZONE_ID
+  const zoneId = options?.zoneId ?? ALL_NIGERIA_ZONE_ID
   const clusterRadiusKm = options?.clusterRadiusKm ?? 4
 
   const requests = await Request.find({ status: { $in: [...OPTIMIZE_STATUSES] } })
@@ -28,8 +28,8 @@ export async function optimizeCollectionBatches(options?: {
       explanation: 'ReCircle groups nearby pickups to reduce unnecessary collection travel.',
       disclaimer: 'Straight-line estimates only — not road-routing optimization.',
       zones: [
-        { id: ALL_LAGOS_ZONE_ID, name: 'All Lagos' },
-        ...lagosAreas.map(area => ({ id: area.id, name: area.name }))
+        { id: ALL_NIGERIA_ZONE_ID, name: 'All Nigeria' },
+        ...nigeriaAreas.map(area => ({ id: area.id, name: area.name }))
       ],
       batches: [],
       pickupCount: 0
@@ -74,8 +74,8 @@ export async function optimizeCollectionBatches(options?: {
     explanation: 'ReCircle groups nearby pickups to reduce unnecessary collection travel.',
     disclaimer: 'Suggested collection sequence uses straight-line nearest-neighbour heuristics — not actual road routing.',
     zones: [
-      { id: ALL_LAGOS_ZONE_ID, name: 'All Lagos' },
-      ...lagosAreas.map(area => ({ id: area.id, name: area.name }))
+      { id: ALL_NIGERIA_ZONE_ID, name: 'All Nigeria' },
+      ...nigeriaAreas.map(area => ({ id: area.id, name: area.name }))
     ],
     batches,
     pickupCount: inZone.length

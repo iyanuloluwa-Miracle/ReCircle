@@ -23,8 +23,8 @@ export interface NamedArea {
   radiusKm: number
 }
 
-/** Well-known Lagos demo neighborhoods for zone filters and sequence labels. */
-export const lagosAreas: NamedArea[] = [
+/** Demo Nigerian areas for zone filters and sequence labels. */
+export const nigeriaAreas: NamedArea[] = [
   { id: 'yaba', name: 'Yaba', latitude: 6.5095, longitude: 3.3889, radiusKm: 3.5 },
   { id: 'sabo', name: 'Sabo', latitude: 6.5055, longitude: 3.3795, radiusKm: 2.5 },
   { id: 'akoka', name: 'Akoka', latitude: 6.5178, longitude: 3.3898, radiusKm: 2.5 },
@@ -32,10 +32,13 @@ export const lagosAreas: NamedArea[] = [
   { id: 'gbagada', name: 'Gbagada', latitude: 6.5512, longitude: 3.3891, radiusKm: 3.5 },
   { id: 'surulere', name: 'Surulere', latitude: 6.4979, longitude: 3.3572, radiusKm: 4 },
   { id: 'ikeja', name: 'Ikeja', latitude: 6.6018, longitude: 3.3426, radiusKm: 5 },
-  { id: 'lekki', name: 'Lekki', latitude: 6.4474, longitude: 3.4767, radiusKm: 6 }
+  { id: 'lekki', name: 'Lekki', latitude: 6.4474, longitude: 3.4767, radiusKm: 6 },
+  { id: 'abuja', name: 'Abuja', latitude: 9.0765, longitude: 7.3986, radiusKm: 8 },
+  { id: 'ibadan', name: 'Ibadan', latitude: 7.3775, longitude: 3.9470, radiusKm: 7 },
+  { id: 'port_harcourt', name: 'Port Harcourt', latitude: 4.8156, longitude: 7.0498, radiusKm: 7 }
 ]
 
-export const ALL_LAGOS_ZONE_ID = 'all_lagos'
+export const ALL_NIGERIA_ZONE_ID = 'all_nigeria'
 
 const EARTH_RADIUS_KM = 6371
 
@@ -55,7 +58,7 @@ export function haversineKm(
 
 export function nearestAreaName(
   point: { latitude: number; longitude: number },
-  areas: NamedArea[] = lagosAreas
+  areas: NamedArea[] = nigeriaAreas
 ) {
   if (areas.length === 0) return 'Unknown area'
   let best = areas[0]!
@@ -73,9 +76,9 @@ export function nearestAreaName(
 export function filterPickupsByZone(
   pickups: BatchPickupPoint[],
   zoneId: string,
-  areas: NamedArea[] = lagosAreas
+  areas: NamedArea[] = nigeriaAreas
 ) {
-  if (zoneId === ALL_LAGOS_ZONE_ID || !zoneId) return [...pickups]
+  if (zoneId === ALL_NIGERIA_ZONE_ID || !zoneId) return [...pickups]
   const zone = areas.find(area => area.id === zoneId)
   if (!zone) return []
   return pickups.filter(pickup => haversineKm(pickup, zone) <= zone.radiusKm)
@@ -212,8 +215,8 @@ export function buildCollectionBatches(
   pickups: BatchPickupPoint[],
   options?: { zoneId?: string; clusterRadiusKm?: number; areas?: NamedArea[] }
 ): CollectionBatch[] {
-  const areas = options?.areas ?? lagosAreas
-  const zoneId = options?.zoneId ?? ALL_LAGOS_ZONE_ID
+  const areas = options?.areas ?? nigeriaAreas
+  const zoneId = options?.zoneId ?? ALL_NIGERIA_ZONE_ID
   const clusterRadiusKm = options?.clusterRadiusKm ?? 4
   const eligible = filterPickupsByZone(pickups, zoneId, areas)
     .filter(entry => entry.status === 'pending' || entry.status === 'accepted')

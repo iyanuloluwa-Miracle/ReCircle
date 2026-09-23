@@ -15,7 +15,7 @@ export function usePickupLocation() {
   if (auth.user.value?.isDemo && auth.user.value.location) {
     location.value = auth.user.value.location
     source.value = 'demo'
-    label.value = 'Demo pickup location · Lagos'
+    label.value = 'Demo pickup location · Nigeria'
   }
 
   async function useDeviceLocation() {

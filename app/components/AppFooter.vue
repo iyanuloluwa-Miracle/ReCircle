@@ -17,7 +17,7 @@ const columns = [
       { label: 'Who it’s for', to: '/#platform-roles' },
       { label: 'The mission', to: '/#the-mission' },
       { label: 'FAQ', to: '/#faq' },
-      { label: 'About this preview', to: '/#the-mission' },
+      { label: 'Our mission', to: '/#the-mission' },
     ],
   },
   {
@@ -62,7 +62,7 @@ const columns = [
       </div>
 
       <div class="footer-bottom">
-        <p>© {{ year }} ReCircle. Lagos, Nigeria · Hackathon prototype</p>
+        <p>© {{ year }} ReCircle. Built for Nigeria.</p>
       </div>
     </div>
   </footer>

@@ -35,7 +35,7 @@ async function signOut() {
           <NuxtLink to="/demo" class="workspace-nav-item"><span aria-hidden="true">↗</span> Switch demo role</NuxtLink>
           <NuxtLink to="/" class="workspace-nav-item"><span aria-hidden="true">↗</span> Back to home</NuxtLink>
         </nav>
-        <div class="workspace-note"><span class="status-dot" /> Built for a better circle.<br><span class="muted">Starting with Lagos.</span></div>
+        <div class="workspace-note"><span class="status-dot" /> Built for a better circle.<br><span class="muted">Built for Nigeria.</span></div>
       </aside>
       <div class="workspace-body">
         <header class="workspace-header">
@@ -43,7 +43,7 @@ async function signOut() {
           <div class="workspace-header-actions">
             <BaseBadge v-if="user?.isDemo" tone="lime">DEMO</BaseBadge>
             <BaseButton v-if="user" variant="ghost" size="sm" :loading="loggingOut" @click="signOut">Sign out</BaseButton>
-            <BaseBadge v-else tone="green">Public preview</BaseBadge>
+            <BaseBadge v-else tone="green">Signed out</BaseBadge>
           </div>
         </header>
         <p v-if="logoutError" class="form-error" role="alert">{{ logoutError }}</p>

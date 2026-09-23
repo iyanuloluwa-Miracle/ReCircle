@@ -1,6 +1,6 @@
 # ReCircle — Phase 11
 
-A Lagos-focused recycling coordination hackathon prototype built with Nuxt 4,
+A Nigeria-focused recycling coordination platform built with Nuxt 4,
 strict TypeScript and Tailwind CSS 4. Phase 11 adds a grounded ReCircle
 assistant that explains platform data from MongoDB and never invents pricing,
 earnings, status, distance, or confidence.
@@ -72,7 +72,7 @@ middleware is not an authorization boundary.
 Consumers can open `/scan` from their workspace. The page accepts JPEG, PNG, and
 WEBP images up to 5 MB, including a phone camera input where supported. Device
 location requires browser permission; manual coordinates are available if it fails.
-Seeded consumer accounts start with an explicitly labelled demo Lagos pickup point.
+Seeded consumer accounts start with an explicitly labelled demo Nigeria pickup point.
 No location is inferred from an image.
 
 `POST /api/upload-token` asks Byteship for a public, 15-minute token scoped to
@@ -180,7 +180,7 @@ loading skeletons, and are tuned for 375px mobile, tablet, and desktop widths.
 ## Smart Collection Batch
 
 `GET /api/optimize-pickups?zoneId=` is an operator-only, read-only planner. It loads
-pending and accepted requests, filters by a Lagos zone, clusters nearby pickups with
+pending and accepted requests, filters by a Nigerian zone, clusters nearby pickups with
 a deterministic radius heuristic, then orders each cluster with nearest-neighbour.
 The UI labels this a **Suggested collection sequence** and compares naive vs suggested
 straight-line distance. An SVG marker map is included; no paid routing API is used.
@@ -227,7 +227,7 @@ Run `npm run seed` after setting `MONGODB_URI` and `DEMO_SEED_PASSWORD` (at leas
 characters) in your local `.env` or process environment. The URI must name a
 non-system database. The seed is repeatable and inserts only documents with fixed
 demo IDs and `isDemo: true`; existing seeded documents are left alone. It creates
-one consumer, one waste operator, four fictional Lagos recycler businesses, and
+one consumer, one waste operator, four fictional Nigerian recycler businesses, and
 four historical completed requests with mock transactions. **All recycler prices
 are invented DEMO values, not real market quotes.** Never use this data for actual
 payouts or collection decisions. The script creates and verifies every declared

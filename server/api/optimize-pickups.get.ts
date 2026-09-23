@@ -2,9 +2,9 @@ import { defineEventHandler, getQuery } from 'h3'
 import { z } from 'zod'
 import { optimizeCollectionBatches } from '../services/collection-batch'
 import { requireSessionUser } from '../utils/session'
-import { ALL_LAGOS_ZONE_ID, lagosAreas } from '../../utils/collection-batch'
+import { ALL_NIGERIA_ZONE_ID, nigeriaAreas } from '../../utils/collection-batch'
 
-const zoneIds = [ALL_LAGOS_ZONE_ID, ...lagosAreas.map(area => area.id)] as [string, ...string[]]
+const zoneIds = [ALL_NIGERIA_ZONE_ID, ...nigeriaAreas.map(area => area.id)] as [string, ...string[]]
 
 const querySchema = z.object({
   zoneId: z.enum(zoneIds).optional(),

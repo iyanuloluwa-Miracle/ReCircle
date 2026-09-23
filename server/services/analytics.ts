@@ -2,7 +2,7 @@ import { Types } from 'mongoose'
 import { Request } from '../models/Request'
 import { Recycler } from '../models/Recycler'
 import { Transaction } from '../models/Transaction'
-import { lagosAreas, nearestAreaName } from '../../utils/collection-batch'
+import { nigeriaAreas, nearestAreaName } from '../../utils/collection-batch'
 import type { AuthUser, UserRole } from '../../types'
 
 export type SeriesPoint = { label: string; value: number }
@@ -324,10 +324,10 @@ async function operatorAnalytics() {
     ])
   ])
 
-  // Map reduced geo buckets (not every request) onto named Lagos zones.
+  // Map reduced geo buckets (not every request) onto named Nigerian zones.
   const zoneTotals = new Map<string, number>()
   for (const bucket of geoBuckets) {
-    const zone = nearestAreaName({ latitude: bucket.lat, longitude: bucket.lng }, lagosAreas)
+    const zone = nearestAreaName({ latitude: bucket.lat, longitude: bucket.lng }, nigeriaAreas)
     zoneTotals.set(zone, (zoneTotals.get(zone) ?? 0) + bucket.kg)
   }
   const zoneDistribution = [...zoneTotals.entries()]

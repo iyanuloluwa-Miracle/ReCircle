@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  ALL_LAGOS_ZONE_ID,
+  ALL_NIGERIA_ZONE_ID,
   buildCollectionBatches,
   clusterNearbyPickups,
   filterPickupsByZone,
@@ -30,7 +30,7 @@ test('haversine distance is symmetric and zero for identical points', () => {
   assert.ok(haversineKm(a, b) > 4 && haversineKm(a, b) < 6)
 })
 
-test('nearest area label picks the closest Lagos neighborhood', () => {
+test('nearest area label picks the closest Nigerian demo area', () => {
   assert.equal(nearestAreaName({ latitude: 6.5095, longitude: 3.3889 }), 'Yaba')
   assert.equal(nearestAreaName({ latitude: 6.5512, longitude: 3.3891 }), 'Gbagada')
 })
@@ -43,7 +43,7 @@ test('zone filter keeps only pickups inside the selected radius', () => {
   const yabaOnly = filterPickupsByZone(points, 'yaba')
   assert.equal(yabaOnly.length, 1)
   assert.equal(yabaOnly[0]!.id, 'yaba')
-  assert.equal(filterPickupsByZone(points, ALL_LAGOS_ZONE_ID).length, 2)
+  assert.equal(filterPickupsByZone(points, ALL_NIGERIA_ZONE_ID).length, 2)
 })
 
 test('nearest-neighbour sequence is deterministic and shortens naive id order', () => {
@@ -83,7 +83,7 @@ test('buildCollectionBatches returns suggested sequence labels and distance comp
     pickup({ id: 'r3', latitude: 6.5178, longitude: 3.3898, weightKg: 5, expectedPayout: 1000, status: 'pending' }),
     pickup({ id: 'r4', latitude: 6.4474, longitude: 3.4767, weightKg: 10, expectedPayout: 2000, status: 'picked_up' })
   ]
-  const batches = buildCollectionBatches(points, { zoneId: ALL_LAGOS_ZONE_ID, clusterRadiusKm: 4 })
+  const batches = buildCollectionBatches(points, { zoneId: ALL_NIGERIA_ZONE_ID, clusterRadiusKm: 4 })
   assert.ok(batches.length >= 1)
   const main = batches.find(batch => batch.pickupCount >= 2) ?? batches[0]!
   assert.ok(main.batchNumber >= 100)

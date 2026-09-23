@@ -65,7 +65,7 @@ interface OptimizeResponse {
   }>
 }
 
-const selectedZone = ref('all_lagos')
+const selectedZone = ref('all_nigeria')
 const optimizing = ref(false)
 const optimizeError = ref('')
 const optimizeResult = ref<OptimizeResponse | null>(null)
@@ -97,7 +97,7 @@ const utilizationItems = computed(() =>
 )
 
 const zoneOptions = computed(() => optimizeResult.value?.zones ?? [
-  { id: 'all_lagos', name: 'All Lagos' },
+  { id: 'all_nigeria', name: 'All Nigeria' },
   { id: 'yaba', name: 'Yaba' },
   { id: 'sabo', name: 'Sabo' },
   { id: 'akoka', name: 'Akoka' },
@@ -105,7 +105,10 @@ const zoneOptions = computed(() => optimizeResult.value?.zones ?? [
   { id: 'gbagada', name: 'Gbagada' },
   { id: 'surulere', name: 'Surulere' },
   { id: 'ikeja', name: 'Ikeja' },
-  { id: 'lekki', name: 'Lekki' }
+  { id: 'lekki', name: 'Lekki' },
+  { id: 'abuja', name: 'Abuja' },
+  { id: 'ibadan', name: 'Ibadan' },
+  { id: 'port_harcourt', name: 'Port Harcourt' }
 ])
 
 async function optimizePickups() {
@@ -180,7 +183,7 @@ async function optimizePickups() {
         <EmptyState
           v-else
           title="Ready to optimize"
-          description="Choose a Lagos zone and run Optimize pickups to see suggested collection sequences."
+          description="Choose a Nigerian zone and run Optimize pickups to see suggested collection sequences."
         />
       </DashboardSection>
 

@@ -27,7 +27,7 @@ export default defineNuxtConfig({
     head: {
       title: 'ReCircle — A new life for your recyclables',
       meta: [
-        { name: 'description', content: 'ReCircle is building a simpler way for Lagos to identify recyclables and coordinate recycling. Explore our hackathon prototype.' },
+        { name: 'description', content: 'ReCircle helps Nigeria identify recyclables, estimate their value, and coordinate pickup with recyclers and waste operators.' },
         { name: 'theme-color', content: '#123f32' }
       ],
       link: [{ rel: 'icon', type: 'image/png', href: '/recircle-logo.png' }]

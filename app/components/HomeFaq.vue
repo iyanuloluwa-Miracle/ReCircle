@@ -3,7 +3,7 @@ const faqs = [
   {
     id: 'what-is-recircle',
     question: 'What is ReCircle?',
-    answer: 'ReCircle is a Lagos-first recycling platform that helps people identify recyclable materials, estimate their value, and connect with nearby recyclers and waste operators.'
+    answer: 'ReCircle is a Nigeria-first recycling platform that helps people identify recyclable materials, estimate their value, and connect with nearby recyclers and waste operators.'
   },
   {
     id: 'how-scan-works',
@@ -17,8 +17,8 @@ const faqs = [
   },
   {
     id: 'why-area',
-    question: 'Why do you ask for my Lagos area?',
-    answer: 'Your area helps us show relevant pickup coverage and nearby recycler options. We use it to personalise availability, not to share your address publicly.'
+    question: 'Why do you ask for my area?',
+    answer: 'Your area helps us show relevant pickup coverage and nearby recycler options across Nigeria. We use it to personalise availability, not to share your address publicly.'
   },
   {
     id: 'who-is-it-for',
@@ -28,7 +28,7 @@ const faqs = [
   {
     id: 'is-live',
     question: 'Is pickup available today?',
-    answer: 'ReCircle is a working prototype. You can explore the demo flows now; live pickup requests and payments are planned for later phases.'
+    answer: 'Yes — once you scan an item and match a nearby recycler, you can request pickup and track the job from your dashboard.'
   }
 ]
 

@@ -135,7 +135,7 @@ function label(value: string | null) {
           <h2>Let’s identify this item.</h2>
           <p class="muted">The image and pickup location are saved. Identification may take a moment.</p>
           <BaseButton :loading="analyzing" :disabled="analyzing" class="analysis-action" @click="analyze">{{ analyzing ? 'Analyzing image…' : 'Analyze this photo' }}</BaseButton>
-          <p class="analysis-location">Pickup location: {{ data.locationSource === 'demo' ? 'Demo Lagos location' : data.locationSource === 'device' ? 'Current device location' : 'Manually entered location' }}</p>
+          <p class="analysis-location">Pickup location: {{ data.locationSource === 'demo' ? 'Demo Nigeria location' : data.locationSource === 'device' ? 'Current device location' : 'Manually entered location' }}</p>
         </template>
         <template v-else-if="data.itemName && data.materialCode">
           <p class="analysis-kicker">{{ data.classificationSource === 'manual' ? 'Confirmed by you' : 'AI identified' }}</p>

@@ -1,16 +1,20 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard' })
-useSeoMeta({ title: 'Workspace preview — ReCircle', robots: 'noindex' })
+useSeoMeta({ title: 'Workspace — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
   <div>
     <p class="eyebrow">A better circle starts here</p>
-    <h1 class="page-title">Room for what comes next.</h1>
-    <p class="muted workspace-intro">A first look at your ReCircle workspace.</p>
+    <h1 class="page-title">Your recycling workspace.</h1>
+    <p class="muted workspace-intro">Sign in to scan items, track pickups, and follow your impact.</p>
     <BaseCard>
-      <EmptyState title="Your workspace is taking shape" description="This is a public preview. Accounts are ready; recycling requests and activity arrive in a later phase.">
-        <BaseButton to="/demo">Try the demo <span aria-hidden="true">↗</span></BaseButton>
+      <EmptyState
+        title="Ready when you are"
+        description="Create an account or try a demo role to open your dashboard, scan recyclables, and request pickup."
+      >
+        <BaseButton to="/register">Create an account <span aria-hidden="true">↗</span></BaseButton>
+        <BaseButton to="/demo" variant="secondary">Try the demo</BaseButton>
       </EmptyState>
     </BaseCard>
   </div>
