@@ -18,10 +18,28 @@ const errorMessage = ref('')
 const resendSeconds = ref(0)
 let resendTimer: ReturnType<typeof setInterval> | null = null
 
-const roles: Array<{ value: UserRole; label: string; hint: string }> = [
-  { value: 'user', label: 'Consumer', hint: 'Scan waste and request pickup' },
-  { value: 'recycler', label: 'Recycler', hint: 'Accept collections and set prices' },
-  { value: 'waste_operator', label: 'Waste operator', hint: 'Monitor the network and optimize routes' }
+const roles: Array<{ value: UserRole; label: string; hint: string; image: string; imageAlt: string }> = [
+  {
+    value: 'user',
+    label: 'Consumer',
+    hint: 'Scan waste and request pickup',
+    image: '/roles/consumers.png',
+    imageAlt: 'Person scanning a recyclable bottle with a smartphone'
+  },
+  {
+    value: 'recycler',
+    label: 'Recycler',
+    hint: 'Accept collections and set prices',
+    image: '/roles/recyclers.png',
+    imageAlt: 'Recycling facility with sorted material bales'
+  },
+  {
+    value: 'waste_operator',
+    label: 'Waste operator',
+    hint: 'Monitor the network and optimize routes',
+    image: '/roles/operators.png',
+    imageAlt: 'Operations desk with logistics and network monitors'
+  }
 ]
 
 const titles: Record<typeof step.value, string> = {
@@ -151,8 +169,13 @@ useSeoMeta({ title: 'Create an account — ReCircle', robots: 'noindex' })
           :class="{ 'is-selected': role === option.value }"
         >
           <input v-model="role" type="radio" name="role" :value="option.value" required>
-          <span class="role-picker-title">{{ option.label }}</span>
-          <span class="role-picker-hint">{{ option.hint }}</span>
+          <span class="role-picker-media" aria-hidden="true">
+            <img :src="option.image" :alt="option.imageAlt" width="96" height="72" loading="lazy" decoding="async">
+          </span>
+          <span class="role-picker-copy">
+            <span class="role-picker-title">{{ option.label }}</span>
+            <span class="role-picker-hint">{{ option.hint }}</span>
+          </span>
         </label>
       </div>
       <BaseButton type="submit">Continue</BaseButton>
