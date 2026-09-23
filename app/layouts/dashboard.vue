@@ -11,7 +11,7 @@ async function signOut() {
   logoutError.value = ''
   try {
     await auth.logout()
-    await navigateTo('/demo')
+    await navigateTo('/login')
   } catch {
     logoutError.value = 'Could not sign out. Please try again.'
   } finally {
@@ -32,7 +32,6 @@ async function signOut() {
           <NuxtLink v-else to="/workspace" class="workspace-nav-item"><span aria-hidden="true">◈</span> Preview</NuxtLink>
           <NuxtLink v-if="user" to="/dashboard/analytics" class="workspace-nav-item"><span aria-hidden="true">▤</span> Analytics</NuxtLink>
           <NuxtLink v-if="user?.role === 'user'" to="/scan" class="workspace-nav-item"><span aria-hidden="true">▣</span> Scan an item</NuxtLink>
-          <NuxtLink to="/demo" class="workspace-nav-item"><span aria-hidden="true">↗</span> Switch demo role</NuxtLink>
           <NuxtLink to="/" class="workspace-nav-item"><span aria-hidden="true">↗</span> Back to home</NuxtLink>
         </nav>
         <div class="workspace-note"><span class="status-dot" /> Built for a better circle.<br><span class="muted">Built for Nigeria.</span></div>
@@ -41,9 +40,8 @@ async function signOut() {
         <header class="workspace-header">
           <span>ReCircle / Workspace</span>
           <div class="workspace-header-actions">
-            <BaseBadge v-if="user?.isDemo" tone="lime">DEMO</BaseBadge>
             <BaseButton v-if="user" variant="ghost" size="sm" :loading="loggingOut" @click="signOut">Sign out</BaseButton>
-            <BaseBadge v-else tone="green">Signed out</BaseBadge>
+            <BaseButton v-else to="/login" variant="ghost" size="sm">Sign in</BaseButton>
           </div>
         </header>
         <p v-if="logoutError" class="form-error" role="alert">{{ logoutError }}</p>

@@ -11,10 +11,10 @@ useSeoMeta({ title: 'Workspace — ReCircle', robots: 'noindex' })
     <BaseCard>
       <EmptyState
         title="Ready when you are"
-        description="Create an account or try a demo role to open your dashboard, scan recyclables, and request pickup."
+        description="Create an account to open your dashboard, scan recyclables, and request pickup."
       >
         <BaseButton to="/register">Create an account <span aria-hidden="true">↗</span></BaseButton>
-        <BaseButton to="/demo" variant="secondary">Try the demo</BaseButton>
+        <BaseButton to="/login" variant="secondary">Sign in</BaseButton>
       </EmptyState>
     </BaseCard>
   </div>

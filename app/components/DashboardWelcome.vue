@@ -22,7 +22,6 @@ const { user } = useAuth()
         <strong>{{ user?.name }}</strong>
         <span class="muted">{{ user?.email }}</span>
       </div>
-      <BaseBadge v-if="user?.isDemo" tone="lime">DEMO ACCOUNT</BaseBadge>
     </BaseCard>
     <BaseCard>
       <EmptyState :title="emptyTitle" :description="emptyDescription">

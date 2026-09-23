@@ -27,7 +27,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   } catch {
     throw createError({ statusCode: 503, statusMessage: 'Sign-in service is unavailable' })
   }
-  if (!user) return navigateTo('/demo')
+  if (!user) return navigateTo('/login')
 
   if (isOnboarding) {
     if (user.onboardingCompletedAt) return navigateTo(dashboardPathByRole[user.role])

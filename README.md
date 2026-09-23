@@ -260,17 +260,19 @@ Cross-origin browser POSTs are rejected. Session cookies use SameSite=Lax and ar
 marked Secure outside development. New accounts finish onboarding (avatar, then
 role-specific steps) before dashboards unlock.
 
-The `/demo` page has three password-free buttons for judges. Each button calls
-`POST /api/auth/demo`; the server permits only a specific seeded email, expected
-role, and `isDemo: true` record. The client never receives a demo password.
+Seeded accounts remain available for local development via `npm run seed` and
+password login. `POST /api/auth/demo` is kept for automated HTTP checks only; there
+is no public demo page.
 `/dashboard/user`, `/dashboard/recycler`, and `/dashboard/operator` have navigation
 guards and server API authorization. An absent session gets HTTP 401 on protected
-APIs; a session with the wrong role gets HTTP 403. Role checks read MongoDB so a
-changed or deleted account does not retain access through an old cookie.
+APIs; a session with the wrong role gets HTTP 403. Guests hitting protected pages
+are redirected to `/login`. Role checks read MongoDB so a changed or deleted
+account does not retain access through an old cookie.
 To run the HTTP checks locally, start `npm run dev -- --port 3001` in one terminal,
 then run `npm run test:auth` in another. The check covers all three role guards,
-cookie flags, demo sessions, email-first registration, login, and logout. It removes
-its own temporary registration record. Set `AUTH_TEST_URL` if the server uses another URL.
+cookie flags, seeded demo sessions, email-first registration, login, and logout. It
+removes its own temporary registration record. Set `AUTH_TEST_URL` if the server
+uses another URL.
 
 ## Health and MongoDB
 

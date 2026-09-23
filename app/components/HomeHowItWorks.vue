@@ -52,7 +52,7 @@ const steps = [
       </ol>
 
       <div class="how-it-works-cta">
-        <BaseButton to="/demo" variant="secondary">Try the demo <span aria-hidden="true">↗</span></BaseButton>
+        <BaseButton to="/register" variant="secondary">Get started <span aria-hidden="true">↗</span></BaseButton>
       </div>
     </div>
   </section>

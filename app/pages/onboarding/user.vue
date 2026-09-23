@@ -34,7 +34,7 @@ async function finish() {
   try {
     const result = await $fetch<{ user: typeof auth.user.value }>('/api/onboarding/complete', { method: 'POST' })
     auth.user.value = result.user
-    await navigateTo('/scan')
+    await navigateTo('/dashboard/user')
   } catch {
     errorMessage.value = 'Could not finish onboarding. Try again.'
   } finally {
@@ -78,7 +78,7 @@ useSeoMeta({ title: 'Consumer setup — ReCircle', robots: 'noindex' })
         <li>Track the job and earn rewards.</li>
       </ol>
       <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
-      <BaseButton :loading="pending" :disabled="pending" @click="finish">Scan your first item</BaseButton>
+      <BaseButton :loading="pending" :disabled="pending" @click="finish">Go to dashboard</BaseButton>
     </div>
   </AuthSplit>
 </template>

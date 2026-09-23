@@ -43,7 +43,7 @@ try {
   for (const { path } of roles) {
     await expectStatus(`/api${path}`, 401)
     const page = await expectStatus(path, 302)
-    assert.equal(new URL(page.headers.get('location')!, baseUrl).pathname, '/demo')
+    assert.equal(new URL(page.headers.get('location')!, baseUrl).pathname, '/login')
   }
   await expectStatus('/api/auth/me', 401)
   assert.equal((await request('/api/auth/demo', 'POST', { role: 'admin' })).status, 400)

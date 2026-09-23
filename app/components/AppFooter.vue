@@ -7,7 +7,7 @@ const columns = [
     links: [
       { label: 'What we take', to: '/#what-you-can-recycle' },
       { label: 'How it works', to: '/#how-it-works' },
-      { label: 'Try the demo', to: '/demo' },
+      { label: 'Get started', to: '/register' },
       { label: 'Scan materials', to: '/scan' },
     ],
   },
