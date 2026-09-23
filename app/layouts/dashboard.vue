@@ -19,13 +19,34 @@ const headerCrumb = computed(() => {
   if (route.path.endsWith('/match')) return 'Find a recycler'
   if (route.path.startsWith('/scan')) return 'Scan an item'
   if (route.path.startsWith('/dashboard/analytics')) return 'Analytics'
+  if (route.path.startsWith('/dashboard/settings')) return 'Settings'
   return 'Overview'
+})
+const headerNudge = computed(() => {
+  if (!user.value) return null
+  if (route.path.startsWith('/scan')) {
+    return { icon: 'scan' as const, text: 'A clear photo helps recyclers match you faster.' }
+  }
+  if (route.path.startsWith('/dashboard/settings')) {
+    return { icon: 'settings' as const, text: 'Fresh details keep pickups smooth.' }
+  }
+  if (route.path.startsWith('/dashboard/analytics')) {
+    return { icon: 'chart' as const, text: 'Small habits show up here as real impact.' }
+  }
+  if (user.value.role === 'user') {
+    return { icon: 'leaf' as const, text: 'One scan today keeps materials in the circle.' }
+  }
+  if (user.value.role === 'recycler') {
+    return { icon: 'box' as const, text: 'Clear capacity helps nearby scanners find you.' }
+  }
+  return { icon: 'truck' as const, text: 'Tighter routes mean less fuel, more recovery.' }
 })
 const avatarSrc = computed(() => user.value?.avatarUrl?.startsWith('http') ? user.value.avatarUrl : null)
 const navigation = computed(() => [
   { to: overviewPath.value, label: 'Overview', icon: 'overview', active: route.path === overviewPath.value },
   ...(user.value ? [{ to: '/dashboard/analytics', label: 'Analytics', icon: 'chart', active: route.path.startsWith('/dashboard/analytics') }] : []),
-  ...(user.value?.role === 'user' ? [{ to: '/scan', label: 'Scan an item', icon: 'scan', active: route.path.startsWith('/scan') }] : [])
+  ...(user.value?.role === 'user' ? [{ to: '/scan', label: 'Scan an item', icon: 'scan', active: route.path.startsWith('/scan') }] : []),
+  ...(user.value ? [{ to: '/dashboard/settings', label: 'Settings', icon: 'settings', active: route.path.startsWith('/dashboard/settings') }] : [])
 ])
 
 watch(() => route.fullPath, async () => {
@@ -63,7 +84,7 @@ onUnmounted(() => media?.removeEventListener('change', syncViewport))
 async function signOut() {
   loggingOut.value = true
   logoutError.value = ''
-  try { await auth.logout(); await navigateTo('/login') }
+  try { await auth.logout(); await navigateTo('/') }
   catch { logoutError.value = 'Could not sign out. Please try again.' }
   finally { loggingOut.value = false }
 }
@@ -93,7 +114,6 @@ async function signOut() {
         <NuxtLink v-else-if="user" to="/dashboard/analytics">Explore your impact <DashboardIcon name="arrow" /></NuxtLink>
       </div>
       <div class="workspace-sidebar-foot">
-        <NuxtLink to="/" class="workspace-home-link"><DashboardIcon name="home" />Back to home</NuxtLink>
         <div v-if="user" class="workspace-user">
           <div class="workspace-user-avatar" aria-hidden="true"><img v-if="avatarSrc" :src="avatarSrc" alt=""><span v-else>{{ user.name.slice(0, 1).toUpperCase() }}</span></div>
           <div class="workspace-user-copy"><strong>{{ user.name }}</strong><span>{{ roleLabel[user.role] }} account</span></div>
@@ -109,7 +129,20 @@ async function signOut() {
           </button>
           <div class="workspace-crumb"><span class="workspace-crumb-brand">Workspace</span><span class="workspace-crumb-sep" aria-hidden="true">/</span><span>{{ headerCrumb }}</span></div>
         </div>
+        <p v-if="headerNudge" class="workspace-header-nudge" aria-live="polite">
+          <span class="workspace-header-nudge-icon" aria-hidden="true"><DashboardIcon :name="headerNudge.icon" /></span>
+          <span>{{ headerNudge.text }}</span>
+        </p>
         <div class="workspace-header-actions">
+          <NuxtLink
+            v-if="user"
+            to="/dashboard/settings"
+            class="workspace-header-avatar"
+            :aria-label="`Open settings for ${user.name}`"
+          >
+            <img v-if="avatarSrc" :src="avatarSrc" alt="">
+            <span v-else>{{ user.name.slice(0, 1).toUpperCase() }}</span>
+          </NuxtLink>
           <span v-if="user?.isDemo" class="workspace-account-label">Demo account</span>
           <span v-else-if="user" class="workspace-account-label">{{ roleLabel[user.role] }}</span>
           <BaseButton v-if="user" variant="ghost" size="sm" :loading="loggingOut" @click="signOut"><DashboardIcon name="logout" />Sign out</BaseButton>

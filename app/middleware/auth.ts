@@ -15,7 +15,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   const requiredRole = roleByPath[to.path]
     ?? (to.path === '/scan' || to.path.startsWith('/scan/') ? 'user' : undefined)
-    ?? (to.path === '/dashboard/analytics' ? 'any' as const : undefined)
+    ?? (to.path === '/dashboard/analytics' || to.path === '/dashboard/settings' ? 'any' as const : undefined)
     ?? (isOnboarding ? 'any' as const : undefined)
 
   if (!requiredRole && !isOnboarding) return

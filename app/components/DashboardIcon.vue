@@ -13,6 +13,7 @@ const paths: Record<string, string[]> = {
   check: ['m5 12 4 4L19 6'],
   close: ['m6 6 12 12M6 18 18 6'],
   logout: ['M9 4H4v16h5M10 12h11M17 8l4 4-4 4'],
+  settings: ['M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM4.9 7.5l1.7-1M17.4 17.5l1.7-1M4.9 16.5l1.7 1M17.4 6.5l1.7 1M3 12h2M19 12h2M12 3v2M12 19v2'],
   box: ['m12 3 9 5-9 5-9-5 9-5ZM3 8v9l9 5 9-5V8M12 13v9M7 5.8l10 5.5'],
   calendar: ['M8 2v4M16 2v4M3 10h18M3 4h18v18H3zM8 14h2M14 14h2M8 18h2'],
   people: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM17 4a4 4 0 0 1 0 7M22 21v-2a4 4 0 0 0-3-3.9']
