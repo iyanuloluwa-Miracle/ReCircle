@@ -560,7 +560,8 @@ h1, h2, h3, p { margin: 0; }
 /* Multi-step onboarding can be taller than a laptop viewport. Start it at the
    top of its dedicated scroller so the brand and progress are never clipped. */
 .auth-simple:has(.onboard-progress) {
-  justify-content: flex-start;
+  justify-content: center;
+  align-items: flex-start;
   padding-block: clamp(1rem, 3vh, 2rem);
 }
 .auth-simple-inner {
