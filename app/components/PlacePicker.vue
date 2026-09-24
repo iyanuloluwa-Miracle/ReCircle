@@ -50,7 +50,7 @@ const emit = defineEmits<{
   select: [payload: { location: GeoPoint; label: string }]
 }>()
 
-const { configured, loadMaps } = useGoogleMaps()
+const { configured, loadMaps, mapsAuthError } = useGoogleMaps()
 const inputEl = ref<HTMLInputElement | null>(null)
 const mapEl = ref<HTMLDivElement | null>(null)
 const STATUS_LABELS = new Set([
@@ -178,6 +178,13 @@ onMounted(async () => {
     loadError.value = error instanceof Error
       ? error.message
       : 'Could not load Google Maps.'
+  }
+})
+
+watch(mapsAuthError, (message) => {
+  if (message) {
+    loadError.value = message
+    mapsReady.value = false
   }
 })
 

@@ -557,6 +557,12 @@ h1, h2, h3, p { margin: 0; }
     radial-gradient(circle at 1px 1px, #c5d0b855 1px, transparent 0) 0 0 / 18px 18px,
     #f8f8f0;
 }
+/* Multi-step onboarding can be taller than a laptop viewport. Start it at the
+   top of its dedicated scroller so the brand and progress are never clipped. */
+.auth-simple:has(.onboard-progress) {
+  justify-content: flex-start;
+  padding-block: clamp(1rem, 3vh, 2rem);
+}
 .auth-simple-inner {
   width: min(100%, 22.5rem);
   display: flex;

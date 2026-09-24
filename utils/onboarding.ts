@@ -14,5 +14,5 @@ export function postAuthDestination(user: AuthUser): string {
 export function onboardingStepsForRole(role: UserRole): string[] {
   if (role === 'user') return ['Avatar', 'Pickup', 'Guide']
   if (role === 'recycler') return ['Avatar', 'Business', 'Location', 'Materials', 'Prices', 'Capacity']
-  return ['Avatar', 'Setup']
+  return ['Avatar', 'Guide']
 }

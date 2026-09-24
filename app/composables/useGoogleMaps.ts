@@ -8,11 +8,22 @@ declare global {
   interface Window {
     google?: MapsNamespace
     __recircleGoogleMapsReady?: () => void
+    gm_authFailure?: () => void
   }
 }
 
 const SCRIPT_ID = 'recircle-google-maps'
 let mapsPromise: Promise<MapsNamespace['maps']> | null = null
+
+export const MAPS_AUTH_FAILURE_MESSAGE = [
+  'Google Maps rejected this API key.',
+  'In Google Cloud Console: enable billing, then enable Maps JavaScript API, Places API, and Geocoding API.',
+  'For the browser key, set Application restrictions → HTTP referrers to include http://localhost:3000/* and your production domain.',
+  'Restart the Nuxt dev server after changing .env.'
+].join(' ')
+
+/** Shared so PlacePicker can show Google's async auth failure after the script "succeeds". */
+const mapsAuthError = ref('')
 
 export function useGoogleMaps() {
   const config = useRuntimeConfig()
@@ -24,17 +35,33 @@ export function useGoogleMaps() {
       throw new Error('Google Maps is only available in the browser.')
     }
     if (!apiKey.value) {
-      throw new Error('Google Maps is not configured. Add NUXT_PUBLIC_GOOGLE_MAPS_API_KEY.')
+      throw new Error('Google Maps is not configured. Add NUXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env and restart the dev server.')
     }
-    if (window.google?.maps?.places) {
+    if (window.google?.maps?.places && !mapsAuthError.value) {
       return window.google.maps
     }
     if (mapsPromise) return mapsPromise
 
+    mapsAuthError.value = ''
     mapsPromise = new Promise<MapsNamespace['maps']>((resolve, reject) => {
+      const fail = (message: string) => {
+        mapsAuthError.value = message
+        mapsPromise = null
+        reject(new Error(message))
+      }
+
+      window.gm_authFailure = () => {
+        mapsAuthError.value = MAPS_AUTH_FAILURE_MESSAGE
+        mapsPromise = null
+      }
+
       const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null
       if (existing) {
         const check = () => {
+          if (mapsAuthError.value) {
+            reject(new Error(mapsAuthError.value))
+            return
+          }
           if (window.google?.maps?.places) resolve(window.google.maps)
           else setTimeout(check, 50)
         }
@@ -43,8 +70,12 @@ export function useGoogleMaps() {
       }
 
       window.__recircleGoogleMapsReady = () => {
+        if (mapsAuthError.value) {
+          reject(new Error(mapsAuthError.value))
+          return
+        }
         if (window.google?.maps?.places) resolve(window.google.maps)
-        else reject(new Error('Google Maps loaded without Places library.'))
+        else fail('Google Maps loaded without Places library. Enable Places API for this key.')
       }
 
       const script = document.createElement('script')
@@ -53,8 +84,7 @@ export function useGoogleMaps() {
       script.defer = true
       script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey.value)}&libraries=places&callback=__recircleGoogleMapsReady&v=weekly&region=NG&language=en`
       script.onerror = () => {
-        mapsPromise = null
-        reject(new Error('Could not load Google Maps.'))
+        fail('Could not load Google Maps. Check your network and NUXT_PUBLIC_GOOGLE_MAPS_API_KEY.')
       }
       document.head.appendChild(script)
     })
@@ -67,5 +97,5 @@ export function useGoogleMaps() {
     }
   }
 
-  return { apiKey, configured, loadMaps }
+  return { apiKey, configured, loadMaps, mapsAuthError }
 }
