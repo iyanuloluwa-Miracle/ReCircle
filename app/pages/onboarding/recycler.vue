@@ -146,12 +146,15 @@ useSeoMeta({ title: 'Recycler setup — ReCircle', robots: 'noindex' })
         <BaseButton variant="secondary" :loading="pickup.pending.value" @click="pickup.useDeviceLocation()">
           Use current location
         </BaseButton>
+        <PlacePicker
+          input-id="yard-address"
+          :location="pickup.location.value"
+          :label="pickup.label.value"
+          :disabled="pickup.pending.value"
+          placeholder="Yard address in Nigeria"
+          @select="({ location, label }) => pickup.setPlace(location, label, 'manual')"
+        />
         <div class="auth-form">
-          <label for="yard-lat">Latitude</label>
-          <input id="yard-lat" v-model="pickup.latitude.value" inputmode="decimal">
-          <label for="yard-lng">Longitude</label>
-          <input id="yard-lng" v-model="pickup.longitude.value" inputmode="decimal">
-          <BaseButton variant="ghost" type="button" @click="pickup.useManualLocation()">Use these coordinates</BaseButton>
           <label for="radius">Service radius (km)*</label>
           <input id="radius" v-model.number="serviceRadiusKm" type="number" min="1" max="100" required>
         </div>

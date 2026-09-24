@@ -127,7 +127,6 @@ async function saveAvatar() {
 async function savePickupAddress() {
   saveError.value = ''
   saveSuccess.value = ''
-  await pickup.useAddressLocation()
   if (pickup.error.value || !pickup.location.value) {
     saveError.value = pickup.error.value || 'Choose a pickup address first.'
     toast.error('Pickup address needed', saveError.value)
@@ -251,15 +250,15 @@ onUnmounted(() => {
     >
       <p class="muted settings-current">Current area: <strong>{{ currentArea }}</strong></p>
       <p v-if="pickup.label.value && pickup.location.value" class="location-status">{{ pickup.label.value }}</p>
-      <form class="auth-form settings-form" @submit.prevent="savePickupAddress">
-        <label for="settings-address">Address</label>
-        <input
-          id="settings-address"
-          v-model="pickup.address.value"
-          type="text"
-          autocomplete="street-address"
+      <form class="settings-form" @submit.prevent="savePickupAddress">
+        <PlacePicker
+          input-id="settings-address"
+          :location="pickup.location.value"
+          :label="pickup.label.value"
+          :disabled="saving || pickup.pending.value"
           placeholder="12 Admiralty Way, Lekki, Lagos"
-        >
+          @select="({ location, label }) => pickup.setPlace(location, label, 'manual')"
+        />
         <p v-if="saveError || pickup.error.value" class="form-error" role="alert">
           {{ saveError || pickup.error.value }}
         </p>
@@ -267,7 +266,7 @@ onUnmounted(() => {
         <BaseButton
           type="submit"
           :loading="saving || pickup.pending.value"
-          :disabled="saving || pickup.pending.value"
+          :disabled="saving || pickup.pending.value || !pickup.location.value"
         >
           Save pickup location
         </BaseButton>
@@ -312,6 +311,8 @@ onUnmounted(() => {
 }
 .settings-form {
   max-width: 24rem;
+  display: grid;
+  gap: .85rem;
 }
 .settings-success {
   margin: .35rem 0 0;

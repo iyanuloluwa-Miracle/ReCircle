@@ -18,9 +18,11 @@ export default defineNuxtConfig({
     resendApiKey: process.env.RESEND_API_KEY || '',
     resendFromEmail: process.env.RESEND_FROM_EMAIL || '',
     googleClientId: '',
+    googleMapsApiKey: '',
     public: {
       appUrl: 'http://localhost:3000',
-      googleClientId: ''
+      googleClientId: '',
+      googleMapsApiKey: ''
     }
   },
   app: {

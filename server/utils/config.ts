@@ -27,6 +27,12 @@ export function getServerConfig() {
       || process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID
       || config.googleClientId
       || config.public.googleClientId
+      || '',
+    googleMapsApiKey: (
+      process.env.GOOGLE_MAPS_API_KEY
+      || process.env.NUXT_GOOGLE_MAPS_API_KEY
+      || config.googleMapsApiKey
       || ''
+    ).trim()
   }
 }

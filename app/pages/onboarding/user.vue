@@ -86,25 +86,14 @@ useSeoMeta({ title: 'Consumer setup — ReCircle', robots: 'noindex' })
           Use current location
         </BaseButton>
       </div>
-      <div class="auth-form">
-        <label for="onboard-address">Address</label>
-        <input
-          id="onboard-address"
-          v-model="pickup.address.value"
-          type="text"
-          autocomplete="street-address"
-          placeholder="12 Admiralty Way, Lekki, Lagos"
-        >
-        <BaseButton
-          variant="ghost"
-          type="button"
-          :loading="pickup.pending.value"
-          :disabled="pickup.pending.value"
-          @click="pickup.useAddressLocation()"
-        >
-          Use this address
-        </BaseButton>
-      </div>
+      <PlacePicker
+        input-id="onboard-address"
+        :location="pickup.location.value"
+        :label="pickup.label.value"
+        :disabled="pickup.pending.value || pending"
+        placeholder="12 Admiralty Way, Lekki, Lagos"
+        @select="({ location, label }) => pickup.setPlace(location, label, 'manual')"
+      />
       <p v-if="pickup.error.value || errorMessage" class="form-error" role="alert">
         {{ pickup.error.value || errorMessage }}
       </p>

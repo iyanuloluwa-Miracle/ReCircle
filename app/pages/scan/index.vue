@@ -35,8 +35,8 @@ async function saveDraft() {
   } else if (upload.error.value) toast.error('Could not save your item', upload.error.value)
 }
 
-function onFallbackToggle(event: Event) {
-  pickup.showFallback.value = (event.currentTarget as HTMLDetailsElement).open
+function onPlaceSelect(payload: { location: NonNullable<typeof pickup.location.value>; label: string }) {
+  pickup.setPlace(payload.location, payload.label, 'manual')
 }
 </script>
 <template>
@@ -77,20 +77,15 @@ function onFallbackToggle(event: Event) {
           <p v-if="pickup.source.value === 'demo'" class="scan-demo-note">You’re using the demo pickup point in Nigeria. You can set your own below.</p>
           <p v-else-if="pickup.label.value === 'Saved pickup location'" class="scan-demo-note">Using your saved pickup location. Change it below if this item is elsewhere.</p>
           <BaseButton variant="ghost" class="scan-outline-button scan-full-button" :loading="pickup.pending.value" :disabled="pickup.pending.value || upload.busy.value" @click="pickup.useDeviceLocation()"><ScanIcon v-if="!pickup.pending.value" name="pin" :size="17" />{{ pickup.pending.value ? 'Finding your location…' : 'Use current location' }}</BaseButton>
-          <div class="scan-address-field">
-            <label for="pickup-address">Address
-              <input id="pickup-address" v-model="pickup.address.value" type="text" autocomplete="street-address" placeholder="12 Admiralty Way, Lekki, Lagos" :disabled="upload.busy.value || pickup.pending.value">
-            </label>
-            <BaseButton variant="ghost" size="sm" class="scan-outline-button" :loading="pickup.pending.value" :disabled="upload.busy.value || pickup.pending.value" @click="pickup.useAddressLocation()">Use this address<ScanIcon v-if="!pickup.pending.value" name="check" :size="15" /></BaseButton>
-          </div>
-          <details class="scan-manual-location" :open="pickup.showFallback.value" @toggle="onFallbackToggle">
-            <summary>Enter coordinates manually<ScanIcon name="chevron" :size="14" /></summary>
-            <div class="scan-coordinate-fields">
-              <label for="pickup-latitude">Latitude<input id="pickup-latitude" v-model="pickup.latitude.value" type="number" step="any" min="-90" max="90" placeholder="6.4541" :disabled="upload.busy.value"></label>
-              <label for="pickup-longitude">Longitude<input id="pickup-longitude" v-model="pickup.longitude.value" type="number" step="any" min="-180" max="180" placeholder="3.3947" :disabled="upload.busy.value"></label>
-            </div>
-            <BaseButton variant="ghost" size="sm" :disabled="upload.busy.value" @click="pickup.useManualLocation()">Save coordinates<ScanIcon name="check" :size="15" /></BaseButton>
-          </details>
+          <PlacePicker
+            class="scan-place-picker"
+            input-id="pickup-address"
+            :location="pickup.location.value"
+            :label="pickup.label.value"
+            :disabled="upload.busy.value || pickup.pending.value"
+            placeholder="12 Admiralty Way, Lekki, Lagos"
+            @select="onPlaceSelect"
+          />
           <p v-if="pickup.error.value" class="scan-alert scan-alert--error" role="alert">{{ pickup.error.value }}</p>
         </section>
         <section class="scan-continue-panel" aria-labelledby="next-heading">

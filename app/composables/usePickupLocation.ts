@@ -12,15 +12,15 @@ function geolocationErrorMessage(error: unknown): string {
     ? Number((error as { code?: number }).code)
     : undefined
   if (code === 1) {
-    return 'Location access is blocked. Allow it in your browser, or enter an address or coordinates below.'
+    return 'Location access is blocked. Allow it in your browser, or search for an address below.'
   }
   if (code === 2) {
-    return 'Your device could not determine a position. Enter an address or coordinates below.'
+    return 'Your device could not determine a position. Search for an address below.'
   }
   if (code === 3) {
-    return 'Finding your location timed out. Try again, or enter an address or coordinates below.'
+    return 'Finding your location timed out. Try again, or search for an address below.'
   }
-  return 'Could not access your location. Allow location access or enter a location below.'
+  return 'Could not access your location. Allow location access or search for an address below.'
 }
 
 export function usePickupLocation() {
@@ -45,10 +45,21 @@ export function usePickupLocation() {
     label.value = 'Saved pickup location'
   }
 
+  function setPlace(next: GeoPoint, nextLabel: string, nextSource: PickupLocationSource = 'manual') {
+    location.value = next
+    source.value = nextSource
+    label.value = nextLabel.trim() || 'Selected pickup location'
+    error.value = ''
+    showFallback.value = false
+    if (nextSource === 'manual' || nextSource === 'demo') {
+      address.value = nextLabel.trim()
+    }
+  }
+
   async function useDeviceLocation() {
     error.value = ''
     if (!import.meta.client || !navigator.geolocation) {
-      error.value = 'Location is unavailable on this device. Enter a location instead.'
+      error.value = 'Location is unavailable on this device. Search for an address instead.'
       showFallback.value = true
       return
     }
@@ -57,10 +68,11 @@ export function usePickupLocation() {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 })
       })
-      location.value = { type: 'Point', coordinates: [position.coords.longitude, position.coords.latitude] }
-      source.value = 'device'
-      label.value = 'Current device location'
-      showFallback.value = false
+      setPlace(
+        { type: 'Point', coordinates: [position.coords.longitude, position.coords.latitude] },
+        'Current device location',
+        'device'
+      )
     } catch (err) {
       error.value = geolocationErrorMessage(err)
       showFallback.value = true
@@ -78,9 +90,11 @@ export function usePickupLocation() {
       error.value = 'Enter a valid latitude and longitude.'
       return
     }
-    location.value = { type: 'Point', coordinates: [lon, lat] }
-    source.value = 'manual'
-    label.value = 'Manually entered pickup location'
+    setPlace(
+      { type: 'Point', coordinates: [lon, lat] },
+      'Manually entered pickup location',
+      'manual'
+    )
   }
 
   async function useAddressLocation() {
@@ -96,16 +110,15 @@ export function usePickupLocation() {
         method: 'POST',
         body: { query }
       })
-      location.value = result.location
-      source.value = 'manual'
-      label.value = result.label
-      showFallback.value = false
+      setPlace(result.location, result.label, 'manual')
     } catch (err: unknown) {
       const status = typeof err === 'object' && err && 'statusCode' in err
         ? Number((err as { statusCode?: number }).statusCode)
         : undefined
       if (status === 404) {
         error.value = 'No matching address found in Nigeria. Try a clearer street or area name.'
+      } else if (status === 503) {
+        error.value = 'Google Maps is not configured yet. Add the Maps API keys to continue.'
       } else {
         error.value = 'Could not look up that address. Try again in a moment.'
       }
@@ -125,6 +138,7 @@ export function usePickupLocation() {
     address,
     latitude,
     longitude,
+    setPlace,
     useDeviceLocation,
     useManualLocation,
     useAddressLocation
