@@ -49,7 +49,7 @@ useSeoMeta({ title: 'Operator setup — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
-  <AuthSplit title="How operators work." :steps="steps" :current-step="2">
+  <AuthSplit title="How operators work." variant="card" :steps="steps" :current-step="2">
     <div class="onboard-stack onboard-stack--guide">
       <p class="muted auth-hint auth-hint--center">Four moves from queue to collection plan.</p>
       <ol class="onboard-guide" aria-label="How operators work">
