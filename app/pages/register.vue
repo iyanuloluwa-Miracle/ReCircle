@@ -33,13 +33,6 @@ const roles: Array<{ value: UserRole; label: string; hint: string; image: string
     image: '/roles/recyclers.png',
     imageAlt: 'Recycling facility with sorted material bales'
   },
-  {
-    value: 'waste_operator',
-    label: 'Waste operator',
-    hint: 'Monitor the network and optimize routes',
-    image: '/roles/operators.png',
-    imageAlt: 'Operations desk with logistics and network monitors'
-  }
 ]
 
 const titles: Record<typeof step.value, string> = {

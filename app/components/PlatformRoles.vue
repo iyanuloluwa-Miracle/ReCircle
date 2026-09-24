@@ -13,13 +13,6 @@ const roles = [
     copy: 'Review matched supply, accept requests and manage collections.',
     image: '/roles/recyclers.png',
     imageAlt: 'Modern recycling facility with sorted material bales'
-  },
-  {
-    id: 'operators',
-    title: 'Waste operators',
-    copy: 'Monitor requests, coordinate batches and analyse performance.',
-    image: '/roles/operators.png',
-    imageAlt: 'Operations desk with logistics and network monitors'
   }
 ]
 </script>
@@ -29,7 +22,7 @@ const roles = [
     <div class="container">
       <header class="platform-roles-intro">
         <p class="eyebrow">One connected platform</p>
-        <h2 id="platform-roles-heading">Designed for every role in the recycling chain.</h2>
+        <h2 id="platform-roles-heading">Made for consumers and recyclers.</h2>
       </header>
 
       <ul class="platform-roles-grid">

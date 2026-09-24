@@ -3,7 +3,7 @@ const faqs = [
   {
     id: 'what-is-recircle',
     question: 'What is ReCircle?',
-    answer: 'ReCircle is a Nigeria-first recycling platform that helps people identify recyclable materials, estimate their value, and connect with nearby recyclers and waste operators.'
+    answer: 'ReCircle is a Nigeria-first recycling platform that helps people identify recyclable materials, estimate their value, and connect with nearby recyclers.'
   },
   {
     id: 'how-scan-works',
@@ -23,7 +23,7 @@ const faqs = [
   {
     id: 'who-is-it-for',
     question: 'Who is ReCircle for?',
-    answer: 'Consumers who want clearer recycling routes, recyclers who need matched supply, and waste operators coordinating collections across the network.'
+    answer: 'Consumers who want clearer recycling routes and recyclers who need matched supply.'
   },
   {
     id: 'is-live',

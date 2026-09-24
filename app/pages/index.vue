@@ -74,14 +74,14 @@ async function submitArea() {
           <h2>Waste is a challenge.<br>What comes next is<br><span>an opportunity.</span></h2>
         </div>
         <div class="mission-copy">
-          <p>We believe recycling should feel like a natural next step. ReCircle connects people, recyclers, and waste operators so materials move from homes to recovery with clarity and fair value.</p>
+          <p>We believe recycling should feel like a natural next step. ReCircle connects people with recyclers so materials move from homes to recovery with clarity and fair value.</p>
           <BaseButton variant="secondary" @click="showPreview = true">Our mission <span aria-hidden="true">↗</span></BaseButton>
         </div>
       </div>
     </section>
 
     <BaseModal v-model:open="showPreview" title="Building a better circle">
-      <p class="muted">ReCircle helps Nigeria identify recyclables, estimate their worth, and coordinate pickup with trusted recyclers and operators — so less waste is lost and more value stays in the community.</p>
+      <p class="muted">ReCircle helps Nigeria identify recyclables, estimate their worth, and coordinate pickup with trusted recyclers — so less waste is lost and more value stays in the community.</p>
       <template #footer><BaseButton @click="showPreview = false">Got it</BaseButton></template>
     </BaseModal>
   </div>
