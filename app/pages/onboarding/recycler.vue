@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { GeoPoint } from '../../../types'
+import { onboardingStepsForRole } from '../../../utils/onboarding'
 
 definePageMeta({ layout: 'auth', middleware: 'auth' })
 
@@ -27,6 +28,8 @@ const selectedMaterials = ref<string[]>(['pet'])
 const prices = ref<Record<string, number>>({ pet: 80 })
 const pending = ref(false)
 const errorMessage = ref('')
+const steps = computed(() => onboardingStepsForRole('recycler'))
+const currentStep = computed(() => step.value + 2)
 
 const titles = [
   'Your business.',
@@ -131,10 +134,8 @@ useSeoMeta({ title: 'Recycler setup — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
-  <AuthSplit :title="titles[step] ?? 'Recycler setup'">
+  <AuthSplit :title="titles[step] ?? 'Recycler setup'" :steps="steps" :current-step="currentStep">
     <div class="onboard-stack">
-      <p class="muted auth-hint">Step {{ step + 1 }} of {{ titles.length }}</p>
-
       <form v-if="step === 0" class="auth-form" @submit.prevent="next">
         <label for="biz-name">Business name*</label>
         <input id="biz-name" v-model="businessName" minlength="2" maxlength="160" required placeholder="Yaba Circular">

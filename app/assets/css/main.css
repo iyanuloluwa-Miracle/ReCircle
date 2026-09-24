@@ -833,6 +833,100 @@ h1, h2, h3, p { margin: 0; }
   text-underline-offset: 3px;
 }
 .auth-alternate a:hover { color: #527737; }
+.onboard-progress {
+  width: 100%;
+  margin: 0 0 clamp(.85rem, 2vh, 1.25rem);
+}
+.onboard-progress-list {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0;
+  margin: 0;
+  padding: .15rem 0 0;
+}
+.onboard-progress-item {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+.onboard-progress-item:last-child {
+  flex: 0 0 auto;
+  padding-inline: .15rem;
+}
+.onboard-progress-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border: 2px solid #c9d4be;
+  border-radius: 999px;
+  background: #fffef9;
+  color: #8a978c;
+  font-size: .75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.onboard-progress-item.is-current .onboard-progress-node {
+  border-color: #2f9e44;
+  color: #2f9e44;
+  background: #fffef9;
+}
+.onboard-progress-item.is-complete .onboard-progress-node {
+  border-color: #2f9e44;
+  background: #2f9e44;
+  color: #fff;
+}
+.onboard-progress-label {
+  display: block;
+  max-width: 5.75rem;
+  margin-top: .45rem;
+  color: #a0aab0;
+  font-size: .62rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: .01em;
+}
+.onboard-progress-item.is-current .onboard-progress-label,
+.onboard-progress-item.is-complete .onboard-progress-label {
+  color: #2f9e44;
+}
+.onboard-progress-line {
+  position: absolute;
+  top: .9rem;
+  left: calc(50% + 1rem);
+  width: calc(100% - 2rem);
+  height: 2px;
+  background: #dde3e8;
+  pointer-events: none;
+}
+.onboard-progress-line.is-filled { background: #2f9e44; }
+.auth-simple-inner--wide {
+  width: min(100%, 36rem);
+}
+@media (max-width: 540px) {
+  .onboard-progress-node {
+    width: 1.55rem;
+    height: 1.55rem;
+    font-size: .68rem;
+  }
+  .onboard-progress-line {
+    top: .75rem;
+    left: calc(50% + .85rem);
+    width: calc(100% - 1.7rem);
+  }
+  .onboard-progress-label {
+    max-width: 4.25rem;
+    font-size: .55rem;
+  }
+}
 .auth-otp-label {
   display: block;
   margin-top: .3rem;

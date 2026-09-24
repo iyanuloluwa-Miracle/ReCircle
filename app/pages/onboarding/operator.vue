@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { onboardingStepsForRole } from '../../../utils/onboarding'
+
 definePageMeta({ layout: 'auth', middleware: 'auth' })
 
 const auth = useAuth()
 const pending = ref(false)
 const errorMessage = ref('')
+const steps = computed(() => onboardingStepsForRole('waste_operator'))
 
 async function finish() {
   pending.value = true
@@ -23,7 +26,7 @@ useSeoMeta({ title: 'Operator setup — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
-  <AuthSplit title="Coordinate the network.">
+  <AuthSplit title="Coordinate the network." :steps="steps" :current-step="2">
     <div class="onboard-stack">
       <p class="muted auth-hint">
         As a waste operator you monitor pickups, recycler utilization, and zone batching.

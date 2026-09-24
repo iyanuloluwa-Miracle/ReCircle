@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { onboardingPathByRole } from '../../../types'
+import { onboardingStepsForRole } from '../../../utils/onboarding'
 import { AVATAR_PRESETS, isAllowedAvatarPreset } from '../../../utils/avatar-presets'
 import { imageExtension, validateImageFile, type ImageMimeType } from '../../../utils/waste-image'
-import { onboardingPathByRole } from '../../../types'
 
 definePageMeta({ layout: 'auth', middleware: 'auth' })
 
 const auth = useAuth()
+const steps = computed(() => onboardingStepsForRole(auth.user.value?.role ?? 'user'))
 const current = auth.user.value?.avatarUrl ?? null
 const selected = ref<string | null>(
   current && (isAllowedAvatarPreset(current) || current.startsWith('http'))
@@ -104,7 +106,7 @@ useSeoMeta({ title: 'Choose your avatar — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
-  <AuthSplit title="Choose your avatar.">
+  <AuthSplit title="Choose your avatar." :steps="steps" :current-step="1">
     <div class="avatar-picker">
       <p class="muted auth-hint">Pick a DiceBear preset or upload a photo. Required before you continue.</p>
 

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { onboardingStepsForRole } from '../../../utils/onboarding'
+
 definePageMeta({ layout: 'auth', middleware: 'auth' })
 
 const auth = useAuth()
@@ -6,6 +8,8 @@ const pickup = usePickupLocation()
 const phase = ref<'location' | 'howto'>('location')
 const pending = ref(false)
 const errorMessage = ref('')
+const steps = computed(() => onboardingStepsForRole('user'))
+const currentStep = computed(() => phase.value === 'location' ? 2 : 3)
 
 async function saveLocation() {
   if (!pickup.location.value) {
@@ -46,7 +50,11 @@ useSeoMeta({ title: 'Consumer setup — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
-  <AuthSplit :title="phase === 'location' ? 'Where should we pick up?' : 'How scanning works.'">
+  <AuthSplit
+    :title="phase === 'location' ? 'Where should we pick up?' : 'How scanning works.'"
+    :steps="steps"
+    :current-step="currentStep"
+  >
     <div v-if="phase === 'location'" class="onboard-stack">
       <p class="muted auth-hint">Set a default pickup area. You can still change it for each scan.</p>
       <p class="location-status">{{ pickup.label.value }}</p>
