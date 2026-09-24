@@ -93,6 +93,12 @@
 .workspace-app .workspace-account-label { border: 1px solid #e3e8db; background: #f4f7ef; border-radius: 99px; padding: .4rem .7rem; color: #52614b; font-size: .67rem; }
 .workspace-app .workspace-header-actions .button { font-size: .73rem; gap: .5rem; padding: .55rem .7rem; }
 .workspace-app .workspace-header-actions .dashboard-icon { width: 1rem; height: 1rem; }
+.workspace-app .notification-menu { position: relative; }
+.workspace-app .notification-toggle { position: relative; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border: 1px solid #e3e8db; border-radius: 50%; background: #fffefa; color: #315442; font-size: 1.2rem; }
+.workspace-app .notification-toggle:hover { background: #f2f6eb; }.workspace-app .notification-toggle b { position: absolute; top: -.3rem; right: -.3rem; display: grid; place-items: center; min-width: 1.1rem; height: 1.1rem; padding: 0 .2rem; border-radius: 99px; background: #d3f28a; color: #123f32; font-size: .55rem; }
+.workspace-app .notification-panel { position: absolute; top: calc(100% + .7rem); right: 0; z-index: 70; width: min(22rem, calc(100vw - 2rem)); overflow: hidden; border: 1px solid #dfe7d9; border-radius: .85rem; background: #fffefa; box-shadow: 0 1rem 2.5rem #123f3222; }
+.workspace-app .notification-panel header { display: flex; justify-content: space-between; gap: .75rem; padding: .9rem 1rem; border-bottom: 1px solid #edf0e7; }.workspace-app .notification-panel header strong { font-size: .8rem; }.workspace-app .notification-panel header span, .workspace-app .notification-empty { color: #70806f; font-size: .68rem; }.workspace-app .notification-empty { padding: 1rem; margin: 0; }
+.workspace-app .notification-panel ul { max-height: 22rem; margin: 0; padding: 0; overflow: auto; list-style: none; }.workspace-app .notification-panel li + li { border-top: 1px solid #edf0e7; }.workspace-app .notification-panel li > * { display: grid; gap: .25rem; padding: .85rem 1rem; color: inherit; }.workspace-app .notification-panel a:hover { background: #f3f7ec; }.workspace-app .notification-panel li strong { font-size: .75rem; }.workspace-app .notification-panel li span { color: #657269; font-size: .68rem; line-height: 1.5; }
 .workspace-app .workspace-main {
   max-width: 100rem;
   padding: 2.25rem clamp(1.25rem, 3vw, 2.75rem) 6rem;
@@ -153,6 +159,7 @@
 .workspace-app .request-card-head h3 { font-size: 1rem; overflow-wrap: anywhere; }
 .workspace-app .request-card-head .muted { font-size: .75rem; }
 .workspace-app .request-card-meta { font-size: .68rem; gap: .5rem 1rem; border-top: 1px solid #e5eadf; padding-top: .8rem; }
+.workspace-app .request-reschedule { display: flex; align-items: end; flex-wrap: wrap; gap: .6rem; margin-top: .75rem; }.workspace-app .request-reschedule label { display: grid; gap: .3rem; color: #536747; font-size: .68rem; font-weight: 600; }.workspace-app .request-reschedule input { min-height: 2.5rem; border: 1px solid #d8e1ce; border-radius: .5rem; padding: .4rem .55rem; background: #fffefa; color: #294c37; font: inherit; }
 .workspace-app .status-timeline { margin-top: 1.25rem; }
 .workspace-app .status-timeline-copy strong { font-size: .74rem; font-weight: 550; }
 .workspace-app .status-timeline-copy time { font-size: .63rem; }
@@ -179,6 +186,9 @@
 .workspace-app .ai-assistant-note { font-size: .75rem; }
 .workspace-app .ai-chip { min-height: 2.75rem; }
 .workspace-app .form-error { overflow-wrap: anywhere; }
+.workspace-app .history-filters { display: flex; align-items: end; flex-wrap: wrap; gap: .65rem; padding: 1rem; border: 1px solid var(--workspace-border); border-radius: 1rem; background: #fffefa; }.workspace-app .history-filters input, .workspace-app .history-filters select { min-height: 2.6rem; min-width: min(100%, 13rem); border: 1px solid #d8e1ce; border-radius: .55rem; padding: .45rem .65rem; background: #fffefa; color: #294c37; font: inherit; font-size: .75rem; }.workspace-app .history-list { display: grid; gap: .55rem; }.workspace-app .history-list a { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .65rem; border: 1px solid #e5eadf; border-radius: .7rem; color: #294c37; }.workspace-app .history-list a:hover { background: #f4f7ed; border-color: #cbdab9; }.workspace-app .history-list img { width: 3rem; height: 3rem; border-radius: .5rem; object-fit: cover; }.workspace-app .history-list div { display: grid; gap: .2rem; min-width: 0; }.workspace-app .history-list strong { font-size: .78rem; }.workspace-app .history-list span, .workspace-app .history-list time { color: #70806f; font-size: .68rem; }
+.workspace-app .recycler-availability { display: grid; gap: .85rem; }.workspace-app .recycler-availability > label, .workspace-app .recycler-availability > div > label, .workspace-app .recycler-price-list label { display: grid; gap: .35rem; color: #536747; font-size: .7rem; font-weight: 600; }.workspace-app .recycler-availability > div:not(.recycler-price-list) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }.workspace-app .recycler-availability input, .workspace-app .recycler-availability select { width: 100%; min-height: 2.55rem; border: 1px solid #d8e1ce; border-radius: .55rem; padding: .45rem .6rem; background: #fffefa; color: #294c37; font: inherit; }.workspace-app .recycler-price-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+.workspace-app .recycler-materials { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; border: 0; }.workspace-app .recycler-materials legend { width: 100%; margin-bottom: .15rem; color: #536747; font-size: .7rem; font-weight: 600; }.workspace-app .recycler-materials button { min-height: 2rem; border: 1px solid #d8e1ce; border-radius: 99px; padding: .35rem .55rem; background: #fffefa; color: #52614b; font-size: .62rem; font-weight: 650; }.workspace-app .recycler-materials button.is-selected { border-color: #9abb72; background: #eaf4d9; color: #244a35; }
 @media (min-width: 1600px) { .workspace-app .workspace-main { padding-inline: 3.5rem; } }
 @media (max-width: 1200px) { .workspace-app .dash-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .workspace-app .dash-grid { grid-template-columns: 1fr; } }
 @media (max-width: 960px) {
@@ -229,4 +239,11 @@
   .workspace-app .dash-hero-actions { flex-direction: column; align-items: stretch; }
 }
 @media (prefers-reduced-motion: reduce) { .workspace-app .workspace-main { scroll-behavior: auto; } }
-
+.workspace-app .recycler-hours { display: grid; gap: .45rem; border: 1px solid #d8e1ce; border-radius: .6rem; padding: .75rem; }
+.workspace-app .recycler-hours > div { display: grid; grid-template-columns: minmax(5rem, 1fr) minmax(0, 1fr) auto minmax(0, 1fr); gap: .45rem; align-items: center; }
+.workspace-app .recycler-hours label { display: flex; align-items: center; gap: .35rem; font-size: .76rem; }
+.workspace-app .incoming-card-schedule { display: grid; gap: .3rem; margin-top: .75rem; font-size: .73rem; font-weight: 700; color: #536747; }
+.workspace-app .incoming-card-schedule input { min-height: 2.35rem; border: 1px solid #d8e1ce; border-radius: .45rem; padding: .35rem .5rem; font: inherit; }
+.workspace-app .pickup-tracking { display: grid; gap: .3rem; margin-top: .75rem; padding: .75rem; border: 1px solid #d8e7ce; border-radius: .55rem; background: #f4f8ec; color: #36583d; font-size: .8rem; }
+.workspace-app .pickup-tracking a { color: #215c43; font-weight: 700; }
+@media (max-width: 480px) { .workspace-app .recycler-hours > div { grid-template-columns: 1fr 1fr 1fr; } .workspace-app .recycler-hours > div > label { grid-column: 1 / -1; } }

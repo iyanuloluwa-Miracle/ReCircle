@@ -8,3 +8,7 @@ export function formatNumber(value: number): string {
 export function formatNaira(value: number): string {
   return `NGN ${currencyFormatter.format(Math.round(value))}`
 }
+
+export function formatPickupTime(value: string): string {
+  return new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+}

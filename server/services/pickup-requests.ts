@@ -4,6 +4,8 @@ import { Request } from '../models/Request'
 import { Recycler } from '../models/Recycler'
 import { Transaction } from '../models/Transaction'
 import { WasteItem } from '../models/WasteItem'
+import { Notification } from '../models/Notification'
+import { notifyOperators } from './notifications'
 import { withMongoTransaction } from '../utils/db'
 import { matchRecyclersForWaste } from './recycler-matching'
 import {
@@ -34,6 +36,7 @@ type RequestLean = {
   recyclerId: Types.ObjectId
   pickupLocation: { type: 'Point'; coordinates: [number, number] }
   requestedPickupTime?: Date | null
+  confirmedPickupTime?: Date | null
   acceptedAt?: Date | null
   pickedUpAt?: Date | null
   completedAt?: Date | null
@@ -59,6 +62,7 @@ export function serializeRequest(doc: RequestLean, extras?: {
   transactionStatus?: 'pending' | 'completed' | 'failed' | null
   transactionId?: string | null
   transactionCreatedAt?: Date | string | null
+  recyclerPhone?: string | null
 }) {
   const timeline = buildRequestTimeline({
     wasteStatus: extras?.wasteStatus ?? 'matched',
@@ -91,6 +95,7 @@ export function serializeRequest(doc: RequestLean, extras?: {
     pricePerKg: doc.pricePerKg,
     expectedPayout: doc.expectedPayout,
     requestedPickupTime: doc.requestedPickupTime ? new Date(doc.requestedPickupTime).toISOString() : null,
+    confirmedPickupTime: doc.confirmedPickupTime ? new Date(doc.confirmedPickupTime).toISOString() : null,
     acceptedAt: doc.acceptedAt ? new Date(doc.acceptedAt).toISOString() : null,
     pickedUpAt: doc.pickedUpAt ? new Date(doc.pickedUpAt).toISOString() : null,
     completedAt: doc.completedAt ? new Date(doc.completedAt).toISOString() : null,
@@ -100,6 +105,7 @@ export function serializeRequest(doc: RequestLean, extras?: {
     updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : null,
     transactionId: extras?.transactionId ?? null,
     transactionStatus: extras?.transactionStatus ?? null,
+    recyclerPhone: extras?.recyclerPhone ?? null,
     timeline,
     isDemo: doc.isDemo ?? false
   }
@@ -124,6 +130,7 @@ export async function createPickupRequest(options: {
   userId: string
   wasteItemId: string
   recyclerId: string
+  requestedPickupTime?: Date | null
   isDemo?: boolean
 }) {
   const wasteItemId = new Types.ObjectId(options.wasteItemId)
@@ -155,7 +162,8 @@ export async function createPickupRequest(options: {
       userId,
       recyclerId,
       pickupLocation: item.location,
-      requestedPickupTime: null as Date | null,
+      requestedPickupTime: options.requestedPickupTime ?? null,
+      confirmedPickupTime: null as Date | null,
       acceptedAt: null as Date | null,
       pickedUpAt: null as Date | null,
       completedAt: null as Date | null,
@@ -182,6 +190,16 @@ export async function createPickupRequest(options: {
 
     item.status = 'pickup_requested'
     await item.save({ session })
+    const recyclerProfile = await Recycler.findById(recyclerId).select('userId').session(session).lean()
+    if (recyclerProfile) {
+      await Notification.create([{
+        userId: recyclerProfile.userId,
+        type: 'pickup_requested',
+        title: 'New pickup request',
+        body: `${item.itemName || item.materialCode || 'A recyclable item'} is ready for your review.`,
+        href: '/dashboard/recycler'
+      }], { session })
+    }
 
     return serializeRequest(requestDoc.toObject() as RequestLean, {
       businessName: eligibleMatch.businessName,
@@ -221,7 +239,7 @@ export async function listRequestsForActor(options: {
 
   const [wasteItems, recyclers, transactions] = await Promise.all([
     WasteItem.find({ _id: { $in: wasteIds } }).select('materialCode itemName weightKg status').lean(),
-    Recycler.find({ _id: { $in: recyclerIds } }).select('businessName').lean(),
+    Recycler.find({ _id: { $in: recyclerIds } }).select('businessName contactPhone').lean(),
     Transaction.find({ requestId: { $in: requestIds } }).select('requestId status createdAt').lean()
   ])
 
@@ -242,6 +260,7 @@ export async function listRequestsForActor(options: {
       transactionStatus: tx?.status ?? null,
       transactionId: tx?._id?.toString() ?? null,
       transactionCreatedAt: tx?.createdAt ?? null
+      , recyclerPhone: recycler?.contactPhone ?? null
     })
   })
 }
@@ -251,6 +270,7 @@ export async function updateRequestStatus(options: {
   nextStatus: RequestStatus
   actorUserId: string
   actorRole: UserRole
+  confirmedPickupTime?: Date | null
 }) {
   const requestId = new Types.ObjectId(options.requestId)
   const nextStatus = options.nextStatus
@@ -286,9 +306,13 @@ export async function updateRequestStatus(options: {
     const now = new Date()
 
     if (nextStatus === 'accepted') {
-      await reserveCapacity(request.recyclerId, weightKg, session)
+      const reservedRecycler = await reserveCapacity(request.recyclerId, weightKg, session)
       request.status = 'accepted'
       request.acceptedAt = now
+      request.confirmedPickupTime = options.confirmedPickupTime ?? request.requestedPickupTime ?? null
+      if (reservedRecycler.capacityKgPerDay > 0 && reservedRecycler.currentLoadKg / reservedRecycler.capacityKgPerDay >= 0.8) {
+        await notifyOperators({ type: 'capacity_risk', title: 'Recycler capacity is nearly full', body: `${reservedRecycler.businessName} has reached at least 80% of daily capacity.`, href: '/dashboard/operator' }, session)
+      }
     } else if (nextStatus === 'rejected') {
       request.status = 'rejected'
       request.rejectedAt = now
@@ -299,6 +323,15 @@ export async function updateRequestStatus(options: {
       request.cancelledAt = now
       item.status = 'matched'
       await item.save({ session })
+      const recycler = await Recycler.findById(request.recyclerId).select('userId businessName').session(session).lean()
+      if (recycler) await Notification.create([{
+        userId: recycler.userId,
+        type: 'pickup_cancelled',
+        title: 'Pickup cancelled',
+        body: `The consumer cancelled the ${item.itemName || item.materialCode || 'pickup'} request.`,
+        href: '/dashboard/recycler'
+      }], { session })
+      await notifyOperators({ type: 'pickup_cancelled', title: 'Pickup cancelled', body: 'A consumer cancelled a pending pickup; capacity and routing may need review.', href: '/dashboard/operator' }, session)
     } else if (nextStatus === 'picked_up') {
       request.status = 'picked_up'
       request.pickedUpAt = now
@@ -334,6 +367,18 @@ export async function updateRequestStatus(options: {
 
     await request.save({ session })
 
+    if (options.actorRole === 'recycler') {
+      const copy: Record<string, { title: string; body: string }> = {
+        accepted: { title: 'Pickup accepted', body: 'Your recycler accepted the pickup request. Check your confirmed pickup time.' },
+        rejected: { title: 'Pickup unavailable', body: 'Your recycler could not accept this pickup request.' },
+        picked_up: { title: 'Item collected', body: 'Your recyclable item has been collected.' },
+        completed: { title: 'Pickup completed', body: 'Your recycling reward is now recorded.' }
+      }
+      const message = copy[nextStatus]
+      if (message) await Notification.create([{ userId: request.userId, type: `pickup_${nextStatus}`, ...message, href: '/dashboard/user' }], { session })
+      if (nextStatus === 'rejected') await notifyOperators({ type: 'pickup_rejected', title: 'Pickup rejected', body: 'A recycler declined a pending pickup. Check coverage or capacity if this repeats.', href: '/dashboard/operator' }, session)
+    }
+
     const [recycler, tx] = await Promise.all([
       Recycler.findById(request.recyclerId).session(session).lean(),
       Transaction.findOne({ requestId: request._id }).session(session).lean()
@@ -348,6 +393,18 @@ export async function updateRequestStatus(options: {
       transactionStatus: tx?.status ?? null,
       transactionId: tx?._id?.toString() ?? null,
       transactionCreatedAt: tx?.createdAt ?? null
+      , recyclerPhone: recycler?.contactPhone ?? null
     })
   })
+}
+
+export async function reschedulePickupRequest(options: { requestId: string; userId: string; requestedPickupTime: Date }) {
+  const request = await Request.findOne({ _id: options.requestId, userId: options.userId })
+  if (!request) throw notFound('Pickup request not found')
+  if (request.status !== 'pending') throw conflict('Only pending pickup requests can be rescheduled')
+  request.requestedPickupTime = options.requestedPickupTime
+  await request.save()
+  const recycler = await Recycler.findById(request.recyclerId).select('userId').lean()
+  if (recycler) await Notification.create([{ userId: recycler.userId, type: 'pickup_rescheduled', title: 'Pickup time updated', body: 'A consumer updated their preferred pickup time.', href: '/dashboard/recycler' }])
+  return serializeRequest(request.toObject() as RequestLean)
 }

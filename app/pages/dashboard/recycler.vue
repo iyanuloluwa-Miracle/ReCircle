@@ -7,7 +7,7 @@ useSeoMeta({ title: 'Recycler workspace — ReCircle', robots: 'noindex' })
 
 interface RecyclerDashboard {
   user: { name: string; email: string; isDemo: boolean }
-  recycler: { businessName: string; availability: string } | null
+  recycler: { businessName: string; availability: 'available' | 'busy' | 'offline'; businessHours: string; operatingHours: Array<{ day: number; open: string; close: string; enabled: boolean }>; contactPhone: string | null; serviceRadiusKm: number; capacityKgPerDay: number; acceptedMaterials: string[]; pricingRules: Array<{ material: string; pricePerKg: number; currency: 'NGN' }> } | null
   metrics: {
     availableSupplyKg: number
     jobsToday: number
@@ -87,6 +87,7 @@ function onUpdated() {
       <DashboardMetrics :metrics="metrics" />
 
       <div class="dash-grid">
+        <DashboardSection v-if="data.recycler" title="Availability & pricing" description="These settings control whether new consumer matches can reach you."><RecyclerAvailabilityPanel :profile="data.recycler" @saved="refresh" /></DashboardSection>
         <DashboardSection
           class="dash-span-2"
           title="Incoming matched waste"

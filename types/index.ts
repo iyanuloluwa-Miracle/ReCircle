@@ -56,11 +56,14 @@ export interface PickupRequestView {
   matchScore: number
   imageUrl?: string | null
   pickupArea?: string | null
+  requestedPickupTime: string | null
+  confirmedPickupTime: string | null
   acceptedAt: string | null
   pickedUpAt: string | null
   completedAt: string | null
   rejectedAt: string | null
   cancelledAt: string | null
+  recyclerPhone?: string | null
   createdAt: string | null
   updatedAt: string | null
   timeline: TimelineStepView[]

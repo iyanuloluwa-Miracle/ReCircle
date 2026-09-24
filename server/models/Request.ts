@@ -7,6 +7,7 @@ const requestSchema = new Schema({
   recyclerId: { type: Schema.Types.ObjectId, ref: 'Recycler', required: true },
   pickupLocation: { type: geoPointSchema, required: true },
   requestedPickupTime: { type: Date, default: null },
+  confirmedPickupTime: { type: Date, default: null },
   acceptedAt: { type: Date, default: null },
   pickedUpAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },

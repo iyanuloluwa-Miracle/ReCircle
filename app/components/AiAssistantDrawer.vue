@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
 import { formatAssistantReplyHtml } from '~~/utils/ai-assistant'
+import type { PickupRequestView } from '../../types'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -19,6 +20,8 @@ const messages = ref<ChatMessage[]>([
 ])
 const listEl = ref<HTMLElement | null>(null)
 const inputEl = ref<HTMLTextAreaElement | null>(null)
+const { user } = useAuth()
+const latestRequest = ref<PickupRequestView | null>(null)
 
 const suggestions = [
   'How do I prepare PET for pickup?',
@@ -26,6 +29,31 @@ const suggestions = [
   'What does my pickup status mean?',
   'How was estimated value calculated?'
 ]
+const actions = computed(() => {
+  if (user.value?.role === 'recycler') return [
+    { label: 'Open incoming pickups', to: '/dashboard/recycler' },
+    { label: 'Update availability', to: '/dashboard/recycler' },
+    { label: 'View analytics', to: '/dashboard/analytics' }
+  ]
+  if (user.value?.role === 'waste_operator') return [
+    { label: 'Open collection queue', to: '/dashboard/operator' },
+    { label: 'Optimize pickups', to: '/dashboard/operator' },
+    { label: 'View analytics', to: '/dashboard/analytics' }
+  ]
+  return [
+    ...(latestRequest.value ? [{ label: 'Open latest pickup', to: '/dashboard/user' }] : []),
+    { label: 'Scan an item', to: '/scan' },
+    { label: 'View history', to: '/dashboard/history' },
+    { label: 'Update pickup address', to: '/dashboard/settings' }
+  ]
+})
+onMounted(async () => {
+  if (user.value?.role !== 'user') return
+  try {
+    const result = await $fetch<{ requests: PickupRequestView[] }>('/api/requests')
+    latestRequest.value = result.requests.find(entry => !['completed', 'rejected', 'cancelled'].includes(entry.status)) ?? null
+  } catch { /* actions remain available without request context */ }
+})
 
 function bubbleHtml(entry: ChatMessage) {
   if (entry.role !== 'assistant') return ''
@@ -157,6 +185,9 @@ function onKeydown(event: KeyboardEvent) {
           {{ hint }}
         </button>
       </div>
+      <nav class="ai-assistant-actions" aria-label="Quick actions">
+        <NuxtLink v-for="action in actions" :key="action.label" :to="action.to" @click="open = false">{{ action.label }} <span aria-hidden="true">→</span></NuxtLink>
+      </nav>
 
       <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
 
@@ -177,6 +208,5 @@ function onKeydown(event: KeyboardEvent) {
     </aside>
   </div>
 </template>
-
 
 

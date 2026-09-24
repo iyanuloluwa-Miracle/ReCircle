@@ -1,6 +1,7 @@
 import type { Types } from 'mongoose'
 import { Recycler } from '../models/Recycler'
 import { toRecyclerMaterialCodes } from '../../utils/material-codes'
+import { isOpenForMatching, type OperatingHoursDay } from '../../utils/recycler-hours'
 import {
   estimateValueRange,
   filterEligibleRecyclers,
@@ -25,6 +26,7 @@ interface GeoNearRecycler {
   acceptedMaterials: string[]
   pricingRules: Array<{ material: string; pricePerKg: number; currency?: string }>
   serviceRadiusKm: number
+  operatingHours?: OperatingHoursDay[]
 }
 
 export interface MatchRecyclerResult {
@@ -69,12 +71,13 @@ export async function matchRecyclersForWaste(options: {
         availability: 1,
         acceptedMaterials: 1,
         pricingRules: 1,
-        serviceRadiusKm: 1
+        serviceRadiusKm: 1,
+        operatingHours: 1
       }
     }
   ])
 
-  const candidates: EligibleRecyclerInput[] = nearby.map(doc => ({
+  const candidates: EligibleRecyclerInput[] = nearby.filter(doc => isOpenForMatching(doc.operatingHours)).map(doc => ({
     id: doc._id.toString(),
     businessName: doc.businessName,
     distanceKm: doc.distanceMeters / 1000,

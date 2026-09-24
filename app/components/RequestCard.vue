@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatNaira } from '~~/utils/format'
+import { formatNaira, formatPickupTime } from '~~/utils/format'
 import type { PickupRequestView } from '../../types'
 
 const props = defineProps<{
@@ -14,6 +14,30 @@ const emit = defineEmits<{
 const busy = ref(false)
 const actionError = ref('')
 const toast = useToast()
+const rescheduling = ref(false)
+const pickupTime = ref('')
+
+function localDateTime(value?: string | null) {
+  if (!value) return ''
+  const date = new Date(value)
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+}
+function earliestPickupTime() { return localDateTime(new Date(Date.now() + 30 * 60 * 1000).toISOString()) }
+
+async function reschedule() {
+  if (!pickupTime.value) return
+  busy.value = true
+  actionError.value = ''
+  try {
+    const updated = await $fetch<PickupRequestView>(`/api/requests/${props.request.id}/schedule`, { method: 'PATCH', body: { requestedPickupTime: new Date(pickupTime.value).toISOString() } })
+    emit('updated', updated)
+    rescheduling.value = false
+    toast.success('Pickup time updated', 'Your recycler will review the new preferred time.')
+  } catch (error) {
+    actionError.value = friendlyError(error, 'Could not update the pickup time.')
+    toast.error('Could not update pickup time', actionError.value)
+  } finally { busy.value = false }
+}
 
 function friendlyError(error: unknown, fallback: string) {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -64,11 +88,22 @@ async function setStatus(status: string) {
     <div class="request-card-meta">
       <span>{{ request.distanceKm }} km</span>
       <span>NGN {{ Math.round(request.pricePerKg).toLocaleString('en-NG') }}/kg</span>
+      <span v-if="request.requestedPickupTime">Preferred pickup: {{ formatPickupTime(request.requestedPickupTime) }}</span>
+      <span v-if="request.confirmedPickupTime">Confirmed pickup: {{ formatPickupTime(request.confirmedPickupTime) }}</span>
       <time v-if="request.createdAt" :datetime="request.createdAt">Requested {{ new Date(request.createdAt).toLocaleString('en-NG') }}</time>
     </div>
 
     <div v-if="role === 'user' && request.status === 'pending'" class="request-card-actions">
+      <BaseButton size="sm" variant="ghost" :disabled="busy" @click="rescheduling = !rescheduling; pickupTime = localDateTime(request.requestedPickupTime)">{{ rescheduling ? 'Close schedule' : 'Change time' }}</BaseButton>
       <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('cancelled')">Cancel request</BaseButton>
+    </div>
+    <form v-if="role === 'user' && request.status === 'pending' && rescheduling" class="request-reschedule" @submit.prevent="reschedule"><label :for="`pickup-time-${request.id}`">New preferred pickup time<input :id="`pickup-time-${request.id}`" v-model="pickupTime" type="datetime-local" :min="earliestPickupTime()" required></label><BaseButton size="sm" :loading="busy" type="submit">Save time</BaseButton></form>
+    <div v-if="role === 'user' && ['accepted', 'picked_up'].includes(request.status)" class="pickup-tracking" aria-label="Pickup tracking details">
+      <strong>{{ request.status === 'picked_up' ? 'Collection in progress' : 'Pickup confirmed' }}</strong>
+      <span v-if="request.confirmedPickupTime">Expected arrival: {{ formatPickupTime(request.confirmedPickupTime) }}</span>
+      <span v-else>Awaiting a confirmed arrival time.</span>
+      <a v-if="request.recyclerPhone" :href="`tel:${request.recyclerPhone}`">Call recycler: {{ request.recyclerPhone }}</a>
+      <span v-else>Recycler contact will appear when they add it.</span>
     </div>
     <div v-else-if="role === 'recycler'" class="request-card-actions">
       <template v-if="request.status === 'pending'">

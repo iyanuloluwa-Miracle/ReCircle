@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { formatNaira } from '~~/utils/format'
+import { formatNaira, formatPickupTime } from '~~/utils/format'
 import type { PickupRequestView } from '../../../../types'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
@@ -38,6 +38,17 @@ const requestingId = ref<string | null>(null)
 const actionError = ref('')
 const toast = useToast()
 const createdRequest = ref<PickupRequestView | null>(null)
+const pickupTime = ref('')
+const confirming = ref(false)
+const selectedRecycler = ref<MatchRow | null>(null)
+
+function localDateTimeMinimum() {
+  const date = new Date(Date.now() + 30 * 60 * 1000)
+  date.setSeconds(0, 0)
+  const offset = date.getTimezoneOffset() * 60_000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+}
+const earliestPickupTime = computed(localDateTimeMinimum)
 
 const pastMatching = (status: string | undefined) =>
   status === 'pickup_requested' || status === 'picked_up' || status === 'completed'
@@ -109,7 +120,7 @@ async function requestPickup(recyclerId: string) {
   try {
     const result = await $fetch<PickupRequestView>('/api/create-request', {
       method: 'POST',
-      body: { wasteItemId: id, recyclerId }
+      body: { wasteItemId: id, recyclerId, requestedPickupTime: pickupTime.value ? new Date(pickupTime.value).toISOString() : null }
     })
     createdRequest.value = result
     await refreshItem()
@@ -122,6 +133,8 @@ async function requestPickup(recyclerId: string) {
     requestingId.value = null
   }
 }
+function beginRequest(recycler: MatchRow) { selectedRecycler.value = recycler; confirming.value = true }
+async function confirmRequest() { if (selectedRecycler.value) { confirming.value = false; await requestPickup(selectedRecycler.value.recyclerId) } }
 </script>
 <template>
   <div class="scan-workspace">
@@ -135,7 +148,7 @@ async function requestPickup(recyclerId: string) {
         <aside class="scan-value-aside">
           <section class="scan-value-card" aria-labelledby="item-value"><div class="scan-value-top"><span class="scan-dark-icon"><ScanIcon name="leaf" :size="24" /></span><span class="scan-mini-label">YOUR ITEM’S POTENTIAL</span></div><p class="scan-value-label">Estimated value</p><h2 id="item-value"><template v-if="valueMin != null && valueMax != null">{{ formatNaira(valueMin) }}<span v-if="valueMin !== valueMax">– {{ formatNaira(valueMax) }}</span></template><template v-else>Not available yet</template></h2><p>Based on {{ item.weightKg }} kg of {{ item.materialCode }} and published recycler prices.</p><div class="scan-value-divider" /><div class="scan-value-footer"><ScanIcon name="shield" :size="17" /><span>Offers from eligible local recyclers</span></div></section>
           <div class="scan-item-summary"><img v-if="!imageFailed" :src="item.imageUrl" alt="Your recyclable item" @error="imageFailed = true"><span v-else class="scan-thumbnail-placeholder" role="img" aria-label="Item photo unavailable"><ScanIcon name="image" :size="24" /></span><div><strong>{{ item.itemName || item.materialCode || 'Your item' }}</strong><span>{{ item.materialCode }}<span aria-hidden="true"> · </span>{{ item.weightKg }} kg</span><NuxtLink :to="`/scan/${id}/analysis`">Review item<ScanIcon name="chevron" :size="12" /></NuxtLink></div></div>
-          <div v-if="!activeRequest" class="scan-matching-explanation"><h3>How we find your match</h3><p>We consider material, distance, price and available capacity to find a recycler that fits.</p><div><ScanIcon name="pin" :size="17" /><span>{{ matches.length }} eligible {{ matches.length === 1 ? 'recycler' : 'recyclers' }} found</span></div></div>
+          <div v-if="!activeRequest" class="scan-matching-explanation"><h3>How we find your match</h3><p>We consider material, distance, price and available capacity to find a recycler that fits.</p><div><ScanIcon name="pin" :size="17" /><span>{{ matches.length }} eligible {{ matches.length === 1 ? 'recycler' : 'recyclers' }} found</span></div><label class="scan-pickup-time" for="pickup-time"><span>Preferred pickup time <small>Optional</small></span><input id="pickup-time" v-model="pickupTime" type="datetime-local" :min="earliestPickupTime"><small>The recycler confirms availability after you request.</small></label></div>
         </aside>
 
         <section v-if="activeRequest" class="scan-panel scan-request-panel"><span class="scan-heading-chip"><ScanIcon name="check" :size="16" /> Pickup request created</span><h2>{{ activeRequest.businessName || 'Assigned recycler' }}</h2><p class="scan-request-status">{{ activeRequest.status.replaceAll('_', ' ') }}</p><div class="scan-request-payout"><span>Expected payout</span><strong>{{ formatNaira(activeRequest.expectedPayout) }}</strong></div><StatusTimeline :steps="activeRequest.timeline" /><BaseButton to="/dashboard/user" class="scan-full-button">Open my requests<ScanIcon name="arrow" :size="17" /></BaseButton></section>
@@ -144,16 +157,20 @@ async function requestPickup(recyclerId: string) {
           <div class="scan-offer-row"><div><span>Expected payout</span><strong>{{ formatNaira(recommended.expectedPayout) }}</strong></div><div><span>Price per kg</span><strong>{{ formatNaira(recommended.pricePerKg) }}<small> / kg</small></strong></div></div>
           <div class="scan-recycler-metrics"><div><span>Match score</span><strong>{{ recommended.matchScore }}<small> / 100</small></strong></div><div><span>Available capacity</span><strong>{{ recommended.remainingCapacityKg.toLocaleString('en-NG') }}<small> kg</small></strong></div></div>
           <div class="scan-match-reasons"><h3>A good fit for your item</h3><ul><li v-for="reason in recommended.whySelected" :key="reason"><ScanIcon name="check" :size="15" /><span>{{ reason }}</span></li></ul><details v-if="recommended.reasons.length" class="scan-match-detail"><summary>See matching details<ScanIcon name="chevron" :size="13" /></summary><ul><li v-for="reason in recommended.reasons" :key="reason">{{ reason }}</li></ul></details></div>
-          <BaseButton class="scan-full-button" :loading="requestingId === recommended.recyclerId" :disabled="!!requestingId" @click="requestPickup(recommended.recyclerId)">Request pickup<ScanIcon v-if="!requestingId" name="arrow" :size="17" /></BaseButton>
+          <BaseButton class="scan-full-button" :loading="requestingId === recommended.recyclerId" :disabled="!!requestingId" @click="beginRequest(recommended)">Review pickup request<ScanIcon v-if="!requestingId" name="arrow" :size="17" /></BaseButton>
           <button v-if="matches.length > 1" type="button" class="scan-compare-toggle" :aria-expanded="comparing" aria-controls="recycler-comparison" @click="comparing = !comparing">{{ comparing ? 'Hide comparison' : `Compare ${matches.length} recyclers` }}<ScanIcon name="chevron" :size="14" :class="{ 'is-open': comparing }" /></button>
         </section>
-        <section v-else-if="!pastMatching(item.status)" class="scan-panel scan-empty-panel"><span class="scan-empty-icon"><ScanIcon :name="matchError ? 'refresh' : 'pin'" :size="28" /></span><h2>{{ matchError ? 'The search hit a snag.' : 'Your next match is still out there.' }}</h2><p>{{ matchError ? 'We couldn’t load recycler offers right now. Please try again.' : 'No recycler nearby currently accepts this material with enough capacity and a published price. You can review your item or try again later.' }}</p><div class="scan-inline-actions"><BaseButton @click="refreshMatch()"><ScanIcon name="refresh" :size="17" />Try matching again</BaseButton><BaseButton :to="`/scan/${id}/analysis`" variant="ghost">Review material & weight</BaseButton></div></section>
+        <section v-else-if="!pastMatching(item.status)" class="scan-panel scan-empty-panel scan-no-match"><span class="scan-empty-icon"><ScanIcon :name="matchError ? 'refresh' : 'pin'" :size="28" /></span><p class="scan-mini-label">{{ matchError ? 'TEMPORARY MATCHING ISSUE' : 'NO CURRENT MATCH' }}</p><h2>{{ matchError ? 'The search hit a snag.' : 'No recycler is ready for this item yet.' }}</h2><p>{{ matchError ? 'We couldn’t load recycler offers right now. Your item is still saved, so you can retry without starting again.' : 'No nearby recycler currently accepts this material with enough capacity and a published price. Your item is saved while availability changes.' }}</p><div class="scan-recovery-list"><span><ScanIcon name="check" :size="15" /> Try again when a recycler updates availability</span><span><ScanIcon name="check" :size="15" /> Review the material, weight, or pickup point</span><span><ScanIcon name="check" :size="15" /> Keep this item saved and scan another one</span></div><div class="scan-inline-actions"><BaseButton @click="refreshMatch()"><ScanIcon name="refresh" :size="17" />Try matching again</BaseButton><BaseButton :to="`/scan/${id}/analysis`" variant="ghost">Review item details</BaseButton><BaseButton to="/scan" variant="ghost">Scan another item</BaseButton></div></section>
         <section v-else class="scan-panel scan-empty-panel"><span class="scan-empty-icon"><ScanIcon name="check" :size="28" /></span><h2>Your item is on its way.</h2><p>Continue to your dashboard to follow its pickup progress.</p><BaseButton to="/dashboard/user">View my requests<ScanIcon name="arrow" :size="17" /></BaseButton></section>
       </div>
 
-      <section v-if="comparing && matches.length && !activeRequest" id="recycler-comparison" class="scan-comparison-section" aria-labelledby="comparison-heading"><header><div><p class="scan-eyebrow">Your options, side by side</p><h2 id="comparison-heading">Choose the right fit.</h2></div><span>{{ matches.length }} eligible recyclers</span></header><div class="scan-comparison-grid"><article v-for="(row, index) in matches" :key="row.recyclerId" class="scan-comparison-card" :class="{ 'is-recommended': row.recyclerId === recommended?.recyclerId }"><div class="scan-comparison-rank"><span v-if="row.recyclerId === recommended?.recyclerId"><ScanIcon name="sparkles" :size="13" /> Recommended</span><span v-else>Option {{ index + 1 }}</span><strong>{{ row.matchScore }}<small> / 100</small></strong></div><h3>{{ row.businessName }}</h3><p class="scan-comparison-distance"><ScanIcon name="pin" :size="14" />{{ distanceLabel(row.distanceKm) }}</p><div class="scan-comparison-payout"><span>Expected payout</span><strong>{{ formatNaira(row.expectedPayout) }}</strong><small>{{ formatNaira(row.pricePerKg) }} per kg</small></div><ul><li v-for="reason in row.reasons" :key="reason">{{ reason }}</li></ul><BaseButton size="sm" :variant="row.recyclerId === recommended?.recyclerId ? 'primary' : 'ghost'" :loading="requestingId === row.recyclerId" :disabled="!!requestingId" @click="requestPickup(row.recyclerId)">Request this recycler<ScanIcon v-if="!requestingId" name="arrow" :size="15" /></BaseButton></article></div></section>
+      <section v-if="comparing && matches.length && !activeRequest" id="recycler-comparison" class="scan-comparison-section" aria-labelledby="comparison-heading"><header><div><p class="scan-eyebrow">Your options, side by side</p><h2 id="comparison-heading">Choose the right fit.</h2></div><span>{{ matches.length }} eligible recyclers</span></header><div class="scan-comparison-grid"><article v-for="(row, index) in matches" :key="row.recyclerId" class="scan-comparison-card" :class="{ 'is-recommended': row.recyclerId === recommended?.recyclerId }"><div class="scan-comparison-rank"><span v-if="row.recyclerId === recommended?.recyclerId"><ScanIcon name="sparkles" :size="13" /> Recommended</span><span v-else>Option {{ index + 1 }}</span><strong>{{ row.matchScore }}<small> / 100</small></strong></div><h3>{{ row.businessName }}</h3><p class="scan-comparison-distance"><ScanIcon name="pin" :size="14" />{{ distanceLabel(row.distanceKm) }}</p><div class="scan-comparison-payout"><span>Expected payout</span><strong>{{ formatNaira(row.expectedPayout) }}</strong><small>{{ formatNaira(row.pricePerKg) }} per kg</small></div><ul><li v-for="reason in row.reasons" :key="reason">{{ reason }}</li></ul><BaseButton size="sm" :variant="row.recyclerId === recommended?.recyclerId ? 'primary' : 'ghost'" :loading="requestingId === row.recyclerId" :disabled="!!requestingId" @click="beginRequest(row)">Review request<ScanIcon v-if="!requestingId" name="arrow" :size="15" /></BaseButton></article></div></section>
       <p v-if="actionError" class="scan-alert scan-alert--error" role="alert">{{ actionError }}</p>
       <footer class="scan-flow-footer"><BaseButton :to="`/scan/${id}/analysis`" variant="ghost" size="sm"><ScanIcon name="arrow" :size="16" class="scan-back-arrow" />Back to analysis</BaseButton><BaseButton to="/scan" variant="ghost" size="sm"><ScanIcon name="camera" :size="17" />Scan another item</BaseButton></footer>
     </div>
+    <BaseModal :open="confirming" title="Confirm pickup request" @update:open="confirming = $event">
+      <div v-if="selectedRecycler" class="scan-confirmation"><p>Review the details before sending your pickup request.</p><dl><div><dt>Item</dt><dd>{{ item?.itemName || item?.materialCode || 'Recyclable item' }} · {{ item?.weightKg }} kg</dd></div><div><dt>Recycler</dt><dd>{{ selectedRecycler.businessName }} · {{ distanceLabel(selectedRecycler.distanceKm) }}</dd></div><div><dt>Expected payout</dt><dd>{{ formatNaira(selectedRecycler.expectedPayout) }}</dd></div><div><dt>Pickup address</dt><dd>Your saved pickup location</dd></div><div><dt>Preferred time</dt><dd>{{ pickupTime ? formatPickupTime(new Date(pickupTime).toISOString()) : 'No preference' }}</dd></div></dl><p class="scan-confirmation-note">The recycler must accept before pickup is confirmed. You can update the time or cancel while the request is pending.</p></div>
+      <template #footer><BaseButton variant="ghost" @click="confirming = false">Go back</BaseButton><BaseButton :loading="!!requestingId" @click="confirmRequest">Send pickup request</BaseButton></template>
+    </BaseModal>
   </div>
 </template>

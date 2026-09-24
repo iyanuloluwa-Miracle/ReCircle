@@ -7,6 +7,13 @@ const pricingRuleSchema = new Schema({
   currency: { type: String, enum: ['NGN'], default: 'NGN', required: true }
 }, { _id: false })
 
+const operatingHoursSchema = new Schema({
+  day: { type: Number, required: true, min: 0, max: 6 },
+  open: { type: String, required: true, match: /^([01]\d|2[0-3]):[0-5]\d$/ },
+  close: { type: String, required: true, match: /^([01]\d|2[0-3]):[0-5]\d$/ },
+  enabled: { type: Boolean, required: true }
+}, { _id: false })
+
 const recyclerSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
   businessName: { type: String, required: true, trim: true, minlength: 2, maxlength: 160 },
@@ -22,7 +29,10 @@ const recyclerSchema = new Schema({
   capacityKgPerDay: { type: Number, required: true, min: 0, validate: Number.isFinite },
   currentLoadKg: { type: Number, required: true, min: 0, validate: Number.isFinite },
   availability: { type: String, enum: ['available', 'busy', 'offline'], required: true, index: true },
+  businessHours: { type: String, default: 'Mon–Sat, 9:00 AM–5:00 PM', maxlength: 160 },
   serviceRadiusKm: { type: Number, required: true, min: 0, validate: Number.isFinite },
+  operatingHours: { type: [operatingHoursSchema], default: undefined },
+  contactPhone: { type: String, default: null, trim: true, maxlength: 40 },
   isDemo: { type: Boolean, default: false }
 }, { timestamps: true })
 

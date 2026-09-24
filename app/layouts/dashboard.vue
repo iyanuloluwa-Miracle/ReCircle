@@ -20,6 +20,7 @@ const headerCrumb = computed(() => {
   if (route.path.endsWith('/match')) return 'Find a recycler'
   if (route.path.startsWith('/scan')) return 'Scan an item'
   if (route.path.startsWith('/dashboard/analytics')) return 'Analytics'
+  if (route.path.startsWith('/dashboard/history')) return 'History'
   if (route.path.startsWith('/dashboard/settings')) return 'Settings'
   return 'Overview'
 })
@@ -47,6 +48,7 @@ const navigation = computed(() => [
   { to: overviewPath.value, label: 'Overview', icon: 'overview', active: route.path === overviewPath.value },
   ...(user.value ? [{ to: '/dashboard/analytics', label: 'Analytics', icon: 'chart', active: route.path.startsWith('/dashboard/analytics') }] : []),
   ...(user.value?.role === 'user' ? [{ to: '/scan', label: 'Scan an item', icon: 'scan', active: route.path.startsWith('/scan') }] : []),
+  ...(user.value?.role === 'user' ? [{ to: '/dashboard/history', label: 'History', icon: 'box', active: route.path.startsWith('/dashboard/history') }] : []),
   ...(user.value ? [{ to: '/dashboard/settings', label: 'Settings', icon: 'settings', active: route.path.startsWith('/dashboard/settings') }] : [])
 ])
 
@@ -135,6 +137,7 @@ async function signOut() {
           <span>{{ headerNudge.text }}</span>
         </p>
         <div class="workspace-header-actions">
+          <NotificationMenu v-if="user" />
           <NuxtLink
             v-if="user"
             to="/dashboard/settings"

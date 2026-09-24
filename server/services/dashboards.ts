@@ -170,7 +170,13 @@ export async function getRecyclerDashboard(user: AuthUser) {
       id: profile._id.toString(),
       businessName: profile.businessName,
       availability: profile.availability,
-      acceptedMaterials: profile.acceptedMaterials
+      acceptedMaterials: profile.acceptedMaterials,
+      pricingRules: profile.pricingRules,
+      serviceRadiusKm: profile.serviceRadiusKm,
+      capacityKgPerDay: profile.capacityKgPerDay,
+      businessHours: profile.businessHours ?? '',
+      operatingHours: profile.operatingHours ?? [],
+      contactPhone: profile.contactPhone ?? null
     },
     metrics: {
       availableSupplyKg,
