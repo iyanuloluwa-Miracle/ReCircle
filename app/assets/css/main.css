@@ -1047,7 +1047,19 @@ h1, h2, h3, p { margin: 0; }
   cursor: pointer;
   transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
 }
-.role-picker-option input { position: absolute; opacity: 0; pointer-events: none; }
+.role-picker-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  appearance: none;
+}
 .role-picker-option:hover {
   border-color: #b4c3a6;
   box-shadow: 0 .35rem 1rem #123f320a;
@@ -1056,6 +1068,10 @@ h1, h2, h3, p { margin: 0; }
   border-color: #123f32;
   background: #edf4e3;
   box-shadow: 0 .35rem 1rem #123f3212;
+}
+.role-picker-option:focus-within {
+  outline: 3px solid #61892d;
+  outline-offset: 3px;
 }
 .role-picker-media {
   display: block;

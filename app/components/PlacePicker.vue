@@ -235,7 +235,6 @@ onBeforeUnmount(() => {
         Look up
       </BaseButton>
     </div>
-    <p class="place-picker-hint">Start typing, then pick a suggestion — or press Enter to look up a full address.</p>
     <div
       ref="mapEl"
       class="place-picker-map"
@@ -281,12 +280,6 @@ onBeforeUnmount(() => {
 .place-picker-search input:disabled {
   opacity: .65;
   cursor: not-allowed;
-}
-.place-picker-hint {
-  margin: 0;
-  font-size: .7rem;
-  line-height: 1.45;
-  color: #657269;
 }
 .place-picker-map {
   width: 100%;
