@@ -217,11 +217,20 @@ export async function completeSignup(email: string, password: string, signupToke
 
   const existing = await User.findOne({ email }).select('_id').lean()
   if (existing) {
+    // A browser can retry this request after the account was created but before
+    // it received the response. The OTP-backed token proves this is the same
+    // signup attempt, so completing it is safe and keeps the flow idempotent.
     await SignupIntent.deleteOne({ email })
+    const existingUser = await User.findById(existing._id)
+    if (existingUser) return existingUser
     throw createError({ statusCode: 409, statusMessage: 'Email is already registered' })
   }
 
   try {
+    // Earlier schema versions persisted `googleId: null`. MongoDB includes an
+    // explicit null in a sparse unique index, so remove those legacy values
+    // before creating another password-based account.
+    await User.updateMany({ googleId: null }, { $unset: { googleId: 1 } })
     const user = await User.create({
       name: intent.name,
       email,
@@ -235,6 +244,13 @@ export async function completeSignup(email: string, password: string, signupToke
     return user
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
+      // Another completion request won the unique-index race. Return that user
+      // as the successful result of this verified signup attempt.
+      const createdUser = await User.findOne({ email })
+      if (createdUser) {
+        await SignupIntent.deleteOne({ email })
+        return createdUser
+      }
       throw createError({ statusCode: 409, statusMessage: 'Email is already registered' })
     }
     throw error

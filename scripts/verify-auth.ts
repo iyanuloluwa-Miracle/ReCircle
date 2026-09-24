@@ -112,10 +112,18 @@ try {
     const verifiedBody = await verified.json() as { email: string; signupToken: string }
     assert.ok(verifiedBody.signupToken)
 
-    const completed = await request('/api/auth/signup/complete', 'POST', {
-      email: testEmail, password: testPassword, signupToken: verifiedBody.signupToken
-    })
+    // Completion can be retried by a browser when the first response is slow.
+    // Both verified requests must resolve to the one new operator account.
+    const [completed, retriedCompletion] = await Promise.all([
+      request('/api/auth/signup/complete', 'POST', {
+        email: testEmail, password: testPassword, signupToken: verifiedBody.signupToken
+      }),
+      request('/api/auth/signup/complete', 'POST', {
+        email: testEmail, password: testPassword, signupToken: verifiedBody.signupToken
+      })
+    ])
     assert.equal(completed.status, 201)
+    assert.equal(retriedCompletion.status, 201, 'a concurrent verified completion should be idempotent')
     const registeredAccount = (await completed.json() as AuthResponse).user
     assert.equal(registeredAccount.email, testEmail)
     assert.equal(registeredAccount.role, 'waste_operator')

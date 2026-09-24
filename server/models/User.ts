@@ -12,7 +12,9 @@ const userSchema = new Schema({
       return !this.googleId
     }
   },
-  googleId: { type: String, default: null, sparse: true, unique: true, index: true },
+  // Omit this field for password accounts. A sparse unique index still indexes
+  // explicit null values, which would allow only one password-only account.
+  googleId: { type: String, sparse: true, unique: true, index: true },
   role: { type: String, required: true, enum: ['user', 'recycler', 'waste_operator'], index: true },
   avatarUrl: { type: String, default: null },
   location: { type: geoPointSchema, default: null },
