@@ -81,10 +81,15 @@ async function runSeed(mongodbUri: string) {
   try {
     const passwordHash = await hashPassword(demoPassword)
     const consumerId = id(1)
-    const operatorId = id(2)
+    const adminId = id(2)
     const consumerPoint = point(3.3947, 6.4541)
     await insertDemo(User, { _id: consumerId, name: 'Demo Consumer', email: 'consumer@recircle-demo.example', passwordHash, role: 'user', location: consumerPoint, avatarUrl: AVATAR_PRESETS[0], emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
-    await insertDemo(User, { _id: operatorId, name: 'Demo Waste Operator', email: 'operator@recircle-demo.example', passwordHash, role: 'waste_operator', location: consumerPoint, avatarUrl: AVATAR_PRESETS[4], emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true })
+    // Converts the old seeded operator record, if present, into the internal admin.
+    await User.updateOne(
+      { _id: adminId, isDemo: true },
+      { $set: { name: 'ReCircle Admin', email: 'admin@recircle-demo.example', passwordHash, role: 'admin', location: consumerPoint, avatarUrl: AVATAR_PRESETS[4], emailVerified: true, onboardingCompletedAt: new Date(), isDemo: true } },
+      { upsert: true, timestamps: false }
+    )
 
     // Fictional businesses and invented prices for product demonstration only.
     const businesses = [
@@ -159,7 +164,7 @@ async function runSeed(mongodbUri: string) {
     await verifyDemoRecords(WasteItem, [30, 31, 32, 33])
     await verifyDemoRecords(Request, [40, 41, 42, 43])
     await verifyDemoRecords(Transaction, [50, 51, 52, 53])
-    console.log('DEMO seed complete: 1 consumer, 1 waste operator, 4 fictional recyclers, 4 historical completed requests.')
+    console.log('DEMO seed complete: 1 consumer, 1 internal admin, 4 fictional recyclers, 4 historical completed requests.')
   } finally {
     await mongoose.disconnect()
   }

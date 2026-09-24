@@ -14,7 +14,6 @@ const baseUrl = process.env.AUTH_TEST_URL || 'http://127.0.0.1:3001'
 const roles: Array<{ role: UserRole; path: string }> = [
   { role: 'user', path: '/dashboard/user' },
   { role: 'recycler', path: '/dashboard/recycler' },
-  { role: 'waste_operator', path: '/dashboard/operator' }
 ]
 
 async function request(path: string, method = 'GET', body?: object, cookie?: string) {
@@ -98,7 +97,7 @@ try {
     assert.equal(invalidRole.status, 400)
 
     const started = await request('/api/auth/signup/start', 'POST', {
-      name: 'Route Test', email: ` ${testEmail.toUpperCase()} `, role: 'waste_operator'
+      name: 'Route Test', email: ` ${testEmail.toUpperCase()} `, role: 'user'
     })
     assert.equal(started.status, 200)
     const startedBody = await started.json() as { email: string }
@@ -113,7 +112,7 @@ try {
     assert.ok(verifiedBody.signupToken)
 
     // Completion can be retried by a browser when the first response is slow.
-    // Both verified requests must resolve to the one new operator account.
+    // Both verified requests must resolve to the one new consumer account.
     const [completed, retriedCompletion] = await Promise.all([
       request('/api/auth/signup/complete', 'POST', {
         email: testEmail, password: testPassword, signupToken: verifiedBody.signupToken
@@ -126,37 +125,37 @@ try {
     assert.equal(retriedCompletion.status, 201, 'a concurrent verified completion should be idempotent')
     const registeredAccount = (await completed.json() as AuthResponse).user
     assert.equal(registeredAccount.email, testEmail)
-    assert.equal(registeredAccount.role, 'waste_operator')
+    assert.equal(registeredAccount.role, 'user')
     assert.equal(registeredAccount.emailVerified, true)
     assert.equal(registeredAccount.isDemo, false)
     assert.equal(registeredAccount.onboardingCompletedAt, null)
     assert.equal('passwordHash' in registeredAccount, false)
     const registrationCookie = sessionCookie(completed)
 
-    const onboardingGate = await expectStatus('/dashboard/operator', 302, registrationCookie)
+    const onboardingGate = await expectStatus('/dashboard/user', 302, registrationCookie)
     assert.equal(new URL(onboardingGate.headers.get('location')!, baseUrl).pathname, '/onboarding/avatar')
 
     const { AVATAR_PRESETS } = await import('../utils/avatar-presets.ts')
     const avatar = await request('/api/profile/avatar', 'PATCH', { avatarUrl: AVATAR_PRESETS[0] }, registrationCookie)
     assert.equal(avatar.status, 200)
 
-    const stillGated = await expectStatus('/dashboard/operator', 302, registrationCookie)
-    assert.equal(new URL(stillGated.headers.get('location')!, baseUrl).pathname, '/onboarding/operator')
+    const stillGated = await expectStatus('/dashboard/user', 302, registrationCookie)
+    assert.equal(new URL(stillGated.headers.get('location')!, baseUrl).pathname, '/onboarding/user')
 
     const finished = await request('/api/onboarding/complete', 'POST', undefined, registrationCookie)
     assert.equal(finished.status, 200)
-    await expectStatus('/api/dashboard/operator', 200, registrationCookie)
+    await expectStatus('/api/dashboard/user', 200, registrationCookie)
 
     assert.equal((await request('/api/auth/login', 'POST', { email: testEmail, password: 'wrong-password' })).status, 401)
     const loggedIn = await request('/api/auth/login', 'POST', { email: testEmail.toUpperCase(), password: testPassword })
     assert.equal(loggedIn.status, 200)
-    await expectStatus('/api/dashboard/operator', 200, sessionCookie(loggedIn))
+    await expectStatus('/api/dashboard/user', 200, sessionCookie(loggedIn))
     assert.ok(process.env.MONGODB_URI)
     await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
     const stored = await User.findOne({ email: testEmail }).select('+passwordHash')
     assert.ok(stored)
     assert.notEqual(stored.passwordHash, testPassword)
-    assert.equal(stored.role, 'waste_operator')
+    assert.equal(stored.role, 'user')
     assert.equal(stored.emailVerified, true)
     console.log('email-first signup, OTP, password, avatar gate, and login verified')
   } finally {

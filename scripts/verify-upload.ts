@@ -165,13 +165,6 @@ try {
     assert.equal(first.status, 200, `OpenRouter analysis returned ${first.status}: ${firstBody.slice(0, 200)}`)
     const firstResult = JSON.parse(firstBody) as { cached: boolean }
     assert.equal(firstResult.cached, false)
-    const operatorLogin = await post('/api/auth/demo', '', { role: 'waste_operator' })
-    assert.equal(operatorLogin.status, 200)
-    const operatorCookie = operatorLogin.headers.get('set-cookie')?.split(';')[0]
-    assert.ok(operatorCookie)
-    const operatorResult = await post('/api/analyze-waste', operatorCookie, { wasteItemId: draft.id })
-    assert.equal(operatorResult.status, 200)
-    assert.equal((await operatorResult.json() as { cached: boolean }).cached, true)
     const repeated = await post('/api/analyze-waste', cookie, { wasteItemId: draft.id })
     assert.equal(repeated.status, 200)
     assert.equal((await repeated.json() as { cached: boolean }).cached, true)
