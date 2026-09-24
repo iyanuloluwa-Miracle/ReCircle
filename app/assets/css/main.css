@@ -547,6 +547,9 @@ h1, h2, h3, p { margin: 0; }
 }
 .auth-simple-inner {
   width: min(100%, 22.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   animation: auth-form-enter .55s ease both;
 }
 .auth-simple--card .auth-simple-inner {
@@ -677,6 +680,7 @@ h1, h2, h3, p { margin: 0; }
   text-align: center;
 }
 .auth-simple-inner > .brand {
+  align-self: center;
   margin-bottom: 1.75rem;
   font-size: clamp(1.35rem, 2.2vw, 1.55rem);
 }
@@ -799,6 +803,7 @@ h1, h2, h3, p { margin: 0; }
 .auth-hint { margin-top: -.1rem; font-size: .6875rem; }
 .auth-alternate {
   margin-top: 1.35rem;
+  text-align: center;
   font-size: .8125rem;
   line-height: 1.8;
   color: #657269;
