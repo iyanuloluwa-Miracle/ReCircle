@@ -81,6 +81,7 @@ async function submitDetails() {
   errorMessage.value = ''
   try {
     await auth.startSignup(name.value, email.value, role.value)
+    code.value = ''
     step.value = 'otp'
     startResendCooldown()
   } catch (error) {
@@ -95,17 +96,20 @@ async function submitDetails() {
   }
 }
 
-async function submitOtp() {
+async function submitOtp(nextCode?: string) {
+  const otp = String(nextCode ?? code.value).replace(/\D/g, '').slice(0, 6)
+  if (otp.length !== 6 || pending.value) return
   pending.value = true
   errorMessage.value = ''
   try {
-    await auth.verifySignupOtp(email.value.trim().toLowerCase(), code.value)
+    await auth.verifySignupOtp(email.value.trim().toLowerCase(), otp)
     step.value = 'password'
   } catch (error) {
     const status = error && typeof error === 'object' && 'statusCode' in error ? error.statusCode : undefined
     errorMessage.value = status === 400
       ? 'That code is invalid or expired.'
       : 'We could not verify that code. Try again.'
+    code.value = ''
   } finally {
     pending.value = false
   }
@@ -212,22 +216,18 @@ useSeoMeta({ title: 'Create an account — ReCircle', robots: 'noindex' })
       </form>
     </template>
 
-    <form v-else-if="step === 'otp'" class="auth-form" @submit.prevent="submitOtp">
-      <p class="muted auth-hint">
+    <form v-else-if="step === 'otp'" class="auth-form auth-form--otp" @submit.prevent="submitOtp">
+      <p class="muted auth-hint auth-hint--center">
         Enter the 6-digit code sent to <strong>{{ email.trim().toLowerCase() }}</strong>.
       </p>
-      <label for="register-otp">Verification code*</label>
-      <input
+      <span class="auth-otp-label" id="register-otp-label">Verification code*</span>
+      <AuthOtpInput
         id="register-otp"
         v-model="code"
-        inputmode="numeric"
-        autocomplete="one-time-code"
-        placeholder="000000"
-        pattern="\d{6}"
-        maxlength="6"
-        minlength="6"
-        required
-      >
+        :disabled="pending"
+        aria-labelledby="register-otp-label"
+        @complete="value => submitOtp(value)"
+      />
       <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
       <BaseButton type="submit" :loading="pending" :disabled="pending || code.length !== 6">Verify email</BaseButton>
       <button
