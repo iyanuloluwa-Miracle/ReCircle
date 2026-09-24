@@ -35,8 +35,9 @@ onMounted(load)
 </script>
 <template>
   <div class="notification-menu">
-    <button type="button" class="notification-toggle" :aria-expanded="open" aria-controls="notifications-panel" @click="toggle">
-      <span aria-hidden="true">♢</span><span class="sr-only">Notifications</span><b v-if="unreadCount" aria-label="Unread notifications">{{ unreadCount > 9 ? '9+' : unreadCount }}</b>
+    <button type="button" class="notification-toggle" :aria-expanded="open" aria-controls="notifications-panel" aria-label="Notifications" @click="toggle">
+      <DashboardIcon name="bell" />
+      <b v-if="unreadCount" aria-label="Unread notifications">{{ unreadCount > 9 ? '9+' : unreadCount }}</b>
     </button>
     <section v-if="open" id="notifications-panel" class="notification-panel" aria-label="Notifications">
       <header><strong>Notifications</strong><span>{{ unreadCount ? `${unreadCount} new` : 'All caught up' }}</span></header>

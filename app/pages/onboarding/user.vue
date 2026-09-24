@@ -11,6 +11,29 @@ const errorMessage = ref('')
 const steps = computed(() => onboardingStepsForRole('user'))
 const currentStep = computed(() => phase.value === 'location' ? 2 : 3)
 
+const guideSteps = [
+  {
+    icon: 'camera' as const,
+    title: 'Photograph',
+    detail: 'Snap a clear photo of one recyclable.'
+  },
+  {
+    icon: 'scale' as const,
+    title: 'Confirm',
+    detail: 'Review the material and add its weight.'
+  },
+  {
+    icon: 'pin' as const,
+    title: 'Match',
+    detail: 'See nearby recycler offers and request pickup.'
+  },
+  {
+    icon: 'leaf' as const,
+    title: 'Earn',
+    detail: 'Track the job and collect your rewards.'
+  }
+]
+
 async function saveLocation() {
   if (!pickup.location.value) {
     errorMessage.value = 'Choose a pickup location to continue.'
@@ -90,12 +113,26 @@ useSeoMeta({ title: 'Consumer setup — ReCircle', robots: 'noindex' })
       </BaseButton>
     </div>
 
-    <div v-else class="onboard-stack">
-      <ol class="howto-list">
-        <li>Photograph the recyclable.</li>
-        <li>Confirm material and weight.</li>
-        <li>Match a nearby recycler and request pickup.</li>
-        <li>Track the job and earn rewards.</li>
+    <div v-else class="onboard-stack onboard-stack--guide">
+      <p class="muted auth-hint auth-hint--center">Four moves from photo to pickup.</p>
+      <ol class="onboard-guide" aria-label="How scanning works">
+        <li
+          v-for="(guide, index) in guideSteps"
+          :key="guide.title"
+          class="onboard-guide-step"
+          :class="{ 'is-last': index === guideSteps.length - 1 }"
+          :style="{ '--guide-index': index }"
+        >
+          <span class="onboard-guide-rail" aria-hidden="true" />
+          <span class="onboard-guide-number">{{ String(index + 1).padStart(2, '0') }}</span>
+          <span class="onboard-guide-icon">
+            <ScanIcon :name="guide.icon" :size="18" />
+          </span>
+          <div class="onboard-guide-copy">
+            <strong>{{ guide.title }}</strong>
+            <p>{{ guide.detail }}</p>
+          </div>
+        </li>
       </ol>
       <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
       <BaseButton :loading="pending" :disabled="pending" @click="finish">Go to dashboard</BaseButton>

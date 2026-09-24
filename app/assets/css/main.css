@@ -1115,6 +1115,7 @@ h1, h2, h3, p { margin: 0; }
 .avatar-grid-item:hover { border-color: #b4c3a6; }
 .avatar-grid-item.is-selected { border-color: #123f32; background: #edf4e3; }
 .onboard-stack { display: grid; gap: 1rem; }
+.onboard-stack--guide { gap: .85rem; }
 .onboard-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .location-status { margin: 0; font-size: .875rem; font-weight: 650; color: #123f32; }
 .howto-list {
@@ -1125,6 +1126,102 @@ h1, h2, h3, p { margin: 0; }
   color: #4f5f55;
   line-height: 1.55;
   font-size: .9375rem;
+}
+.onboard-guide {
+  list-style: none;
+  display: grid;
+  gap: .55rem;
+  margin: 0;
+  padding: 0;
+}
+.onboard-guide-step {
+  --guide-index: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.6rem 2.35rem minmax(0, 1fr);
+  align-items: start;
+  gap: .65rem;
+  padding: .7rem .75rem .7rem .55rem;
+  border: 1px solid #e2e8d8;
+  border-radius: .9rem;
+  background: #fffef9;
+  animation: onboard-guide-enter .4s ease both;
+  animation-delay: calc(var(--guide-index) * 70ms);
+}
+.onboard-guide-step.is-last {
+  border-color: #cfe0b8;
+  background:
+    linear-gradient(135deg, #f4f9ea 0%, #fffef9 55%);
+}
+.onboard-guide-rail {
+  position: absolute;
+  top: 2.35rem;
+  left: calc(.55rem + .8rem);
+  bottom: -.55rem;
+  width: 2px;
+  background: #d9e3cc;
+  transform: translateX(-50%);
+}
+.onboard-guide-step.is-last .onboard-guide-rail,
+.onboard-guide-step:last-child .onboard-guide-rail {
+  display: none;
+}
+.onboard-guide-number {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-top: .2rem;
+  border-radius: 999px;
+  background: #123f32;
+  color: #d3f28a;
+  font-size: .62rem;
+  font-weight: 750;
+  letter-spacing: .04em;
+  z-index: 1;
+}
+.onboard-guide-icon {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: .7rem;
+  background: #edf4e3;
+  color: #3f6b35;
+}
+.onboard-guide-step.is-last .onboard-guide-icon {
+  background: #d3f28a;
+  color: #123f32;
+}
+.onboard-guide-copy {
+  min-width: 0;
+  padding-top: .15rem;
+}
+.onboard-guide-copy strong {
+  display: block;
+  color: #123f32;
+  font-size: .875rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.onboard-guide-copy p {
+  margin-top: .2rem;
+  color: #657269;
+  font-size: .75rem;
+  line-height: 1.45;
+}
+@keyframes onboard-guide-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onboard-guide-step { animation: none; }
 }
 .material-grid {
   display: grid;
