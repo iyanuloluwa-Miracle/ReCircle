@@ -1,10 +1,9 @@
 <script setup lang="ts">
 const showPreview = ref(false)
 const area = ref('')
-const areaSubmitted = ref(false)
 
-function submitArea() {
-  areaSubmitted.value = true
+async function submitArea() {
+  await navigateTo('/register')
 }
 </script>
 
@@ -39,7 +38,6 @@ function submitArea() {
           </div>
           <BaseButton type="submit" variant="secondary">Check pickup</BaseButton>
         </form>
-        <p v-if="areaSubmitted" class="hero-area-confirmation" role="status">Thanks — we’ll check pickup options for {{ area }}.</p>
         <a class="hero-area-why" href="#what-you-can-recycle">Why do we need your area?</a>
       </div>
 
