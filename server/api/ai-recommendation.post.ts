@@ -18,7 +18,7 @@ const bodySchema = z.strictObject({
 
 export default defineEventHandler(async (event) => {
   assertSameOrigin(event)
-  const user = await requireSessionUser(event, ['user', 'recycler', 'waste_operator'])
+  const user = await requireSessionUser(event, ['user', 'recycler', 'admin'])
   const body = await readValidatedJson(event, bodySchema)
   return askReCircleAssistant({
     user,

@@ -347,7 +347,7 @@ async function operatorAnalytics() {
   ])
 
   return {
-    role: 'waste_operator' as const,
+    role: 'admin' as const,
     summary: {
       totalPayoutsNgn: Math.round(totalPayouts[0]?.total ?? 0),
       activeStatuses: statusDistribution.filter(row => ['pending', 'accepted', 'picked_up'].includes(row.label))
@@ -382,6 +382,6 @@ export const AnalyticsService = {
   },
 
   supportsRole(role: UserRole) {
-    return role === 'user' || role === 'recycler' || role === 'waste_operator'
+    return role === 'user' || role === 'recycler' || role === 'admin'
   }
 }

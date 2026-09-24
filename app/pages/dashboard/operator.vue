@@ -3,9 +3,8 @@ import { formatNaira, formatNumber } from '~~/utils/format'
 import type { PickupRequestView } from '../../../types'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useSeoMeta({ title: 'Operator workspace — ReCircle', robots: 'noindex' })
 
-interface OperatorDashboard {
+interface AdminDashboard {
   user: { name: string; email: string; isDemo: boolean }
   metrics: {
     activePickups: number
@@ -36,6 +35,8 @@ interface OperatorDashboard {
   }>
   collectionQueue: PickupRequestView[]
 }
+
+useSeoMeta({ title: 'Admin console — ReCircle', robots: 'noindex' })
 
 interface OptimizeResponse {
   zoneId: string
@@ -71,9 +72,9 @@ const optimizeError = ref('')
 const optimizeResult = ref<OptimizeResponse | null>(null)
 const toast = useToast()
 
-const { data, pending, error, refresh } = await useAsyncData('operator-dashboard', async () => {
+const { data, pending, error, refresh } = await useAsyncData('admin-dashboard', async () => {
   const fetcher = import.meta.server ? useRequestFetch() : $fetch
-  return fetcher<OperatorDashboard>('/api/dashboard/operator')
+  return fetcher<AdminDashboard>('/api/dashboard/admin')
 })
 
 const metrics = computed(() => {
@@ -133,8 +134,8 @@ async function optimizePickups() {
   <div class="dash-page">
     <div class="dash-hero">
       <div class="dash-hero-copy">
-        <p class="eyebrow">Waste operator workspace</p>
-        <h1 class="page-title">Coordinate the circle.</h1>
+        <p class="eyebrow">Admin console</p>
+        <h1 class="page-title">Keep the circle moving.</h1>
         <p class="muted workspace-intro">
           Network-wide metrics, queues, and recycler utilization — aggregated from live data.
         </p>
@@ -144,9 +145,9 @@ async function optimizePickups() {
       </div>
     </div>
 
-    <LoadingSkeleton v-if="pending" variant="dashboard" label="Loading operator dashboard" />
+    <LoadingSkeleton v-if="pending" variant="dashboard" label="Loading admin dashboard" />
     <BaseCard v-else-if="error" class="dash-error-card">
-      <EmptyState title="Could not load operator dashboard" description="Refresh the page or try again shortly.">
+      <EmptyState title="Could not load admin dashboard" description="Refresh the page or try again shortly.">
         <BaseButton @click="refresh()">Retry</BaseButton>
       </EmptyState>
     </BaseCard>
@@ -242,7 +243,7 @@ async function optimizePickups() {
               v-for="request in data.collectionQueue"
               :key="request.id"
               :request="request"
-              role="waste_operator"
+              role="admin"
             />
           </div>
           <EmptyState

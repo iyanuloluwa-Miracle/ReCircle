@@ -9,7 +9,7 @@ const querySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireSessionUser(event, ['user', 'recycler', 'waste_operator'])
+  const user = await requireSessionUser(event, ['user', 'recycler', 'admin'])
   const parsed = querySchema.safeParse(getQuery(event))
   const status = parsed.success ? parsed.data.status : undefined
   const requests = await listRequestsForActor({

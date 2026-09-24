@@ -35,9 +35,9 @@ const actions = computed(() => {
     { label: 'Update availability', to: '/dashboard/recycler' },
     { label: 'View analytics', to: '/dashboard/analytics' }
   ]
-  if (user.value?.role === 'waste_operator') return [
-    { label: 'Open collection queue', to: '/dashboard/operator' },
-    { label: 'Optimize pickups', to: '/dashboard/operator' },
+  if (user.value?.role === 'admin') return [
+    { label: 'Open admin console', to: '/dashboard/admin' },
+    { label: 'Optimize pickups', to: '/dashboard/admin' },
     { label: 'View analytics', to: '/dashboard/analytics' }
   ]
   return [
@@ -208,5 +208,4 @@ function onKeydown(event: KeyboardEvent) {
     </aside>
   </div>
 </template>
-
 

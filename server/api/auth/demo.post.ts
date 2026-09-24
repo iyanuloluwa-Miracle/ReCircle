@@ -11,7 +11,8 @@ export default defineEventHandler(async (event): Promise<AuthResponse> => {
   assertSameOrigin(event)
   const { role } = await readValidatedJson(event, demoSchema)
   await connectDatabase()
-  const user = await User.findOne({ email: demoEmailByRole[role], role, isDemo: true })
+  const email = demoEmailByRole[role]
+  const user = email ? await User.findOne({ email, role, isDemo: true }) : null
   if (!user) throw createError({ statusCode: 503, statusMessage: 'Demo account is unavailable' })
   const session = await getAuthSession(event)
   await session.update({ userId: user.id })

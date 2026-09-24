@@ -11,10 +11,9 @@ const bodySchema = z.strictObject({ wasteItemId: z.string().refine(value => Type
 
 export default defineEventHandler(async (event) => {
   assertSameOrigin(event)
-  const user = await requireSessionUser(event, ['user', 'waste_operator'])
+  const user = await requireSessionUser(event, ['user'])
   const { wasteItemId } = await readValidatedJson(event, bodySchema)
-  const ownerFilter = user.role === 'waste_operator' ? {} : { userId: user.id }
-  const filter = { _id: wasteItemId, ...ownerFilter }
+  const filter = { _id: wasteItemId, userId: user.id }
   const item = await WasteItem.findOne(filter)
   if (!item) throw createError({ statusCode: 404, statusMessage: 'Waste item not found' })
   if (item.status !== 'draft') {

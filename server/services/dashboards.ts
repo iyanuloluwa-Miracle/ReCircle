@@ -201,7 +201,7 @@ export async function getRecyclerDashboard(user: AuthUser) {
   }
 }
 
-export async function getOperatorDashboard(user: AuthUser) {
+export async function getAdminDashboard(user: AuthUser) {
   const today = startOfUtcDay()
   const [
     requests,
@@ -213,7 +213,7 @@ export async function getOperatorDashboard(user: AuthUser) {
     recyclerUtilization,
     recentActivity
   ] = await Promise.all([
-    listRequestsForActor({ userId: user.id, role: 'waste_operator' }),
+    listRequestsForActor({ userId: user.id, role: 'admin' }),
     Request.countDocuments({ status: { $in: [...ACTIVE_REQUEST_STATUSES] } }),
     Request.aggregate<{ totalKg: number }>([
       { $match: { status: { $in: [...COLLECTION_QUEUE_STATUSES] } } },

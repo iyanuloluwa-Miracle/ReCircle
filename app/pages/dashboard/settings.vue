@@ -31,7 +31,7 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const roleLabel: Record<UserRole, string> = {
   user: 'Consumer',
   recycler: 'Recycler',
-  waste_operator: 'Waste operator'
+  admin: 'Admin'
 }
 
 const currentArea = computed(() => formatPickupArea(user.value?.location))

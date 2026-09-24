@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'recycler' | 'waste_operator'
+export type UserRole = 'user' | 'recycler' | 'admin'
 
 export interface GeoPoint {
   type: 'Point'
@@ -8,13 +8,13 @@ export interface GeoPoint {
 export const dashboardPathByRole: Record<UserRole, string> = {
   user: '/dashboard/user',
   recycler: '/dashboard/recycler',
-  waste_operator: '/dashboard/operator'
+  admin: '/dashboard/admin'
 }
 
 export const onboardingPathByRole: Record<UserRole, string> = {
   user: '/onboarding/user',
   recycler: '/onboarding/recycler',
-  waste_operator: '/onboarding/operator'
+  admin: '/dashboard/admin'
 }
 
 export interface AuthUser {

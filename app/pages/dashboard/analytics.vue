@@ -11,7 +11,7 @@ interface ChartSeries {
 }
 
 interface AnalyticsResponse {
-  role: 'user' | 'recycler' | 'waste_operator'
+  role: 'user' | 'recycler' | 'admin'
   summary: Record<string, number | string>
   charts: Record<string, ChartSeries[]>
 }
@@ -23,7 +23,7 @@ const { data, pending, error, refresh } = await useAsyncData('role-analytics', a
 
 const roleTitle = computed(() => {
   if (data.value?.role === 'recycler') return 'Recycler analytics'
-  if (data.value?.role === 'waste_operator') return 'Network analytics'
+  if (data.value?.role === 'admin') return 'Network analytics'
   return 'Your recycling analytics'
 })
 
@@ -90,7 +90,7 @@ function values(key: string) {
 
       <div class="dash-grid analytics-grid">
         <DashboardSection
-          v-if="data.role === 'user' || data.role === 'waste_operator' || data.role === 'recycler'"
+          v-if="data.role === 'user' || data.role === 'admin' || data.role === 'recycler'"
           title="Waste material distribution"
           description="Material share by weight."
         >
@@ -140,7 +140,7 @@ function values(key: string) {
         </DashboardSection>
 
         <DashboardSection
-          v-if="data.role === 'waste_operator'"
+          v-if="data.role === 'admin'"
           title="Recycler utilization"
           description="Daily load versus capacity."
         >
@@ -157,7 +157,7 @@ function values(key: string) {
         </DashboardSection>
 
         <DashboardSection
-          v-if="data.role === 'waste_operator'"
+          v-if="data.role === 'admin'"
           title="Request status distribution"
           description="How pickups are spread across the lifecycle."
         >
@@ -173,7 +173,7 @@ function values(key: string) {
         </DashboardSection>
 
         <DashboardSection
-          v-if="data.role === 'waste_operator'"
+          v-if="data.role === 'admin'"
           title="Geographic / zone distribution"
           description="Kg attributed to nearest Nigerian area."
         >

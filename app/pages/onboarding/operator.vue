@@ -6,7 +6,7 @@ definePageMeta({ layout: 'auth', middleware: 'auth' })
 const auth = useAuth()
 const pending = ref(false)
 const errorMessage = ref('')
-const steps = computed(() => onboardingStepsForRole('waste_operator'))
+const steps = computed(() => onboardingStepsForRole('admin'))
 
 const guideSteps = [
   {
@@ -37,7 +37,7 @@ async function finish() {
   try {
     const result = await $fetch<{ user: typeof auth.user.value }>('/api/onboarding/complete', { method: 'POST' })
     auth.user.value = result.user
-    await navigateTo('/dashboard/operator')
+    await navigateTo('/dashboard/admin')
   } catch {
     errorMessage.value = 'Could not finish setup. Try again.'
   } finally {
@@ -45,14 +45,14 @@ async function finish() {
   }
 }
 
-useSeoMeta({ title: 'Operator setup — ReCircle', robots: 'noindex' })
+useSeoMeta({ title: 'Admin setup — ReCircle', robots: 'noindex' })
 </script>
 
 <template>
-  <AuthSplit title="How operators work." variant="card" :steps="steps" :current-step="2">
+  <AuthSplit title="Admin access." variant="card" :steps="steps" :current-step="2">
     <div class="onboard-stack onboard-stack--guide">
       <p class="muted auth-hint auth-hint--center">Four moves from queue to collection plan.</p>
-      <ol class="onboard-guide" aria-label="How operators work">
+      <ol class="onboard-guide" aria-label="How admins work">
         <li
           v-for="(guide, index) in guideSteps"
           :key="guide.title"

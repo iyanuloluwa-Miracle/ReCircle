@@ -34,7 +34,7 @@ function issueOtpCode(): string {
 export const signupStartSchema = z.strictObject({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().toLowerCase().email().max(254),
-  role: z.enum(['user', 'recycler', 'waste_operator'])
+  role: z.enum(['user', 'recycler'])
 })
 
 export const signupOtpSchema = z.strictObject({
@@ -59,23 +59,22 @@ export const loginSchema = z.strictObject({
 
 export const googleAuthSchema = z.strictObject({
   idToken: z.string().min(20).max(4096),
-  role: z.enum(['user', 'recycler', 'waste_operator']).optional()
+  role: z.enum(['user', 'recycler']).optional()
 })
 
-export const demoSchema = z.strictObject({ role: z.enum(['user', 'recycler', 'waste_operator']) })
+export const demoSchema = z.strictObject({ role: z.enum(['user', 'recycler']) })
 
 /** @deprecated Prefer signup start/complete. Kept for schema tests that may still import. */
 export const registerSchema = z.strictObject({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().toLowerCase().email().max(254),
   password: z.string().min(12).max(128),
-  role: z.enum(['user', 'recycler', 'waste_operator'])
+  role: z.enum(['user', 'recycler'])
 })
 
-export const demoEmailByRole: Record<UserRole, string> = {
+export const demoEmailByRole: Partial<Record<UserRole, string>> = {
   user: 'consumer@recircle-demo.example',
-  recycler: 'recycler1@recircle-demo.example',
-  waste_operator: 'operator@recircle-demo.example'
+  recycler: 'recycler1@recircle-demo.example'
 }
 
 export function toAuthUser(user: {

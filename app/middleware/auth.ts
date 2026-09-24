@@ -4,7 +4,8 @@ import { nextOnboardingPath, postAuthDestination } from '../../utils/onboarding'
 const roleByPath: Record<string, UserRole> = {
   '/dashboard/user': 'user',
   '/dashboard/recycler': 'recycler',
-  '/dashboard/operator': 'waste_operator',
+  '/dashboard/admin': 'admin',
+  '/dashboard/operator': 'admin',
   '/dashboard/history': 'user'
 }
 
@@ -12,7 +13,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const isOnboarding = to.path === '/onboarding/avatar'
     || to.path === '/onboarding/user'
     || to.path === '/onboarding/recycler'
-    || to.path === '/onboarding/operator'
 
   const requiredRole = roleByPath[to.path]
     ?? (to.path === '/scan' || to.path.startsWith('/scan/') ? 'user' : undefined)

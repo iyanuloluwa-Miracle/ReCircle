@@ -1,5 +1,5 @@
 export interface AssistantFactBundle {
-  role: 'user' | 'recycler' | 'waste_operator'
+  role: 'user' | 'recycler' | 'admin'
   generatedAt: string
   materialsRecycled: Array<{ materialCode: string; weightKg: number }>
   recentItems: Array<{

@@ -5,7 +5,7 @@ import { Recycler } from '../models/Recycler'
 import { Transaction } from '../models/Transaction'
 import { WasteItem } from '../models/WasteItem'
 import { Notification } from '../models/Notification'
-import { notifyOperators } from './notifications'
+import { notifyAdmins } from './notifications'
 import { withMongoTransaction } from '../utils/db'
 import { matchRecyclersForWaste } from './recycler-matching'
 import {
@@ -226,7 +226,7 @@ export async function listRequestsForActor(options: {
     const profile = await Recycler.findOne({ userId: options.userId }).select('_id').lean()
     if (!profile) return []
     filter.recyclerId = profile._id
-  } else if (options.role !== 'waste_operator') {
+  } else if (options.role !== 'admin') {
     throw forbidden()
   }
 
@@ -295,7 +295,7 @@ export async function updateRequestStatus(options: {
         throw forbidden('Recyclers cannot apply that status')
       }
     } else {
-      throw forbidden('Operators can view requests but cannot change status')
+      throw forbidden('Admins can view requests but cannot change status')
     }
 
     const item = await WasteItem.findById(request.wasteItemId).session(session)
@@ -311,7 +311,7 @@ export async function updateRequestStatus(options: {
       request.acceptedAt = now
       request.confirmedPickupTime = options.confirmedPickupTime ?? request.requestedPickupTime ?? null
       if (reservedRecycler.capacityKgPerDay > 0 && reservedRecycler.currentLoadKg / reservedRecycler.capacityKgPerDay >= 0.8) {
-        await notifyOperators({ type: 'capacity_risk', title: 'Recycler capacity is nearly full', body: `${reservedRecycler.businessName} has reached at least 80% of daily capacity.`, href: '/dashboard/operator' }, session)
+        await notifyAdmins({ type: 'capacity_risk', title: 'Recycler capacity is nearly full', body: `${reservedRecycler.businessName} has reached at least 80% of daily capacity.`, href: '/dashboard/admin' }, session)
       }
     } else if (nextStatus === 'rejected') {
       request.status = 'rejected'
@@ -331,7 +331,7 @@ export async function updateRequestStatus(options: {
         body: `The consumer cancelled the ${item.itemName || item.materialCode || 'pickup'} request.`,
         href: '/dashboard/recycler'
       }], { session })
-      await notifyOperators({ type: 'pickup_cancelled', title: 'Pickup cancelled', body: 'A consumer cancelled a pending pickup; capacity and routing may need review.', href: '/dashboard/operator' }, session)
+      await notifyAdmins({ type: 'pickup_cancelled', title: 'Pickup cancelled', body: 'A consumer cancelled a pending pickup; capacity and routing may need review.', href: '/dashboard/admin' }, session)
     } else if (nextStatus === 'picked_up') {
       request.status = 'picked_up'
       request.pickedUpAt = now
@@ -376,7 +376,7 @@ export async function updateRequestStatus(options: {
       }
       const message = copy[nextStatus]
       if (message) await Notification.create([{ userId: request.userId, type: `pickup_${nextStatus}`, ...message, href: '/dashboard/user' }], { session })
-      if (nextStatus === 'rejected') await notifyOperators({ type: 'pickup_rejected', title: 'Pickup rejected', body: 'A recycler declined a pending pickup. Check coverage or capacity if this repeats.', href: '/dashboard/operator' }, session)
+      if (nextStatus === 'rejected') await notifyAdmins({ type: 'pickup_rejected', title: 'Pickup rejected', body: 'A recycler declined a pending pickup. Check coverage or capacity if this repeats.', href: '/dashboard/admin' }, session)
     }
 
     const [recycler, tx] = await Promise.all([

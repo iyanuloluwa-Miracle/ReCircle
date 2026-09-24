@@ -4,7 +4,7 @@ import type { PickupRequestView } from '../../types'
 
 const props = defineProps<{
   request: PickupRequestView
-  role: 'user' | 'recycler' | 'waste_operator'
+  role: 'user' | 'recycler' | 'admin'
 }>()
 
 const emit = defineEmits<{

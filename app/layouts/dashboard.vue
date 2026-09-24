@@ -13,7 +13,7 @@ const isMobile = ref(false)
 const sidebar = ref<HTMLElement | null>(null)
 const menuButton = ref<HTMLButtonElement | null>(null)
 const main = ref<HTMLElement | null>(null)
-const roleLabel: Record<UserRole, string> = { user: 'Consumer', recycler: 'Recycler', waste_operator: 'Operator' }
+const roleLabel: Record<UserRole, string> = { user: 'Consumer', recycler: 'Recycler', admin: 'Admin' }
 const overviewPath = computed(() => user.value ? dashboardPathByRole[user.value.role] : '/workspace')
 const headerCrumb = computed(() => {
   if (route.path.endsWith('/analysis')) return 'Review your item'

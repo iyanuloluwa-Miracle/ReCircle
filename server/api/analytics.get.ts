@@ -3,6 +3,6 @@ import { AnalyticsService } from '../services/analytics'
 import { requireSessionUser } from '../utils/session'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireSessionUser(event, ['user', 'recycler', 'waste_operator'])
+  const user = await requireSessionUser(event, ['user', 'recycler', 'admin'])
   return AnalyticsService.forUser(user)
 })

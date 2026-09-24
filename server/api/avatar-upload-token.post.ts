@@ -7,7 +7,7 @@ import { requireSessionUser } from '../utils/session'
 
 export default defineEventHandler(async (event) => {
   assertSameOrigin(event)
-  const user = await requireSessionUser(event, ['user', 'recycler', 'waste_operator'])
+  const user = await requireSessionUser(event, ['user', 'recycler', 'admin'])
   const folder = userAvatarFolder(user.id)
   try {
     const { uploadToken } = await getByteshipClient().createUploadToken({

@@ -280,7 +280,7 @@ async function loadOperatorFacts(user: AuthUser, requestId?: string): Promise<As
 
   const mappedRequests = await mapRequests(recentRequests)
   return {
-    role: 'waste_operator',
+    role: 'admin',
     generatedAt: new Date().toISOString(),
     materialsRecycled: materials.map(entry => ({
       materialCode: entry.materialCode,
@@ -304,7 +304,7 @@ export async function loadAssistantFacts(options: {
   if (options.user.role === 'recycler') {
     return loadRecyclerFacts(options.user, options.requestId)
   }
-  if (options.user.role === 'waste_operator') {
+  if (options.user.role === 'admin') {
     return loadOperatorFacts(options.user, options.requestId)
   }
   return loadConsumerFacts(options.user, options.wasteItemId, options.requestId)
