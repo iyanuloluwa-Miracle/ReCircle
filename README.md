@@ -1,9 +1,81 @@
-# ReCircle — Phase 11
+# ReCircle ♻️
 
-A Nigeria-focused recycling coordination platform built with Nuxt 4,
-strict TypeScript and Tailwind CSS 4. Phase 11 adds a grounded ReCircle
-assistant that explains platform data from MongoDB and never invents pricing,
-earnings, status, distance, or confidence.
+ReCircle is a Nigeria-focused recycling coordination platform that makes recycling more practical, transparent, and rewarding. It helps people identify recyclable materials, estimate their value, find suitable nearby recyclers, and request pickups—all from one streamlined experience.
+
+Built to connect consumers, recycling businesses, and waste operators, ReCircle turns the journey from “I have recyclable waste” into a clear, trackable workflow.
+
+## Inspiration 🧠
+
+Recycling often breaks down before it begins: people may not know whether an item is recyclable, how to prepare it, what it is worth, or where to take it. Meanwhile, recyclers need a reliable way to discover available materials and manage collection capacity.
+
+ReCircle was created to close that gap. The goal was to build a digital bridge between households, recyclers, and operators—making recycling easier to participate in while helping valuable materials stay out of landfills.
+
+## What it does ❔
+
+ReCircle supports three key roles:
+
+- **Consumers** can scan or upload waste images, receive AI-assisted material identification, review preparation guidance, estimate waste value, compare nearby recyclers, and request pickups.
+- **Recyclers** can manage their service areas, accepted materials, pricing rules, collection capacity, and incoming pickup requests.
+- **Waste operators** can monitor platform activity, track pickup progress, review recycler utilization, and plan more efficient collection batches.
+
+The platform follows the full recycling journey:
+
+`Scan waste → Analyze material → Add weight → Match recycler → Request pickup → Collect → Complete payment`
+
+## Key features ✨
+
+- AI-assisted waste classification with confidence scores and safety/preparation guidance
+- Consumer confirmation and correction when AI confidence is low
+- Location-aware recycler matching based on distance, pricing, accepted materials, service radius, and available capacity
+- Transparent estimated recycling value in Nigerian Naira (NGN)
+- Pickup request lifecycle with clear statuses from pending to completed
+- Role-based dashboards for consumers, recyclers, operators, and administrators
+- Collection-batch suggestions to help operators organize pickups efficiently
+- Analytics for materials, collections, payouts, recycler capacity, and pickup activity
+- A grounded AI assistant that answers questions using available ReCircle data without inventing prices, earnings, pickup statuses, or distances
+- Secure authentication through Google sign-in or email OTP verification
+
+## How we built it 🖥️
+
+ReCircle is built with **Nuxt 4**, **Vue 3**, **TypeScript**, and **Tailwind CSS 4** for a fast, responsive frontend experience.
+
+The backend uses **Nuxt server APIs**, **MongoDB**, and **Mongoose** to manage users, recyclers, waste items, pickup requests, transactions, notifications, and analytics. MongoDB’s GeoJSON and geospatial indexing power nearby recycler discovery and location-based matching.
+
+We also integrated **OpenRouter** for structured waste-image analysis, **Byteship** for secure uploads, **Google Maps** for pickup-location selection and geocoding, **Google OAuth** and **Resend OTP** for authentication, **Paystack** for payout-ready transaction flows, **Chart.js** for analytics, and **Zod** for API validation.
+
+## Challenges we ran into 🏃
+
+One of the biggest challenges was making AI useful without allowing it to become unreliable. Instead of trusting AI output blindly, ReCircle validates every response against a strict schema, applies confidence thresholds, and lets users correct uncertain classifications.
+
+Recycler matching was another complex area. A nearby recycler is not automatically the best recycler, so the platform evaluates distance, material acceptance, service radius, pricing, and remaining capacity before making a recommendation.
+
+We also had to design role-specific workflows that remain connected: consumers need a simple recycling experience, recyclers need operational clarity, and operators need oversight without being able to alter restricted actions.
+
+## Accomplishments we’re proud of 🚀
+
+We are especially proud of building more than a recycling directory. ReCircle supports the actual operational flow behind recycling—from waste discovery to matching, pickup tracking, and completion.
+
+- A deterministic recycler-ranking system rather than AI-generated recommendations
+- Secure, scoped image uploads
+- Strict pickup status transitions that prevent invalid workflow changes
+- Capacity-aware recycler recommendations
+- Mobile-responsive dashboards for every user role
+- Analytics built from real platform data instead of misleading environmental estimates
+- An AI assistant designed to stay grounded in verified platform data
+
+## What we learned 📖
+
+Building ReCircle strengthened our understanding of full-stack product development, especially role-based access control, geospatial queries, secure authentication, AI integration, and operational workflow design.
+
+We also learned that responsible AI requires boundaries. By combining AI analysis with validation, user confirmation, and deterministic business logic, we created a more trustworthy experience than relying on generated answers alone.
+
+Most importantly, ReCircle showed us how technology can make sustainable actions feel simpler, more accessible, and more connected to real-world impact.
+
+---
+
+## Technical documentation
+
+Phase 11 adds a grounded ReCircle assistant that explains platform data from MongoDB and never invents pricing, earnings, status, distance, or confidence.
 
 ## Local setup
 
