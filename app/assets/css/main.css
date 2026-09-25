@@ -220,7 +220,7 @@ h1, h2, h3, p { margin: 0; }
 .empty-state h2 { font-size: 1.35rem; font-weight: 550; letter-spacing: -.035em; color: #123f32; }
 .empty-state--compact h2 { font-size: 1.05rem; }
 .empty-state p { max-width: 28rem; margin: .75rem auto 0; font-size: .875rem; color: #697565; line-height: 1.7; }
-.empty-state--compact p { font-size: .8125rem; margin-top: .5rem; max-width: 36ch; }
+.empty-state--compact p { font-size: .8125rem; margin-top: .5rem; max-width: 44ch; }
 .empty-action { margin-top: 1.35rem; }
 .empty-state--compact .empty-action { margin-top: 1rem; }
 
@@ -1508,7 +1508,7 @@ h1, h2, h3, p { margin: 0; }
   background: #c5d4b4;
 }
 .stat-card--accent::before { background: #123f32; }
-.stat-card--accent {
+.stat-card.card.stat-card--accent {
   background: linear-gradient(160deg, #123f32 0%, #1a4d3d 100%);
   border-color: #123f32;
   color: #f4f7ef;
@@ -1591,7 +1591,8 @@ h1, h2, h3, p { margin: 0; }
   background: #edf4e3;
   transform: translateY(-1px);
 }
-.scan-chip img {
+.scan-chip img,
+.scan-chip .waste-thumb {
   width: 4.25rem;
   height: 4.25rem;
   object-fit: cover;
@@ -1648,6 +1649,7 @@ h1, h2, h3, p { margin: 0; }
 .analytics-chart canvas { width: 100% !important; height: 100% !important; }
 .incoming-card { display: grid; grid-template-columns: 140px 1fr; gap: 14px; padding: 12px; border: 1px solid #dce4d4; border-radius: 14px; background: #f7faf2; }
 .incoming-card-photo { width: 100%; height: 140px; object-fit: cover; border-radius: 10px; background: #123f32; }
+.incoming-card-photo.waste-thumb--fallback,
 .incoming-card-photo--empty { display: grid; place-items: center; color: #c2d3c4; font-size: 12px; }
 .incoming-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .incoming-card-body h3 { margin: 0 0 10px; font-size: 18px; letter-spacing: -.03em; }

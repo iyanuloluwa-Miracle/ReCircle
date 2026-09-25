@@ -134,7 +134,7 @@ function walletStatusLabel(status: string) {
               class="scan-chip"
               :to="scanLink(scan)"
             >
-              <img :src="scan.imageUrl" :alt="scan.itemName || 'Waste scan'">
+              <WasteThumb :src="scan.imageUrl" :alt="scan.itemName || 'Waste scan'" />
               <div class="scan-chip-copy">
                 <strong>{{ scan.itemName || scan.materialCode || 'Draft item' }}</strong>
                 <span class="muted">

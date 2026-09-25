@@ -122,6 +122,13 @@ async function runSeed(mongodbUri: string) {
       { $set: { availability: 'available', businessHours: 'Demo: open 24/7 (WAT)', operatingHours: alwaysOpenOperatingHours } }
     )
 
+    // Local category art under /public — never use example.invalid (breaks dashboard thumbs).
+    const demoImages: Record<string, string> = {
+      PET: '/categories/plastic-bottles.png',
+      ALUMINUM: '/categories/aluminium-cans.png',
+      PAPER: '/categories/paper.png',
+      GLASS: '/categories/glass.png'
+    }
     const historical = [
       { material: 'PET', item: 'PET bottles', weight: 4, recycler: 20, price: 80, daysAgo: 25 },
       { material: 'ALUMINUM', item: 'Aluminium cans', weight: 2, recycler: 20, price: 260, daysAgo: 18 },
@@ -134,13 +141,19 @@ async function runSeed(mongodbUri: string) {
       const wasteItemId = id(30 + index)
       const requestId = id(40 + index)
       const payout = item.weight * item.price // Invented DEMO rule; no AI price calculation.
+      const imageUrl = demoImages[item.material] ?? '/categories/plastic-bottles.png'
       await insertDemo(WasteItem, {
-        _id: wasteItemId, userId: consumerId, imageUrl: 'https://example.invalid/recircle-demo-item.jpg',
+        _id: wasteItemId, userId: consumerId, imageUrl,
         materialCode: item.material, itemName: item.item, recyclability: 'recyclable', confidence: 0.94,
         disposalMethod: 'Hand to recycler', preparationInstructions: ['Keep clean and dry'], hazardWarning: null,
         weightKg: item.weight, location: consumerPoint, estimatedValueMin: payout, estimatedValueMax: payout,
         currency: 'NGN', status: 'completed', isDemo: true, createdAt, updatedAt: completedAt
       })
+      // Refresh demo thumbnails on re-seed (insert path only sets imageUrl on first create).
+      await WasteItem.updateOne(
+        { _id: wasteItemId, isDemo: true },
+        { $set: { imageUrl, itemName: item.item, materialCode: item.material } }
+      )
       await insertDemo(Request, {
         _id: requestId, wasteItemId, userId: consumerId, recyclerId: id(item.recycler),
         pickupLocation: consumerPoint, requestedPickupTime: createdAt, acceptedAt: createdAt,

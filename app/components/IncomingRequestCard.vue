@@ -51,13 +51,11 @@ async function setStatus(status: 'accepted' | 'rejected') {
 
 <template>
   <article class="incoming-card">
-    <img
-      v-if="request.imageUrl"
+    <WasteThumb
       class="incoming-card-photo"
       :src="request.imageUrl"
       :alt="request.itemName || request.materialCode || 'Waste item'"
-    >
-    <div v-else class="incoming-card-photo incoming-card-photo--empty" aria-hidden="true">No photo</div>
+    />
     <div class="incoming-card-body">
       <div class="incoming-card-top">
         <BaseBadge tone="lime">INCOMING</BaseBadge>
