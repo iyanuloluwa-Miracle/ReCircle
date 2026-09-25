@@ -29,7 +29,16 @@
 .workspace-app .workspace-note { font-size: .62rem; color: #b9cfbf; text-align: center; }
 .workspace-app .workspace-note .status-dot { background: #d3f28a; width: .3rem; height: .3rem; }
 .workspace-app .workspace-body { background: #f8f8f0; }
-.workspace-app .workspace-header { padding: 1rem clamp(1.25rem, 3vw, 2.75rem); min-height: 5rem; background: #fffefa; border-bottom-color: var(--workspace-border); }
+.workspace-app .workspace-header {
+  position: relative;
+  z-index: 50;
+  overflow: visible;
+  padding: 1rem clamp(1.25rem, 3vw, 2.75rem);
+  min-height: 5rem;
+  background: #fffefa;
+  border-bottom-color: var(--workspace-border);
+}
+.workspace-app .workspace-header-actions { overflow: visible; }
 .workspace-app .workspace-header-nudge {
   display: none;
   align-items: center;

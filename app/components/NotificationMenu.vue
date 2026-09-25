@@ -3,6 +3,7 @@ type Notification = { id: string; title: string; body: string; href: string | nu
 const open = ref(false)
 const entries = ref<Notification[]>([])
 const unreadCount = ref(0)
+const headerStatus = ref('')
 const loading = ref(false)
 const root = ref<HTMLElement | null>(null)
 
@@ -15,25 +16,37 @@ async function load() {
   } catch {
     // Notifications are supplemental; an unavailable feed must not break the dashboard.
     entries.value = []
+    unreadCount.value = 0
   } finally { loading.value = false }
 }
 
 function close() {
   open.value = false
+  headerStatus.value = ''
 }
 
 async function toggle() {
-  open.value = !open.value
   if (open.value) {
-    await load()
-    if (unreadCount.value) {
-      try {
-        await $fetch('/api/notifications/read', { method: 'POST' })
-        unreadCount.value = 0
-        entries.value = entries.value.map(entry => ({ ...entry, readAt: entry.readAt || new Date().toISOString() }))
-      } catch {
-        // Keep unread state when marking read fails so it can be retried later.
-      }
+    close()
+    return
+  }
+  open.value = true
+  headerStatus.value = ''
+  await load()
+  const freshUnread = unreadCount.value
+  // Keep the open-session label so marking as read does not flip to "All caught up" while items are listed.
+  headerStatus.value = freshUnread
+    ? `${freshUnread} new`
+    : entries.value.length
+      ? ''
+      : 'All caught up'
+  if (freshUnread) {
+    try {
+      await $fetch('/api/notifications/read', { method: 'POST' })
+      unreadCount.value = 0
+      entries.value = entries.value.map(entry => ({ ...entry, readAt: entry.readAt || new Date().toISOString() }))
+    } catch {
+      // Keep unread state when marking read fails so it can be retried later.
     }
   }
 }
@@ -65,7 +78,7 @@ onUnmounted(() => {
     </button>
     <div v-if="open" class="notification-backdrop" aria-hidden="true" @click="close" />
     <section v-if="open" id="notifications-panel" class="notification-panel" aria-label="Notifications">
-      <header><strong>Notifications</strong><span>{{ unreadCount ? `${unreadCount} new` : 'All caught up' }}</span></header>
+      <header><strong>Notifications</strong><span v-if="headerStatus">{{ headerStatus }}</span></header>
       <p v-if="loading" class="notification-empty">Loading updates…</p>
       <p v-else-if="!entries.length" class="notification-empty">Pickup updates will appear here.</p>
       <ul v-else><li v-for="entry in entries" :key="entry.id"><NuxtLink v-if="entry.href" :to="entry.href" @click="close"><strong>{{ entry.title }}</strong><span>{{ entry.body }}</span></NuxtLink><div v-else><strong>{{ entry.title }}</strong><span>{{ entry.body }}</span></div></li></ul>
