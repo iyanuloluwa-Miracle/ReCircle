@@ -724,8 +724,11 @@ h1, h2, h3, p { margin: 0; }
 .auth-simple-inner:has(.role-picker) .auth-simple-title {
   margin-inline: auto;
   margin-bottom: 1rem;
-  max-width: 18ch;
+  max-width: none;
+  width: 100%;
   text-align: center;
+  white-space: nowrap;
+  font-size: clamp(1.05rem, 4.6vw, 1.5rem);
 }
 .auth-simple-inner:has(.role-picker) .auth-hint {
   margin-inline: auto;
@@ -1125,8 +1128,9 @@ h1, h2, h3, p { margin: 0; }
 
 @media (max-width: 480px) {
   .auth-simple-inner:has(.role-picker) .auth-simple-title {
-    font-size: clamp(1.45rem, 7vw, 1.75rem);
-    max-width: 14ch;
+    font-size: clamp(.95rem, 4.2vw, 1.25rem);
+    max-width: none;
+    white-space: nowrap;
   }
   .role-picker-option {
     grid-template-columns: 4.75rem minmax(0, 1fr);
