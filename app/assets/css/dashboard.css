@@ -221,6 +221,19 @@
 .workspace-app .form-error { overflow-wrap: anywhere; }
 .workspace-app .history-filters { display: flex; align-items: end; flex-wrap: wrap; gap: .65rem; padding: 1rem; border: 1px solid var(--workspace-border); border-radius: 1rem; background: #fffefa; }.workspace-app .history-filters input, .workspace-app .history-filters select { min-height: 2.6rem; min-width: min(100%, 13rem); border: 1px solid #d8e1ce; border-radius: .55rem; padding: .45rem .65rem; background: #fffefa; color: #294c37; font: inherit; font-size: .75rem; }.workspace-app .history-list { display: grid; gap: .55rem; }.workspace-app .history-list a { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .65rem; border: 1px solid #e5eadf; border-radius: .7rem; color: #294c37; }.workspace-app .history-list a:hover { background: #f4f7ed; border-color: #cbdab9; }.workspace-app .history-list img,
 .workspace-app .history-list .waste-thumb { width: 3rem; height: 3rem; border-radius: .5rem; object-fit: cover; }.workspace-app .history-list div { display: grid; gap: .2rem; min-width: 0; }.workspace-app .history-list strong { font-size: .78rem; }.workspace-app .history-list span, .workspace-app .history-list time { color: #70806f; font-size: .68rem; }
+.workspace-app .history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-top: 1rem;
+  padding-top: .85rem;
+  border-top: 1px solid #edf0e6;
+  color: #657269;
+  font-size: .72rem;
+  font-weight: 550;
+}
+.workspace-app .history-pagination .button { min-height: 2.35rem; }
 .workspace-app .recycler-availability { display: grid; gap: .85rem; }.workspace-app .recycler-availability > label, .workspace-app .recycler-availability > div > label, .workspace-app .recycler-price-list label { display: grid; gap: .35rem; color: #536747; font-size: .7rem; font-weight: 600; }.workspace-app .recycler-availability > div:not(.recycler-price-list) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }.workspace-app .recycler-availability input, .workspace-app .recycler-availability select { width: 100%; min-height: 2.55rem; border: 1px solid #d8e1ce; border-radius: .55rem; padding: .45rem .6rem; background: #fffefa; color: #294c37; font: inherit; }.workspace-app .recycler-price-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
 .workspace-app .recycler-materials { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; border: 0; }.workspace-app .recycler-materials legend { width: 100%; margin-bottom: .15rem; color: #536747; font-size: .7rem; font-weight: 600; }.workspace-app .recycler-materials button { min-height: 2rem; border: 1px solid #d8e1ce; border-radius: 99px; padding: .35rem .55rem; background: #fffefa; color: #52614b; font-size: .62rem; font-weight: 650; }.workspace-app .recycler-materials button.is-selected { border-color: #9abb72; background: #eaf4d9; color: #244a35; }
 @media (min-width: 1600px) { .workspace-app .workspace-main { padding-inline: 3.5rem; } }
