@@ -283,12 +283,21 @@ onBeforeUnmount(() => {
 }
 .place-picker-map {
   width: 100%;
-  height: 180px;
+  height: clamp(10rem, 40vw, 11.25rem);
   border-radius: .75rem;
   border: 1px solid #e6eadf;
   background:
     linear-gradient(160deg, #f4f7ef 0%, #e8eee0 55%, #dde6d2 100%);
   overflow: hidden;
+}
+@media (max-width: 480px) {
+  .place-picker-search {
+    grid-template-columns: 1fr;
+  }
+  .place-picker-search .button {
+    width: 100%;
+    min-height: var(--tap-min, 2.75rem);
+  }
 }
 .place-picker-map.is-ready {
   border-color: #dbe7c9;

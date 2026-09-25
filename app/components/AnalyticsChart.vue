@@ -21,9 +21,25 @@ const props = withDefaults(defineProps<{
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const { render } = useChart()
+const narrowViewport = ref(false)
+let chartMedia: MediaQueryList | null = null
 
 const palette = ['#123f32', '#60813f', '#91a47d', '#d3f28a', '#c9b27c', '#4f6f52', '#833c27', '#a3b18a']
 const hasData = computed(() => props.labels.length > 0 && props.values.some(value => value > 0))
+
+function syncChartViewport() {
+  if (chartMedia) narrowViewport.value = chartMedia.matches
+}
+
+onMounted(() => {
+  chartMedia = window.matchMedia('(max-width: 768px)')
+  syncChartViewport()
+  chartMedia.addEventListener('change', syncChartViewport)
+})
+
+onUnmounted(() => {
+  chartMedia?.removeEventListener('change', syncChartViewport)
+})
 
 watchEffect(async () => {
   if (!canvas.value || props.loading || !hasData.value) return
@@ -84,7 +100,14 @@ watchEffect(async () => {
         : {
             x: {
               grid: { color: '#e8eedf' },
-              ticks: { font: { size: 11 }, color: '#657269', maxRotation: 0 },
+              ticks: {
+                font: { size: narrowViewport.value ? 10 : 11 },
+                color: '#657269',
+                maxRotation: narrowViewport.value ? 45 : 0,
+                minRotation: narrowViewport.value ? 30 : 0,
+                autoSkip: true,
+                maxTicksLimit: narrowViewport.value ? 6 : 12
+              },
               border: { display: false }
             },
             y: {

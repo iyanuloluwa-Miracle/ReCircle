@@ -67,6 +67,7 @@ function onUpdated() {
         <BaseBadge v-if="data?.recycler" :tone="data.recycler.availability === 'available' ? 'green' : 'warning'">
           {{ data.recycler.availability.toUpperCase() }}
         </BaseBadge>
+        <BaseButton to="/dashboard/availability" variant="secondary" class="dash-cta">Manage availability</BaseButton>
         <BaseButton to="/dashboard/analytics" variant="secondary" class="dash-cta">View analytics</BaseButton>
       </div>
     </div>
@@ -87,7 +88,6 @@ function onUpdated() {
       <DashboardMetrics :metrics="metrics" />
 
       <div class="dash-grid">
-        <DashboardSection v-if="data.recycler" title="Availability & pricing" description="These settings control whether new consumer matches can reach you."><RecyclerAvailabilityPanel :profile="data.recycler" @saved="refresh" /></DashboardSection>
         <DashboardSection
           class="dash-span-2"
           title="Incoming matched waste"

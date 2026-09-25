@@ -20,6 +20,7 @@ const headerCrumb = computed(() => {
   if (route.path.endsWith('/match')) return 'Find a recycler'
   if (route.path.startsWith('/scan')) return 'Scan an item'
   if (route.path.startsWith('/dashboard/analytics')) return 'Analytics'
+  if (route.path.startsWith('/dashboard/availability')) return 'Availability'
   if (route.path.startsWith('/dashboard/history')) return 'History'
   if (route.path.startsWith('/dashboard/settings')) return 'Settings'
   return 'Overview'
@@ -31,6 +32,9 @@ const headerNudge = computed(() => {
   }
   if (route.path.startsWith('/dashboard/settings')) {
     return { icon: 'settings' as const, text: 'Fresh details keep pickups smooth.' }
+  }
+  if (route.path.startsWith('/dashboard/availability')) {
+    return { icon: 'calendar' as const, text: 'Open hours and capacity help nearby scanners find you.' }
   }
   if (route.path.startsWith('/dashboard/analytics')) {
     return { icon: 'chart' as const, text: 'Small habits show up here as real impact.' }
@@ -46,6 +50,7 @@ const headerNudge = computed(() => {
 const avatarSrc = computed(() => user.value?.avatarUrl?.startsWith('http') ? user.value.avatarUrl : null)
 const navigation = computed(() => [
   { to: overviewPath.value, label: 'Overview', icon: 'overview', active: route.path === overviewPath.value },
+  ...(user.value?.role === 'recycler' ? [{ to: '/dashboard/availability', label: 'Availability', icon: 'calendar', active: route.path.startsWith('/dashboard/availability') }] : []),
   ...(user.value ? [{ to: '/dashboard/analytics', label: 'Analytics', icon: 'chart', active: route.path.startsWith('/dashboard/analytics') }] : []),
   ...(user.value?.role === 'user' ? [{ to: '/scan', label: 'Scan an item', icon: 'scan', active: route.path.startsWith('/scan') }] : []),
   ...(user.value?.role === 'user' ? [{ to: '/dashboard/history', label: 'History', icon: 'box', active: route.path.startsWith('/dashboard/history') }] : []),
@@ -79,7 +84,7 @@ function onNavKeydown(event: KeyboardEvent) {
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
 }
 onMounted(() => {
-  media = window.matchMedia('(max-width: 960px)')
+  media = window.matchMedia('(max-width: 1024px)')
   syncViewport()
   media.addEventListener('change', syncViewport)
 })
@@ -149,7 +154,7 @@ async function signOut() {
           </NuxtLink>
           <span v-if="user?.isDemo" class="workspace-account-label">Demo account</span>
           <span v-else-if="user" class="workspace-account-label">{{ roleLabel[user.role] }}</span>
-          <BaseButton v-if="user" variant="ghost" size="sm" :loading="loggingOut" @click="signOut"><DashboardIcon name="logout" />Sign out</BaseButton>
+          <BaseButton v-if="user" class="workspace-logout-btn" variant="ghost" size="sm" :loading="loggingOut" :aria-label="loggingOut ? 'Signing out' : 'Sign out'" @click="signOut"><DashboardIcon name="logout" /><span class="workspace-logout-label">Sign out</span></BaseButton>
           <BaseButton v-else to="/login" variant="ghost" size="sm">Sign in</BaseButton>
         </div>
       </header>

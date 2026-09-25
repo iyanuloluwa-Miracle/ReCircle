@@ -45,6 +45,7 @@ export interface TimelineStepView {
 export interface PickupRequestView {
   id: string
   wasteItemId: string
+  recyclerId?: string
   status: string
   businessName: string | null
   itemName: string | null

@@ -52,7 +52,13 @@ const pathPoints = computed(() => projected.value.map(stop => `${stop.x},${stop.
     <g v-for="stop in projected" :key="`${stop.order}-${stop.areaLabel}`">
       <circle :cx="stop.x" :cy="stop.y" r="11" class="batch-map-marker" />
       <text :x="stop.x" :y="stop.y + 4" text-anchor="middle" class="batch-map-order">{{ stop.order }}</text>
-      <text :x="stop.x" :y="stop.y + 24" text-anchor="middle" class="batch-map-label">{{ stop.areaLabel }}</text>
+      <text
+        v-if="projected.length <= 4"
+        :x="stop.x"
+        :y="stop.y + 24"
+        text-anchor="middle"
+        class="batch-map-label"
+      >{{ stop.areaLabel.length > 14 ? `${stop.areaLabel.slice(0, 12)}…` : stop.areaLabel }}</text>
     </g>
   </svg>
   <p v-else class="muted">No map points available for this batch.</p>

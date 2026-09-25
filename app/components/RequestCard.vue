@@ -95,6 +95,7 @@ async function setStatus(status: string) {
 
     <div v-if="role === 'user' && request.status === 'pending'" class="request-card-actions">
       <BaseButton size="sm" variant="ghost" :disabled="busy" @click="rescheduling = !rescheduling; pickupTime = localDateTime(request.requestedPickupTime)">{{ rescheduling ? 'Close schedule' : 'Change time' }}</BaseButton>
+      <BaseButton size="sm" variant="ghost" :to="`/scan/${request.wasteItemId}/match?reassign=1`">Change recycler</BaseButton>
       <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('cancelled')">Cancel request</BaseButton>
     </div>
     <form v-if="role === 'user' && request.status === 'pending' && rescheduling" class="request-reschedule" @submit.prevent="reschedule"><label :for="`pickup-time-${request.id}`">New preferred pickup time<input :id="`pickup-time-${request.id}`" v-model="pickupTime" type="datetime-local" :min="earliestPickupTime()" required></label><BaseButton size="sm" :loading="busy" type="submit">Save time</BaseButton></form>

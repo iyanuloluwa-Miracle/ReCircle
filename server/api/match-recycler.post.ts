@@ -1,6 +1,7 @@
 import { createError, defineEventHandler } from 'h3'
 import { Types } from 'mongoose'
 import { z } from 'zod'
+import { Request } from '../models/Request'
 import { WasteItem } from '../models/WasteItem'
 import { matchRecyclersForWaste } from '../services/recycler-matching'
 import { assertSameOrigin } from '../utils/origin'
@@ -19,7 +20,12 @@ export default defineEventHandler(async (event) => {
 
   const item = await WasteItem.findOne({ _id: wasteItemId, userId: user.id })
   if (!item) throw createError({ statusCode: 404, statusMessage: 'Waste item not found' })
-  if (item.status !== 'analyzed' && item.status !== 'matched') {
+
+  const pendingRequest = item.status === 'pickup_requested'
+    ? await Request.findOne({ wasteItemId: item._id, userId: user.id, status: 'pending' }).select('_id').lean()
+    : null
+
+  if (item.status !== 'analyzed' && item.status !== 'matched' && !pendingRequest) {
     throw createError({ statusCode: 409, statusMessage: 'This item is not ready for recycler matching' })
   }
   if (!item.materialCode || !item.itemName) {
@@ -36,15 +42,21 @@ export default defineEventHandler(async (event) => {
   })
 
   item.weightKg = weightKg
-  if (result.matches.length > 0) {
+  if (!pendingRequest) {
+    if (result.matches.length > 0) {
+      item.estimatedValueMin = result.estimatedValueMin
+      item.estimatedValueMax = result.estimatedValueMax
+      item.currency = 'NGN'
+      item.status = 'matched'
+    } else {
+      item.estimatedValueMin = null
+      item.estimatedValueMax = null
+      if (item.status === 'matched') item.status = 'analyzed'
+    }
+  } else if (result.matches.length > 0) {
     item.estimatedValueMin = result.estimatedValueMin
     item.estimatedValueMax = result.estimatedValueMax
     item.currency = 'NGN'
-    item.status = 'matched'
-  } else {
-    item.estimatedValueMin = null
-    item.estimatedValueMax = null
-    if (item.status === 'matched') item.status = 'analyzed'
   }
   await item.save()
 
@@ -57,6 +69,7 @@ export default defineEventHandler(async (event) => {
     estimatedValueMin: item.estimatedValueMin,
     estimatedValueMax: item.estimatedValueMax,
     matches: result.matches,
-    recommended: result.recommended
+    recommended: result.recommended,
+    reassigning: Boolean(pendingRequest)
   }
 })

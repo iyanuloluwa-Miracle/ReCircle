@@ -53,6 +53,58 @@ const payoutSaving = ref(false)
 const payoutError = ref('')
 const payoutSuccess = ref('')
 
+const businessName = ref('')
+const businessNameLoading = ref(false)
+const businessNameSaving = ref(false)
+const businessNameError = ref('')
+const businessNameSuccess = ref('')
+
+async function loadBusinessProfile() {
+  if (user.value?.role !== 'recycler') return
+  businessNameLoading.value = true
+  businessNameError.value = ''
+  try {
+    const profile = await $fetch<{ businessName: string }>('/api/recycler/profile')
+    businessName.value = profile.businessName
+  } catch (error) {
+    const message = error && typeof error === 'object' && 'data' in error
+      ? (error.data as { statusMessage?: string })?.statusMessage
+      : undefined
+    businessNameError.value = message || 'Could not load your business profile.'
+  } finally {
+    businessNameLoading.value = false
+  }
+}
+
+async function saveBusinessName() {
+  businessNameError.value = ''
+  businessNameSuccess.value = ''
+  const nextName = businessName.value.trim()
+  if (nextName.length < 2) {
+    businessNameError.value = 'Business name must be at least 2 characters.'
+    toast.error('Business name too short', businessNameError.value)
+    return
+  }
+  businessNameSaving.value = true
+  try {
+    const result = await $fetch<{ ok: boolean; businessName: string }>('/api/recycler/profile', {
+      method: 'PATCH',
+      body: { businessName: nextName }
+    })
+    businessName.value = result.businessName
+    businessNameSuccess.value = 'Business name updated. Consumers will see this name on matches and requests.'
+    toast.success('Business name updated')
+  } catch (error) {
+    const message = error && typeof error === 'object' && 'data' in error
+      ? (error.data as { statusMessage?: string })?.statusMessage
+      : undefined
+    businessNameError.value = message || 'Could not update your business name.'
+    toast.error('Could not update business name', businessNameError.value)
+  } finally {
+    businessNameSaving.value = false
+  }
+}
+
 async function loadPayoutSettings() {
   if (user.value?.role !== 'user') return
   payoutLoading.value = true
@@ -120,6 +172,7 @@ async function savePayoutDetails() {
 
 onMounted(() => {
   void loadPayoutSettings()
+  void loadBusinessProfile()
 })
 
 function choosePreset(url: string) {
@@ -242,6 +295,7 @@ onUnmounted(() => {
         <p class="muted workspace-intro">
           Update your avatar
           <template v-if="user?.role === 'user'">, review account details, and set your default pickup address</template>
+          <template v-else-if="user?.role === 'recycler'">, review account details, and update your business name</template>
           <template v-else> and review your account details</template>.
         </p>
       </div>
@@ -393,7 +447,33 @@ onUnmounted(() => {
     </DashboardSection>
 
     <DashboardSection
-      v-if="user?.role !== 'user'"
+      v-if="user?.role === 'recycler'"
+      title="Business profile"
+      description="Consumers see this name on matches, pickup requests, and history."
+    >
+      <p v-if="businessNameLoading" class="muted">Loading business profile…</p>
+      <form v-else class="settings-form" @submit.prevent="saveBusinessName">
+        <label for="business-name">Business name</label>
+        <input
+          id="business-name"
+          v-model="businessName"
+          type="text"
+          minlength="2"
+          maxlength="160"
+          required
+          placeholder="Yaba Circular"
+          :disabled="businessNameSaving"
+        >
+        <p v-if="businessNameError" class="form-error" role="alert">{{ businessNameError }}</p>
+        <p v-else-if="businessNameSuccess" class="settings-success" role="status">{{ businessNameSuccess }}</p>
+        <BaseButton type="submit" :loading="businessNameSaving" :disabled="businessNameSaving">
+          Save business name
+        </BaseButton>
+      </form>
+    </DashboardSection>
+
+    <DashboardSection
+      v-else-if="user?.role === 'admin'"
       title="Workspace preferences"
       description="Account details for your role are shown above. More preference controls will land here later."
     >

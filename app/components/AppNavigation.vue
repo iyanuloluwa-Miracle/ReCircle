@@ -1,7 +1,18 @@
 <script setup lang="ts">
 const open = ref(false)
 const route = useRoute()
+
+watch(open, (isOpen) => {
+  if (import.meta.server) return
+  document.body.classList.toggle('is-nav-open', isOpen)
+})
+
 watch(() => route.fullPath, () => { open.value = false })
+
+onUnmounted(() => {
+  if (import.meta.server) return
+  document.body.classList.remove('is-nav-open')
+})
 </script>
 
 <template>

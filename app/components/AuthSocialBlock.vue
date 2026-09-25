@@ -134,12 +134,13 @@ async function onGoogle() {
           return
         }
         host.replaceChildren()
+        const buttonWidth = Math.min(360, Math.max(200, Math.floor(host.parentElement?.clientWidth || host.clientWidth || 360)))
         window.google!.accounts.id.renderButton(host, {
           type: 'standard',
           theme: 'outline',
           size: 'large',
           text: 'continue_with',
-          width: 360
+          width: buttonWidth
         })
         const button = host.querySelector<HTMLElement>('div[role="button"]')
         if (button) button.click()

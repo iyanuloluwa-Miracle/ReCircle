@@ -32,7 +32,7 @@ const suggestions = [
 const actions = computed(() => {
   if (user.value?.role === 'recycler') return [
     { label: 'Open incoming pickups', to: '/dashboard/recycler' },
-    { label: 'Update availability', to: '/dashboard/recycler' },
+    { label: 'Update availability', to: '/dashboard/availability' },
     { label: 'View analytics', to: '/dashboard/analytics' }
   ]
   if (user.value?.role === 'admin') return [
@@ -131,7 +131,7 @@ function onKeydown(event: KeyboardEvent) {
       <span class="ai-assistant-fab-icon" aria-hidden="true">
         <DashboardIcon :name="open ? 'close' : 'spark'" />
       </span>
-      <span>{{ open ? 'Close' : 'Ask ReCircle' }}</span>
+      <span class="ai-assistant-fab-label">{{ open ? 'Close' : 'Ask ReCircle' }}</span>
     </button>
 
     <aside

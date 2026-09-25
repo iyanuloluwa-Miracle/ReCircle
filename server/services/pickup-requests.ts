@@ -146,13 +146,26 @@ export async function createPickupRequest(options: {
   return withMongoTransaction(async (session) => {
     const item = await WasteItem.findOne({ _id: wasteItemId, userId }).session(session)
     if (!item) throw notFound('Waste item not found')
-    if (item.status !== 'matched') throw conflict('Match a recycler before requesting pickup')
+    if (item.status !== 'matched' && item.status !== 'pickup_requested') {
+      throw conflict('Match a recycler before requesting pickup')
+    }
     if (!item.weightKg || item.weightKg <= 0) throw conflict('Weight is required before requesting pickup')
     if (!item.materialCode || !item.location?.coordinates) throw conflict('Item is missing material or location data')
 
     const existing = await Request.findOne({ wasteItemId }).session(session)
-    if (existing && existing.status !== 'cancelled' && existing.status !== 'rejected') {
-      throw conflict('A pickup request already exists for this item')
+    const previousRecyclerId = existing?.recyclerId?.toString() ?? null
+    const isPendingReassign = Boolean(existing && existing.status === 'pending')
+
+    if (existing) {
+      if (existing.status === 'pending') {
+        if (previousRecyclerId === recyclerId.toString()) {
+          throw conflict('That recycler is already assigned to this pickup')
+        }
+      } else if (existing.status !== 'cancelled' && existing.status !== 'rejected') {
+        throw conflict('A pickup request already exists for this item')
+      }
+    } else if (item.status === 'pickup_requested') {
+      throw conflict('Match a recycler before requesting pickup')
     }
 
     const match = await matchRecyclersForWaste({
@@ -196,12 +209,26 @@ export async function createPickupRequest(options: {
 
     item.status = 'pickup_requested'
     await item.save({ session })
+
+    if (isPendingReassign && previousRecyclerId && previousRecyclerId !== recyclerId.toString()) {
+      const previousRecycler = await Recycler.findById(previousRecyclerId).select('userId').session(session).lean()
+      if (previousRecycler) {
+        await Notification.create([{
+          userId: previousRecycler.userId,
+          type: 'pickup_cancelled',
+          title: 'Pickup reassigned',
+          body: `The consumer chose another recycler for ${item.itemName || item.materialCode || 'a pickup'}.`,
+          href: '/dashboard/recycler'
+        }], { session })
+      }
+    }
+
     const recyclerProfile = await Recycler.findById(recyclerId).select('userId').session(session).lean()
     if (recyclerProfile) {
       await Notification.create([{
         userId: recyclerProfile.userId,
         type: 'pickup_requested',
-        title: 'New pickup request',
+        title: isPendingReassign ? 'Pickup reassigned to you' : 'New pickup request',
         body: `${item.itemName || item.materialCode || 'A recyclable item'} is ready for your review.`,
         href: '/dashboard/recycler'
       }], { session })
