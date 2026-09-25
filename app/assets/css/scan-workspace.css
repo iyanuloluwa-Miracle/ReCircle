@@ -159,6 +159,16 @@
 .scan-inline-actions { display: flex; justify-content: inherit; align-items: center; flex-wrap: wrap; gap: 10px; }
 .scan-weight-form { margin-top: 19px; border-top: 1px solid #e8eddf; padding-top: 23px; }
 .scan-weight-form > p { margin-top: 8px; color: #657269; font-size: 11px; line-height: 1.7; }
+.scan-weight-estimator { display: grid; gap: 12px; margin-top: 16px; padding: 14px; border: 1px solid #dce8d0; border-radius: 11px; background: #f5f8ef; }
+.scan-estimator-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #49663e; font-size: 12px; }
+.scan-estimator-heading > span { padding: 3px 7px; border-radius: 99px; background: #e2f1cb; color: #5c813e; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.scan-estimator-controls { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 10px; }
+.scan-estimator-controls label { display: grid; gap: 5px; font-size: 10px; }
+.scan-estimator-controls select, .scan-estimator-controls input { min-width: 0; padding: 9px 10px; font-size: 12px; }
+.scan-estimate-result { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #64755d; font-size: 10px; }
+.scan-estimate-result strong { margin-left: auto; color: #3e6330; font-size: 12px; }
+.scan-estimate-result .button { min-height: 29px; padding-inline: 9px; }
+.scan-weight-disclaimer { margin-top: 9px !important; color: #7b8873 !important; font-size: 10px !important; }
 .scan-weight-controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
 .scan-weight-input { position: relative; flex: 1; min-width: 0; }
 .scan-weight-input > input { padding-right: 48px !important; }

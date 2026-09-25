@@ -3,9 +3,15 @@ import { Types, type ClientSession } from 'mongoose'
 import { Request } from '../models/Request'
 import { Recycler } from '../models/Recycler'
 import { Transaction } from '../models/Transaction'
+import { User } from '../models/User'
 import { WasteItem } from '../models/WasteItem'
 import { Notification } from '../models/Notification'
 import { notifyAdmins } from './notifications'
+import {
+  initiateTransfer,
+  isPaystackConfigured,
+  transferReferenceForRequest
+} from './paystack'
 import { withMongoTransaction } from '../utils/db'
 import { matchRecyclersForWaste } from './recycler-matching'
 import {
@@ -275,14 +281,11 @@ export async function updateRequestStatus(options: {
   const requestId = new Types.ObjectId(options.requestId)
   const nextStatus = options.nextStatus
 
-  return withMongoTransaction(async (session) => {
+  const result = await withMongoTransaction(async (session) => {
     const request = await Request.findById(requestId).session(session)
     if (!request) throw notFound('Pickup request not found')
 
-    if (!canTransitionRequest(request.status as RequestStatus, nextStatus)) {
-      throw conflict(`Cannot change status from ${request.status} to ${nextStatus}`)
-    }
-
+    // Authorize before revealing lifecycle details via conflict messages.
     if (options.actorRole === 'user') {
       if (request.userId.toString() !== options.actorUserId) throw notFound('Pickup request not found')
       if (nextStatus !== 'cancelled') throw forbidden('Consumers may only cancel pending requests')
@@ -298,12 +301,23 @@ export async function updateRequestStatus(options: {
       throw forbidden('Admins can view requests but cannot change status')
     }
 
+    if (!canTransitionRequest(request.status as RequestStatus, nextStatus)) {
+      throw conflict(`Cannot change status from ${request.status} to ${nextStatus}`)
+    }
+
     const item = await WasteItem.findById(request.wasteItemId).session(session)
     if (!item) throw conflict('Linked waste item is missing')
     const weightKg = item.weightKg
     if (!weightKg || weightKg <= 0) throw conflict('Linked waste item is missing weight')
 
     const now = new Date()
+    let pendingPaystack: {
+      transactionRequestId: string
+      amountNaira: number
+      recipientCode: string
+      reference: string
+      reason: string
+    } | null = null
 
     if (nextStatus === 'accepted') {
       const reservedRecycler = await reserveCapacity(request.recyclerId, weightKg, session)
@@ -352,16 +366,50 @@ export async function updateRequestStatus(options: {
 
       const existingTx = await Transaction.findOne({ requestId: request._id }).session(session)
       if (!existingTx) {
-        await Transaction.create([{
-          userId: request.userId,
-          requestId: request._id,
-          amount: request.expectedPayout,
-          currency: 'NGN',
-          type: 'recycling_reward',
-          provider: 'mock',
-          status: 'completed',
-          isDemo: request.isDemo ?? false
-        }], { session })
+        const consumer = await User.findById(request.userId)
+          .select('paystackRecipientCode')
+          .session(session)
+          .lean()
+        const paystackReady = Boolean(
+          isPaystackConfigured()
+          && consumer?.paystackRecipientCode
+          && request.expectedPayout > 0
+        )
+        if (paystackReady) {
+          const reference = transferReferenceForRequest(request._id.toString())
+          await Transaction.create([{
+            userId: request.userId,
+            requestId: request._id,
+            amount: request.expectedPayout,
+            currency: 'NGN',
+            type: 'recycling_reward',
+            provider: 'paystack',
+            status: 'pending',
+            providerRef: reference,
+            failureReason: null,
+            isDemo: request.isDemo ?? false
+          }], { session })
+          pendingPaystack = {
+            transactionRequestId: request._id.toString(),
+            amountNaira: request.expectedPayout,
+            recipientCode: consumer!.paystackRecipientCode!,
+            reference,
+            reason: `ReCircle recycling reward for pickup ${request._id.toString()}`
+          }
+        } else {
+          await Transaction.create([{
+            userId: request.userId,
+            requestId: request._id,
+            amount: request.expectedPayout,
+            currency: 'NGN',
+            type: 'recycling_reward',
+            provider: 'mock',
+            status: 'completed',
+            providerRef: null,
+            failureReason: null,
+            isDemo: request.isDemo ?? false
+          }], { session })
+        }
       }
     }
 
@@ -372,7 +420,12 @@ export async function updateRequestStatus(options: {
         accepted: { title: 'Pickup accepted', body: 'Your recycler accepted the pickup request. Check your confirmed pickup time.' },
         rejected: { title: 'Pickup unavailable', body: 'Your recycler could not accept this pickup request.' },
         picked_up: { title: 'Item collected', body: 'Your recyclable item has been collected.' },
-        completed: { title: 'Pickup completed', body: 'Your recycling reward is now recorded.' }
+        completed: {
+          title: 'Pickup completed',
+          body: pendingPaystack
+            ? 'Your recycling reward payout is pending via Paystack.'
+            : 'Your recycling reward is now recorded.'
+        }
       }
       const message = copy[nextStatus]
       if (message) await Notification.create([{ userId: request.userId, type: `pickup_${nextStatus}`, ...message, href: '/dashboard/user' }], { session })
@@ -384,18 +437,94 @@ export async function updateRequestStatus(options: {
       Transaction.findOne({ requestId: request._id }).session(session).lean()
     ])
 
-    return serializeRequest(request.toObject() as RequestLean, {
-      businessName: recycler?.businessName ?? null,
-      materialCode: item.materialCode,
-      itemName: item.itemName,
-      weightKg: item.weightKg,
-      wasteStatus: item.status,
-      transactionStatus: tx?.status ?? null,
-      transactionId: tx?._id?.toString() ?? null,
-      transactionCreatedAt: tx?.createdAt ?? null
-      , recyclerPhone: recycler?.contactPhone ?? null
-    })
+    return {
+      view: serializeRequest(request.toObject() as RequestLean, {
+        businessName: recycler?.businessName ?? null,
+        materialCode: item.materialCode,
+        itemName: item.itemName,
+        weightKg: item.weightKg,
+        wasteStatus: item.status,
+        transactionStatus: tx?.status ?? null,
+        transactionId: tx?._id?.toString() ?? null,
+        transactionCreatedAt: tx?.createdAt ?? null
+        , recyclerPhone: recycler?.contactPhone ?? null
+      }),
+      pendingPaystack
+    }
   })
+
+  if (result.pendingPaystack) {
+    await settlePaystackTransfer(result.pendingPaystack)
+    const tx = await Transaction.findOne({ requestId: result.pendingPaystack.transactionRequestId }).lean()
+    if (tx) {
+      return {
+        ...result.view,
+        transactionStatus: tx.status as 'pending' | 'completed' | 'failed',
+        transactionId: tx._id.toString()
+      }
+    }
+  }
+
+  return result.view
+}
+
+async function settlePaystackTransfer(options: {
+  transactionRequestId: string
+  amountNaira: number
+  recipientCode: string
+  reference: string
+  reason: string
+}) {
+  const requestObjectId = new Types.ObjectId(options.transactionRequestId)
+  try {
+    const transfer = await initiateTransfer({
+      amountNaira: options.amountNaira,
+      recipientCode: options.recipientCode,
+      reference: options.reference,
+      reason: options.reason
+    })
+    const status = transfer.status === 'success' ? 'completed' : 'pending'
+    await Transaction.updateOne(
+      { requestId: requestObjectId, provider: 'paystack' },
+      {
+        $set: {
+          status,
+          providerRef: transfer.reference || options.reference,
+          failureReason: null
+        }
+      }
+    )
+    if (status === 'completed') {
+      const tx = await Transaction.findOne({ requestId: requestObjectId }).select('userId').lean()
+      if (tx) {
+        await Notification.create([{
+          userId: tx.userId,
+          type: 'payout_completed',
+          title: 'Reward sent',
+          body: 'Your recycling reward was paid via Paystack.',
+          href: '/dashboard/user'
+        }])
+      }
+    }
+  } catch (error) {
+    const reason = error && typeof error === 'object' && 'statusMessage' in error
+      ? String((error as { statusMessage?: string }).statusMessage || 'Paystack transfer failed')
+      : 'Paystack transfer failed'
+    await Transaction.updateOne(
+      { requestId: requestObjectId, provider: 'paystack' },
+      { $set: { status: 'failed', failureReason: reason.slice(0, 280) } }
+    )
+    const tx = await Transaction.findOne({ requestId: requestObjectId }).select('userId').lean()
+    if (tx) {
+      await Notification.create([{
+        userId: tx.userId,
+        type: 'payout_failed',
+        title: 'Payout failed',
+        body: 'Your recycling reward could not be sent. Contact support or update your payout bank account.',
+        href: '/dashboard/settings'
+      }])
+    }
+  }
 }
 
 export async function reschedulePickupRequest(options: { requestId: string; userId: string; requestedPickupTime: Date }) {

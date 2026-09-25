@@ -9,6 +9,7 @@ import { Request } from '../server/models/Request.ts'
 import { Transaction } from '../server/models/Transaction.ts'
 import { hashPassword } from '../server/services/password.ts'
 import { AVATAR_PRESETS } from '../utils/avatar-presets.ts'
+import { alwaysOpenOperatingHours } from '../utils/recycler-hours.ts'
 
 const envPath = resolve('.env')
 if (existsSync(envPath)) loadEnvFile(envPath)
@@ -106,13 +107,19 @@ async function runSeed(mongodbUri: string) {
         acceptedMaterials: business.materials,
         pricingRules: business.materials.map((material, i) => ({ material, pricePerKg: business.prices[i], currency: 'NGN' })),
         capacityKgPerDay: business.capacity, currentLoadKg: business.load,
-        availability: 'available', serviceRadiusKm: business.radius, isDemo: true
+        availability: 'available', serviceRadiusKm: business.radius,
+        businessHours: 'Demo: open 24/7 (WAT)', operatingHours: alwaysOpenOperatingHours, isDemo: true
       })
     }
     // Refresh passwords on re-seed; insert path only sets them on first create.
     await User.updateMany(
       { isDemo: true, email: /@recircle-demo\.example$/ },
       { $set: { passwordHash, emailVerified: true, onboardingCompletedAt: new Date() } }
+    )
+    // Keep demo yards matchable overnight; insert path only sets hours on first create.
+    await Recycler.updateMany(
+      { isDemo: true },
+      { $set: { availability: 'available', businessHours: 'Demo: open 24/7 (WAT)', operatingHours: alwaysOpenOperatingHours } }
     )
 
     const historical = [

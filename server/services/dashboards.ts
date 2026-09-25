@@ -53,7 +53,7 @@ export async function getConsumerDashboard(user: AuthUser) {
       .select('imageUrl itemName materialCode status weightKg estimatedValueMin estimatedValueMax createdAt')
       .lean(),
     Transaction.find({ userId }).sort({ createdAt: -1 }).limit(8)
-      .select('amount currency status type provider createdAt requestId')
+      .select('amount currency status type provider providerRef failureReason createdAt requestId')
       .lean()
   ])
 
@@ -90,6 +90,7 @@ export async function getConsumerDashboard(user: AuthUser) {
       status: entry.status,
       type: entry.type,
       provider: entry.provider,
+      failureReason: entry.failureReason ?? null,
       requestId: entry.requestId.toString(),
       createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null
     })),

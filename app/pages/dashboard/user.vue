@@ -31,6 +31,7 @@ interface ConsumerDashboard {
     currency: string
     status: string
     provider: string
+    failureReason: string | null
     createdAt: string | null
   }>
   tips: Array<{ title: string; body: string }>
@@ -62,6 +63,19 @@ function scanLink(scan: ConsumerDashboard['recentScans'][number]) {
   if (scan.status === 'draft' || scan.status === 'analyzed') return `/scan/${scan.id}/analysis`
   if (scan.status === 'matched') return `/scan/${scan.id}/match`
   return '/dashboard/user'
+}
+
+function walletProviderLabel(provider: string) {
+  if (provider === 'paystack') return 'Paystack'
+  if (provider === 'mock') return 'Demo'
+  return provider
+}
+
+function walletStatusLabel(status: string) {
+  if (status === 'completed') return 'completed'
+  if (status === 'pending') return 'pending'
+  if (status === 'failed') return 'failed'
+  return status
 }
 </script>
 
@@ -140,12 +154,17 @@ function scanLink(scan: ConsumerDashboard['recentScans'][number]) {
           </EmptyState>
         </DashboardSection>
 
-        <DashboardSection title="Wallet activity" description="Completed recycling rewards.">
+        <DashboardSection title="Wallet activity" description="Recycling rewards from completed pickups.">
           <ul v-if="data.walletActivity.length" class="wallet-list">
             <li v-for="entry in data.walletActivity" :key="entry.id">
               <div>
                 <strong>{{ formatNaira(entry.amount) }}</strong>
-                <span class="muted">{{ entry.provider }} · {{ entry.status }}</span>
+                <span class="muted">
+                  {{ walletProviderLabel(entry.provider) }} · {{ walletStatusLabel(entry.status) }}
+                </span>
+                <span v-if="entry.status === 'failed' && entry.failureReason" class="muted">
+                  {{ entry.failureReason }}
+                </span>
               </div>
               <time v-if="entry.createdAt" :datetime="entry.createdAt">
                 {{ new Date(entry.createdAt).toLocaleDateString('en-NG') }}
@@ -157,7 +176,7 @@ function scanLink(scan: ConsumerDashboard['recentScans'][number]) {
             compact
             symbol="◈"
             title="No wallet activity"
-            description="Rewards appear after a recycler marks a pickup completed."
+            description="Rewards appear after a recycler marks a pickup completed. Add a payout bank account in Settings to receive Paystack TEST transfers."
           />
         </DashboardSection>
 

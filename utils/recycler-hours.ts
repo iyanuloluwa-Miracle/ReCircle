@@ -30,8 +30,23 @@ function minutes(value: string) {
   return hour <= 23 && minute <= 59 ? hour * 60 + minute : -1
 }
 
-/** Nigeria is currently the supported collection market, so matching is evaluated in WAT. */
+/** Always-on schedule for demo yards so overnight local demos still match. */
+export const alwaysOpenOperatingHours: OperatingHoursDay[] = [
+  { day: 0, open: '00:00', close: '23:59', enabled: true },
+  { day: 1, open: '00:00', close: '23:59', enabled: true },
+  { day: 2, open: '00:00', close: '23:59', enabled: true },
+  { day: 3, open: '00:00', close: '23:59', enabled: true },
+  { day: 4, open: '00:00', close: '23:59', enabled: true },
+  { day: 5, open: '00:00', close: '23:59', enabled: true },
+  { day: 6, open: '00:00', close: '23:59', enabled: true }
+]
+
+/**
+ * Nigeria is currently the supported collection market, so matching is evaluated in WAT.
+ * Recyclers without an explicit schedule stay matchable; availability still gates them.
+ */
 export function isOpenForMatching(hours?: OperatingHoursDay[] | null, now = new Date()) {
+  if (!hours?.length) return true
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Lagos', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now)
   const part = (type: string) => parts.find(entry => entry.type === type)?.value ?? ''
   const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(part('weekday'))

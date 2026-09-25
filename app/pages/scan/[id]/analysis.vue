@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
 import { materialCodes, recyclabilityValues } from '~~/utils/classification'
+import { estimatedWeightKg, suggestedWeightEstimate, weightEstimateOptions } from '~~/utils/weight-estimates'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 useSeoMeta({ title: 'Waste analysis — ReCircle', robots: 'noindex' })
@@ -36,13 +37,32 @@ const editing = ref(false)
 const selectedMaterial = ref('UNKNOWN')
 const selectedRecyclability = ref('conditionally_recyclable')
 const weightInput = ref<string | number>('')
+const selectedWeightEstimate = ref('')
+const estimateQuantity = ref(1)
 
 watch(data, item => {
   if (!item) return
   selectedMaterial.value = item.materialCode ?? 'UNKNOWN'
   selectedRecyclability.value = item.recyclability ?? 'conditionally_recyclable'
   weightInput.value = item.weightKg == null ? '' : String(item.weightKg)
+  const suggestion = suggestedWeightEstimate(item.itemName, item.materialCode)
+  selectedWeightEstimate.value = suggestion?.id ?? ''
 }, { immediate: true })
+
+const activeWeightEstimate = computed(() => weightEstimateOptions.find(option => option.id === selectedWeightEstimate.value) ?? null)
+const suggestedWeightOption = computed(() => suggestedWeightEstimate(data.value?.itemName ?? null, data.value?.materialCode ?? null))
+const estimatedWeight = computed(() => activeWeightEstimate.value
+  ? estimatedWeightKg(activeWeightEstimate.value.gramsEach, Number(estimateQuantity.value))
+  : null)
+
+function applyWeightEstimate() {
+  if (estimatedWeight.value == null) {
+    actionError.value = 'Enter a quantity of at least 1 to use this estimate.'
+    return
+  }
+  actionError.value = ''
+  weightInput.value = String(estimatedWeight.value)
+}
 
 const needsConfirmation = computed(() => data.value?.confidence != null
   && data.value.confidence < 0.65 && data.value.classificationSource !== 'manual')
@@ -159,7 +179,7 @@ function label(value: string | null) {
           <section v-if="data.preparationInstructions.length || data.disposalMethod" class="scan-preparation"><div class="scan-subheading"><ScanIcon name="leaf" :size="18" /><h3>Prepare it for a new beginning</h3></div><ol v-if="data.preparationInstructions.length"><li v-for="step in data.preparationInstructions" :key="step">{{ step }}</li></ol><p v-else>{{ data.disposalMethod }}</p></section>
           <BaseButton v-if="!editing" variant="ghost" size="sm" class="scan-edit-material" @click="editing = true">{{ needsConfirmation ? 'Confirm or correct material' : 'Correct material' }}<ScanIcon name="chevron" :size="14" /></BaseButton>
           <form v-else class="scan-correction-form" @submit.prevent="saveCorrection"><div class="scan-subheading"><h3>Confirm the material</h3></div><div class="scan-form-fields"><label for="material-code">Material<select id="material-code" v-model="selectedMaterial" :disabled="savingCorrection"><option v-for="material in materialCodes" :key="material" :value="material">{{ material }}</option></select></label><label for="recyclability">Recyclability<select id="recyclability" v-model="selectedRecyclability" :disabled="savingCorrection"><option v-for="value in recyclabilityValues" :key="value" :value="value">{{ label(value) }}</option></select></label></div><div class="scan-inline-actions"><BaseButton type="submit" size="sm" :loading="savingCorrection">Save confirmation</BaseButton><BaseButton variant="ghost" size="sm" :disabled="savingCorrection" @click="editing = false">Cancel</BaseButton></div></form>
-          <form v-if="!needsConfirmation" class="scan-weight-form" @submit.prevent="saveWeight"><div class="scan-subheading"><ScanIcon name="scale" :size="19" /><h3>Add the weight</h3></div><p>An approximate weight helps recyclers value your item.</p><label for="weight-kg" class="sr-only">Item weight in kilograms</label><div class="scan-weight-controls"><div class="scan-weight-input"><input id="weight-kg" v-model="weightInput" type="number" min="0.001" max="100000" step="any" inputmode="decimal" placeholder="e.g. 1.5" required :disabled="savingWeight || matching"><span>kg</span></div><BaseButton type="submit" size="sm" :loading="savingWeight" :disabled="matching">{{ data.weightKg == null ? 'Save weight' : 'Update weight' }}</BaseButton></div><p v-if="data.weightKg != null" class="scan-saved-weight"><ScanIcon name="check" :size="14" />{{ data.weightKg }} kg saved</p></form>
+          <form v-if="!needsConfirmation" class="scan-weight-form" @submit.prevent="saveWeight"><div class="scan-subheading"><ScanIcon name="scale" :size="19" /><h3>Add the weight</h3></div><p>Use a scale where possible, or start with an AI-assisted estimate. Recycler pickup confirms the final weight and payout.</p><div class="scan-weight-estimator"><div class="scan-estimator-heading"><strong>Estimate common items</strong><span v-if="suggestedWeightOption">AI suggestion</span></div><div class="scan-estimator-controls"><label for="weight-item">Item<select id="weight-item" v-model="selectedWeightEstimate" :disabled="savingWeight || matching"><option value="">Choose an item</option><option v-for="option in weightEstimateOptions" :key="option.id" :value="option.id">{{ option.label }} · ~{{ option.gramsEach }} g each</option></select></label><label for="weight-quantity">Quantity<input id="weight-quantity" v-model.number="estimateQuantity" type="number" min="1" step="1" inputmode="numeric" :disabled="savingWeight || matching"></label></div><div v-if="activeWeightEstimate && estimatedWeight != null" class="scan-estimate-result"><span>{{ activeWeightEstimate.description }} · ~{{ activeWeightEstimate.gramsEach }} g each</span><strong>~{{ estimatedWeight }} kg</strong><BaseButton type="button" variant="ghost" size="sm" :disabled="savingWeight || matching" @click="applyWeightEstimate">Use estimate</BaseButton></div></div><label for="weight-kg" class="sr-only">Item weight in kilograms</label><div class="scan-weight-controls"><div class="scan-weight-input"><input id="weight-kg" v-model="weightInput" type="number" min="0.001" max="100000" step="any" inputmode="decimal" placeholder="e.g. 1.5" required :disabled="savingWeight || matching"><span>kg</span></div><BaseButton type="submit" size="sm" :loading="savingWeight" :disabled="matching">{{ data.weightKg == null ? 'Save weight' : 'Update weight' }}</BaseButton></div><p class="scan-weight-disclaimer">Estimated weights are for empty, clean containers. You can edit this value before saving.</p><p v-if="data.weightKg != null" class="scan-saved-weight"><ScanIcon name="check" :size="14" />{{ data.weightKg }} kg saved</p></form>
           <div v-if="!needsConfirmation && data.weightKg != null" class="scan-match-next"><BaseButton class="scan-full-button" :loading="matching" :disabled="matching || savingWeight || savingCorrection" @click="findMatches">{{ matching ? 'Finding nearby recyclers…' : 'See value & nearby recyclers' }}<ScanIcon v-if="!matching" name="arrow" :size="18" /></BaseButton><p>Valuations use current prices from eligible recyclers.</p></div>
         </template>
         <div v-else class="scan-empty-panel"><span class="scan-empty-icon"><ScanIcon name="leaf" :size="28" /></span><h2>This item has moved on.</h2><p>It is no longer available for analysis.</p><BaseButton to="/scan">Scan another item</BaseButton></div>

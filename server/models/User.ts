@@ -20,7 +20,12 @@ const userSchema = new Schema({
   location: { type: geoPointSchema, default: null },
   emailVerified: { type: Boolean, required: true, default: false },
   onboardingCompletedAt: { type: Date, default: null },
-  isDemo: { type: Boolean, default: false }
+  isDemo: { type: Boolean, default: false },
+  /** Consumer NUBAN payout destination for Paystack Transfers (TEST). */
+  bankCode: { type: String, default: null, trim: true, maxlength: 10 },
+  accountNumber: { type: String, default: null, trim: true, maxlength: 20 },
+  accountName: { type: String, default: null, trim: true, maxlength: 160 },
+  paystackRecipientCode: { type: String, default: null, trim: true, maxlength: 64 }
 }, { timestamps: true })
 
 export type UserDocument = InferSchemaType<typeof userSchema>

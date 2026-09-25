@@ -8,11 +8,14 @@ const transactionSchema = new Schema({
   type: { type: String, enum: ['recycling_reward'], default: 'recycling_reward', required: true },
   provider: { type: String, enum: ['mock', 'paystack'], required: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], required: true },
+  providerRef: { type: String, default: null, trim: true, maxlength: 120 },
+  failureReason: { type: String, default: null, trim: true, maxlength: 280 },
   isDemo: { type: Boolean, default: false }
 }, { timestamps: { createdAt: true, updatedAt: false } })
 
 transactionSchema.index({ userId: 1, createdAt: -1 })
 transactionSchema.index({ status: 1, createdAt: -1 })
+transactionSchema.index({ providerRef: 1 }, { sparse: true })
 
 export type TransactionDocument = InferSchemaType<typeof transactionSchema>
 export const Transaction: Model<TransactionDocument> = (mongoose.models.Transaction as Model<TransactionDocument> | undefined) ?? mongoose.model<TransactionDocument>('Transaction', transactionSchema)

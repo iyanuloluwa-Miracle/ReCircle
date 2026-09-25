@@ -43,6 +43,85 @@ const avatarDirty = computed(() => {
   return Boolean(selected.value) && selected.value !== currentAvatar
 })
 
+const payoutBankCode = ref('')
+const payoutAccountNumber = ref('')
+const payoutAccountName = ref<string | null>(null)
+const payoutHasRecipient = ref(false)
+const payoutBanks = ref<Array<{ name: string; code: string }>>([])
+const payoutLoading = ref(false)
+const payoutSaving = ref(false)
+const payoutError = ref('')
+const payoutSuccess = ref('')
+
+async function loadPayoutSettings() {
+  if (user.value?.role !== 'user') return
+  payoutLoading.value = true
+  payoutError.value = ''
+  try {
+    const [banksRes, payoutRes] = await Promise.all([
+      $fetch<{ banks: Array<{ name: string; code: string }> }>('/api/paystack/banks').catch(() => ({ banks: [] as Array<{ name: string; code: string }> })),
+      $fetch<{ payout: { bankCode: string | null; accountNumber: string | null; accountName: string | null; hasRecipient: boolean } }>('/api/profile/payout')
+    ])
+    payoutBanks.value = banksRes.banks
+    payoutBankCode.value = payoutRes.payout.bankCode ?? ''
+    payoutAccountNumber.value = payoutRes.payout.accountNumber ?? ''
+    payoutAccountName.value = payoutRes.payout.accountName
+    payoutHasRecipient.value = payoutRes.payout.hasRecipient
+  } catch (error) {
+    const message = error && typeof error === 'object' && 'data' in error
+      ? (error.data as { statusMessage?: string })?.statusMessage
+      : undefined
+    payoutError.value = message || 'Could not load payout settings. Add Paystack TEST keys to enable bank payouts.'
+  } finally {
+    payoutLoading.value = false
+  }
+}
+
+async function savePayoutDetails() {
+  payoutError.value = ''
+  payoutSuccess.value = ''
+  if (!/^\d{10}$/.test(payoutAccountNumber.value.trim())) {
+    payoutError.value = 'Enter a valid 10-digit NUBAN account number.'
+    toast.error('Invalid account number', payoutError.value)
+    return
+  }
+  if (!payoutBankCode.value) {
+    payoutError.value = 'Choose your bank.'
+    toast.error('Bank required', payoutError.value)
+    return
+  }
+  payoutSaving.value = true
+  try {
+    const result = await $fetch<{ payout: { bankCode: string | null; accountNumber: string | null; accountName: string | null; hasRecipient: boolean } }>('/api/profile/payout', {
+      method: 'PATCH',
+      body: {
+        bankCode: payoutBankCode.value,
+        accountNumber: payoutAccountNumber.value.trim()
+      }
+    })
+    payoutBankCode.value = result.payout.bankCode ?? ''
+    payoutAccountNumber.value = result.payout.accountNumber ?? ''
+    payoutAccountName.value = result.payout.accountName
+    payoutHasRecipient.value = result.payout.hasRecipient
+    payoutSuccess.value = result.payout.hasRecipient
+      ? `Payout account saved for ${result.payout.accountName || 'your account'}.`
+      : 'Payout details saved.'
+    toast.success('Payout account saved', result.payout.accountName || undefined)
+  } catch (error) {
+    const message = error && typeof error === 'object' && 'data' in error
+      ? (error.data as { statusMessage?: string })?.statusMessage
+      : undefined
+    payoutError.value = message || 'Could not save payout details. Check the account number and try again.'
+    toast.error('Could not save payout details', payoutError.value)
+  } finally {
+    payoutSaving.value = false
+  }
+}
+
+onMounted(() => {
+  void loadPayoutSettings()
+})
+
 function choosePreset(url: string) {
   selected.value = url
   avatarError.value = ''
@@ -274,7 +353,47 @@ onUnmounted(() => {
     </DashboardSection>
 
     <DashboardSection
-      v-else
+      v-if="user?.role === 'user'"
+      title="Payout bank account"
+      description="Recycling rewards are sent here via Paystack TEST transfers when a pickup completes."
+    >
+      <p v-if="payoutLoading" class="muted">Loading payout settings…</p>
+      <form v-else class="settings-form" @submit.prevent="savePayoutDetails">
+        <p v-if="payoutAccountName" class="location-status">
+          Verified as {{ payoutAccountName }}
+          <template v-if="payoutHasRecipient"> · ready for transfers</template>
+        </p>
+        <label for="payout-bank">Bank</label>
+        <select id="payout-bank" v-model="payoutBankCode" :disabled="payoutSaving || !payoutBanks.length" required>
+          <option value="" disabled>Select bank</option>
+          <option v-for="bank in payoutBanks" :key="bank.code" :value="bank.code">{{ bank.name }}</option>
+        </select>
+        <label for="payout-account">Account number (NUBAN)</label>
+        <input
+          id="payout-account"
+          v-model="payoutAccountNumber"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          maxlength="10"
+          pattern="\d{10}"
+          placeholder="0123456789"
+          :disabled="payoutSaving"
+          required
+        >
+        <p v-if="!payoutBanks.length && !payoutError" class="muted">
+          Add Paystack TEST keys to load Nigerian banks and enable transfers. Without keys, completed pickups still record a demo (mock) reward.
+        </p>
+        <p v-if="payoutError" class="form-error" role="alert">{{ payoutError }}</p>
+        <p v-else-if="payoutSuccess" class="settings-success" role="status">{{ payoutSuccess }}</p>
+        <BaseButton type="submit" :loading="payoutSaving" :disabled="payoutSaving || !payoutBanks.length">
+          Save payout account
+        </BaseButton>
+      </form>
+    </DashboardSection>
+
+    <DashboardSection
+      v-if="user?.role !== 'user'"
       title="Workspace preferences"
       description="Account details for your role are shown above. More preference controls will land here later."
     >
@@ -313,6 +432,22 @@ onUnmounted(() => {
   max-width: 24rem;
   display: grid;
   gap: .85rem;
+}
+.settings-form label {
+  font-size: .7rem;
+  font-weight: 650;
+  letter-spacing: .02em;
+  color: #657269;
+}
+.settings-form select,
+.settings-form input[type='text'] {
+  min-height: 44px;
+  border: 1px solid #cbd8c1;
+  border-radius: 8px;
+  background: #fffef9;
+  padding: 9px 12px;
+  color: #263c34;
+  font: inherit;
 }
 .settings-success {
   margin: .35rem 0 0;

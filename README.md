@@ -142,7 +142,8 @@ picked up, and complete. Operators view only.
 
 Accepting a request reserves daily capacity (`currentLoadKg += weightKg`) with a
 conditional update. Completion marks the WasteItem `completed` and creates a
-completed mock `Transaction` for the expected payout. Responses include audit
+completed mock `Transaction` for the expected payout (or a pending Paystack
+Transfer when TEST keys and a consumer payout recipient are configured). Responses include audit
 timestamps (`acceptedAt`, `pickedUpAt`, `completedAt`, `rejectedAt`, `cancelledAt`)
 and a reusable status timeline (Analyzed → Recycler matched → Pickup requested →
 Recycler accepted → Collected → Payment).
@@ -300,9 +301,15 @@ Set production environment variables through the host, then run
 `.env`; for a local production test, Node 24 supports
 `node --env-file=.env .output/server/index.mjs`.
 
-`PAYSTACK_PUBLIC_KEY` stays private in this phase along with the secret key.
-Completing a pickup creates a mock `Transaction` only. Real Paystack payouts are
-not implemented. Future payment work must enforce TEST mode.
+`PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY` must be **TEST** keys
+(`sk_test_` / `pk_test_`). Live keys are rejected. When both are set and the
+consumer has saved a NUBAN payout account in Settings, completing a pickup
+creates a `pending` Paystack Transfer (amount in kobo) with reference
+`recircle_<requestId>`. Webhooks at `POST /api/paystack/webhook` (HMAC SHA512
+via `x-paystack-signature`) mark the transaction completed or failed. Without
+keys or a recipient, completion still records a mock completed reward so local
+demos keep working. Point your Paystack dashboard webhook URL at
+`https://<host>/api/paystack/webhook` (use a tunnel such as ngrok for local TEST).
 
 Sessions use H3 encrypted, integrity-protected HttpOnly cookies, SameSite=Lax,
 a one-day lifetime and Secure outside development. Header-based sessions are disabled.
@@ -317,6 +324,7 @@ any production launch.
 - Zod: request validation and password/session constraints.
 - Byteship: official `@byteship/js` SDK and scoped browser upload tokens.
 - OpenRouter: server-side vision classification and grounded assistant chat; timeout and sanitized provider errors.
+- Paystack: TEST-only Transfer payouts for recycling rewards; webhook signature verification.
 - Chart.js: lazy client loading with cleanup for role analytics charts.
 
 AI identifies materials and explains stored platform facts. Financial values come from
