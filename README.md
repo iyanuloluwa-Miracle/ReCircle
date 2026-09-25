@@ -2,21 +2,30 @@
 
 ReCircle is a Nigeria-focused recycling coordination platform that makes recycling more practical, transparent, and rewarding. It helps people identify recyclable materials, estimate their value, find suitable nearby recyclers, and request pickups—all from one streamlined experience.
 
-Built to connect consumers, recycling businesses, and waste operators, ReCircle turns the journey from “I have recyclable waste” into a clear, trackable workflow.
+Built to connect consumers, recycling companies, and platform admins, ReCircle turns the journey from “I have recyclable waste” into a clear, trackable workflow—and gives partner companies a shared channel to discover supply, manage capacity, and complete collections.
+
+## Project Details
+
+| | |
+|---|---|
+| **Target audience** | Everyday consumers with recyclable waste at home or work; partner recycling companies and collection yards that buy materials and run pickups; and internal admins who oversee the network across cities in Nigeria. |
+| **Demo video** | [Watch the ReCircle walkthrough](https://www.youtube.com/watch?v=PLACEHOLDER_RECIRCLE_DEMO) *(dummy link — replace with the real demo)* |
 
 ## Inspiration 🧠
 
-Recycling often breaks down before it begins: people may not know whether an item is recyclable, how to prepare it, what it is worth, or where to take it. Meanwhile, recyclers need a reliable way to discover available materials and manage collection capacity.
+Recycling often breaks down before it begins: people may not know whether an item is recyclable, how to prepare it, what it is worth, or where to take it. Meanwhile, recycling companies need a reliable way to discover available materials, coordinate pickups, and manage daily capacity—often without a shared system that works across partners.
 
-ReCircle was created to close that gap. The goal was to build a digital bridge between households, recyclers, and operators—making recycling easier to participate in while helping valuable materials stay out of landfills.
+ReCircle was created to close that gap. The goal was to build a digital bridge between households and recycling companies, with admins overseeing the network—making recycling easier to participate in while helping valuable materials stay out of landfills.
 
 ## What it does ❔
 
 ReCircle supports three key roles:
 
 - **Consumers** can scan or upload waste images, receive AI-assisted material identification, review preparation guidance, estimate waste value, compare nearby recyclers, and request pickups.
-- **Recyclers** can manage their service areas, accepted materials, pricing rules, collection capacity, and incoming pickup requests.
-- **Waste operators** can monitor platform activity, track pickup progress, review recycler utilization, and plan more efficient collection batches.
+- **Recyclers** (partner recycling companies) can manage their service areas, accepted materials, pricing rules, collection capacity, and incoming pickup requests.
+- **Admins** can monitor platform activity, track pickup progress, review recycler utilization, and plan more efficient collection batches across the network.
+
+The platform is designed for **partnership with recycling companies and collection networks**: each partner runs their own operations on ReCircle, while consumers get one place to match, request, and track pickups.
 
 The platform follows the full recycling journey:
 
@@ -29,8 +38,9 @@ The platform follows the full recycling journey:
 - Location-aware recycler matching based on distance, pricing, accepted materials, service radius, and available capacity
 - Transparent estimated recycling value in Nigerian Naira (NGN)
 - Pickup request lifecycle with clear statuses from pending to completed
-- Role-based dashboards for consumers, recyclers, operators, and administrators
-- Collection-batch suggestions to help operators organize pickups efficiently
+- Role-based dashboards for consumers, recyclers, and admins
+- Partnership-ready recycler profiles so companies can publish materials, pricing, and capacity in one place
+- Collection-batch suggestions to help admins organize pickups efficiently across partner zones
 - Analytics for materials, collections, payouts, recycler capacity, and pickup activity
 - A grounded AI assistant that answers questions using available ReCircle data without inventing prices, earnings, pickup statuses, or distances
 - Secure authentication through Google sign-in or email OTP verification
@@ -49,7 +59,7 @@ One of the biggest challenges was making AI useful without allowing it to become
 
 Recycler matching was another complex area. A nearby recycler is not automatically the best recycler, so the platform evaluates distance, material acceptance, service radius, pricing, and remaining capacity before making a recommendation.
 
-We also had to design role-specific workflows that remain connected: consumers need a simple recycling experience, recyclers need operational clarity, and operators need oversight without being able to alter restricted actions.
+We also had to design role-specific workflows that remain connected: consumers need a simple recycling experience, partner recycling companies need operational clarity, and admins need network oversight without being able to alter restricted pickup actions.
 
 ## Accomplishments we’re proud of 🚀
 
@@ -157,7 +167,7 @@ pickup location and source, but no guessed material, weight, or value.
 
 ## AI material analysis
 
-`POST /api/analyze-waste` accepts a WasteItem ID. The owner or a waste operator
+`POST /api/analyze-waste` accepts a WasteItem ID. The owner or an admin
 can request analysis; other consumers get 404 and other roles get 403. A short
 MongoDB lock prevents concurrent calls on the same draft. Successful results are
 cached on the item and reused on later requests. OpenRouter receives only the
@@ -204,13 +214,13 @@ cancelled/rejected one for the same waste item), and sets the WasteItem to
 `pickup_requested`. Multi-document writes run inside a MongoDB transaction.
 
 `GET /api/requests` is role-scoped: consumers see their requests, recyclers see
-jobs assigned to their profile, and waste operators see all requests for monitoring.
+jobs assigned to their profile, and admins see all requests for monitoring.
 `PATCH /api/requests/:id/status` enforces a strict lifecycle:
 
 `pending → accepted → picked_up → completed`, with `pending → rejected|cancelled`.
 Illegal moves such as `completed → pending` or `rejected → picked_up` return 409.
 Consumers may only cancel pending requests. Recyclers may accept, reject, mark
-picked up, and complete. Operators view only.
+picked up, and complete. Admins view only.
 
 Accepting a request reserves daily capacity (`currentLoadKg += weightKg`) with a
 conditional update. Completion marks the WasteItem `completed` and creates a
@@ -231,7 +241,7 @@ and [API reference](https://byteship.dev/docs/api-reference).
 ## Multi-role dashboards
 
 `GET /api/dashboard/user`, `GET /api/dashboard/recycler`, and
-`GET /api/dashboard/operator` return session-scoped metrics aggregated from
+`GET /api/dashboard/admin` return session-scoped metrics aggregated from
 WasteItem, Request, Transaction, and Recycler collections. Dashboard numbers are
 never hard-coded in the UI.
 
@@ -242,7 +252,7 @@ never hard-coded in the UI.
   collections, incoming matched waste cards (photo, material, weight, distance,
   purchase price, pickup area, Accept/Reject), accepted pickups, material breakdown,
   and current capacity.
-- **Operator:** active pickups, kg awaiting collection, completed today, total
+- **Admin:** active pickups, kg awaiting collection, completed today, total
   payouts, status distribution chart, recent activity, recycler utilization, and
   the live collection queue.
 
@@ -252,7 +262,7 @@ loading skeletons, and are tuned for 375px mobile, tablet, and desktop widths.
 
 ## Smart Collection Batch
 
-`GET /api/optimize-pickups?zoneId=` is an operator-only, read-only planner. It loads
+`GET /api/optimize-pickups?zoneId=` is an admin-only, read-only planner. It loads
 pending and accepted requests, filters by a Nigerian zone, clusters nearby pickups with
 a deterministic radius heuristic, then orders each cluster with nearest-neighbour.
 The UI labels this a **Suggested collection sequence** and compares naive vs suggested
@@ -300,7 +310,7 @@ Run `npm run seed` after setting `MONGODB_URI` and `DEMO_SEED_PASSWORD` (at leas
 characters) in your local `.env` or process environment. The URI must name a
 non-system database. The seed is repeatable and inserts only documents with fixed
 demo IDs and `isDemo: true`; existing seeded documents are left alone. It creates
-one consumer, one waste operator, four fictional Nigerian recycler businesses, and
+one consumer, one admin, four fictional Nigerian recycler businesses, and
 four historical completed requests with mock transactions. **All recycler prices
 are invented DEMO values, not real market quotes.** Never use this data for actual
 payouts or collection decisions. The script creates and verifies every declared
@@ -336,7 +346,7 @@ role-specific steps) before dashboards unlock.
 Seeded accounts remain available for local development via `npm run seed` and
 password login. `POST /api/auth/demo` is kept for automated HTTP checks only; there
 is no public demo page.
-`/dashboard/user`, `/dashboard/recycler`, and `/dashboard/operator` have navigation
+`/dashboard/user`, `/dashboard/recycler`, and `/dashboard/admin` have navigation
 guards and server API authorization. An absent session gets HTTP 401 on protected
 APIs; a session with the wrong role gets HTTP 403. Guests hitting protected pages
 are redirected to `/login`. Role checks read MongoDB so a changed or deleted
