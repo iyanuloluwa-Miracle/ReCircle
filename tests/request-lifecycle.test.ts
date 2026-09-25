@@ -12,6 +12,7 @@ test('allows only the strict pickup lifecycle transitions', () => {
   assert.equal(canTransitionRequest('pending', 'rejected'), true)
   assert.equal(canTransitionRequest('pending', 'cancelled'), true)
   assert.equal(canTransitionRequest('accepted', 'picked_up'), true)
+  assert.equal(canTransitionRequest('accepted', 'completed'), true)
   assert.equal(canTransitionRequest('picked_up', 'completed'), true)
 
   assert.equal(canTransitionRequest('completed', 'pending'), false)
@@ -46,6 +47,19 @@ test('timeline marks completed steps and leaves later ones pending', () => {
   assert.equal(steps[5]!.label, 'Payment')
 })
 
+test('collected without a transaction keeps payment pending', () => {
+  const steps = buildRequestTimeline({
+    wasteStatus: 'picked_up',
+    requestStatus: 'picked_up',
+    transactionStatus: null,
+    pickedUpAt: '2026-09-22T11:00:00.000Z'
+  })
+  assert.equal(steps[4]!.state, 'complete')
+  assert.equal(steps[4]!.label, 'Collected')
+  assert.equal(steps[5]!.state, 'current')
+  assert.equal(steps[5]!.label, 'Payment')
+})
+
 test('completed requests mark payment complete', () => {
   const steps = buildRequestTimeline({
     wasteStatus: 'completed',
@@ -55,4 +69,16 @@ test('completed requests mark payment complete', () => {
     paidAt: '2026-09-22T12:00:00.000Z'
   })
   assert.ok(steps.every(step => step.state === 'complete'))
+})
+
+test('completed with pending paystack keeps payment current', () => {
+  const steps = buildRequestTimeline({
+    wasteStatus: 'completed',
+    requestStatus: 'completed',
+    transactionStatus: 'pending',
+    completedAt: '2026-09-22T12:00:00.000Z',
+    pickedUpAt: '2026-09-22T12:00:00.000Z'
+  })
+  assert.equal(steps[4]!.state, 'complete')
+  assert.equal(steps[5]!.state, 'current')
 })

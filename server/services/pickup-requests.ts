@@ -73,7 +73,7 @@ export function serializeRequest(doc: RequestLean, extras?: {
   const timeline = buildRequestTimeline({
     wasteStatus: extras?.wasteStatus ?? 'matched',
     requestStatus: doc.status,
-    transactionStatus: extras?.transactionStatus ?? (doc.status === 'completed' ? 'completed' : null),
+    transactionStatus: extras?.transactionStatus ?? null,
     analyzedAt: doc.createdAt,
     matchedAt: doc.createdAt,
     requestedAt: doc.createdAt,
@@ -386,6 +386,8 @@ export async function updateRequestStatus(options: {
       }
       await recycler.save({ session })
 
+      // Confirming collection may jump accepted → completed; still record collected time.
+      if (!request.pickedUpAt) request.pickedUpAt = now
       request.status = 'completed'
       request.completedAt = now
       item.status = 'completed'
@@ -446,12 +448,12 @@ export async function updateRequestStatus(options: {
       const copy: Record<string, { title: string; body: string }> = {
         accepted: { title: 'Pickup accepted', body: 'Your recycler accepted the pickup request. Check your confirmed pickup time.' },
         rejected: { title: 'Pickup unavailable', body: 'Your recycler could not accept this pickup request.' },
-        picked_up: { title: 'Item collected', body: 'Your recyclable item has been collected.' },
+        picked_up: { title: 'Item collected', body: 'Your recyclable item has been collected. Payment will follow once the recycler releases the reward.' },
         completed: {
-          title: 'Pickup completed',
+          title: 'Collected — payment started',
           body: pendingPaystack
             ? 'Your recycling reward payout is pending via Paystack.'
-            : 'Your recycling reward is now recorded.'
+            : 'Your recycling reward is now recorded in your wallet.'
         }
       }
       const message = copy[nextStatus]

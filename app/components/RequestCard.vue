@@ -56,7 +56,12 @@ async function setStatus(status: string) {
       body: { status }
     })
     emit('updated', updated)
-    toast.success('Request updated', `Status changed to ${status.replaceAll('_', ' ')}.`)
+    toast.success(
+      status === 'completed' ? 'Collection confirmed' : 'Request updated',
+      status === 'completed'
+        ? 'Payout has been released to the consumer wallet / Paystack.'
+        : `Status changed to ${status.replaceAll('_', ' ')}.`
+    )
   } catch (error) {
     actionError.value = friendlyError(error, 'Could not update this request.')
     toast.error('Could not update request', actionError.value)
@@ -100,7 +105,7 @@ async function setStatus(status: string) {
     </div>
     <form v-if="role === 'user' && request.status === 'pending' && rescheduling" class="request-reschedule" @submit.prevent="reschedule"><label :for="`pickup-time-${request.id}`">New preferred pickup time<input :id="`pickup-time-${request.id}`" v-model="pickupTime" type="datetime-local" :min="earliestPickupTime()" required></label><BaseButton size="sm" :loading="busy" type="submit">Save time</BaseButton></form>
     <div v-if="role === 'user' && ['accepted', 'picked_up'].includes(request.status)" class="pickup-tracking" aria-label="Pickup tracking details">
-      <strong>{{ request.status === 'picked_up' ? 'Collection in progress' : 'Pickup confirmed' }}</strong>
+      <strong>{{ request.status === 'picked_up' ? 'Collected — awaiting payment' : 'Pickup confirmed' }}</strong>
       <span v-if="request.confirmedPickupTime">Expected arrival: {{ formatPickupTime(request.confirmedPickupTime) }}</span>
       <span v-else>Awaiting a confirmed arrival time.</span>
       <a v-if="request.recyclerPhone" :href="`tel:${request.recyclerPhone}`">Call recycler: {{ request.recyclerPhone }}</a>
@@ -111,8 +116,8 @@ async function setStatus(status: string) {
         <BaseButton size="sm" :loading="busy" @click="setStatus('accepted')">Accept</BaseButton>
         <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('rejected')">Reject</BaseButton>
       </template>
-      <BaseButton v-else-if="request.status === 'accepted'" size="sm" :loading="busy" @click="setStatus('picked_up')">Mark picked up</BaseButton>
-      <BaseButton v-else-if="request.status === 'picked_up'" size="sm" :loading="busy" @click="setStatus('completed')">Mark completed</BaseButton>
+      <BaseButton v-else-if="request.status === 'accepted'" size="sm" :loading="busy" @click="setStatus('completed')">Confirm collected &amp; release payout</BaseButton>
+      <BaseButton v-else-if="request.status === 'picked_up'" size="sm" :loading="busy" @click="setStatus('completed')">Release payout</BaseButton>
     </div>
 
     <p v-if="actionError" class="form-error" role="alert">{{ actionError }}</p>

@@ -12,7 +12,7 @@ export type RequestStatus = (typeof requestStatuses)[number]
 /** Legal status transitions. Anything else must fail. */
 export const requestTransitions: Record<RequestStatus, readonly RequestStatus[]> = {
   pending: ['accepted', 'rejected', 'cancelled'],
-  accepted: ['picked_up'],
+  accepted: ['picked_up', 'completed'],
   picked_up: ['completed'],
   completed: [],
   rejected: [],
@@ -75,15 +75,16 @@ export function buildRequestTimeline(input: TimelineInput): TimelineStep[] {
     : waste === 'pickup_requested' || waste === 'picked_up' || waste === 'completed'
   const accepted = request === 'accepted' || request === 'picked_up' || request === 'completed'
   const collected = request === 'picked_up' || request === 'completed' || waste === 'picked_up' || waste === 'completed'
-  const paid = input.transactionStatus === 'completed' || request === 'completed'
+  // Payment completes only when the reward transaction succeeds — not when the item is merely collected.
+  const paid = input.transactionStatus === 'completed'
 
   return mark([
     { id: 'analyzed', label: 'Analyzed', done: analyzed, at: iso(input.analyzedAt) },
     { id: 'matched', label: 'Recycler matched', done: matched, at: iso(input.matchedAt) },
     { id: 'requested', label: 'Pickup requested', done: requested, at: iso(input.requestedAt) },
     { id: 'accepted', label: 'Recycler accepted', done: accepted, at: iso(input.acceptedAt) },
-    { id: 'collected', label: 'Collected', done: collected, at: iso(input.pickedUpAt) },
-    { id: 'payment', label: 'Payment', done: paid, at: iso(input.paidAt ?? input.completedAt) }
+    { id: 'collected', label: 'Collected', done: collected, at: iso(input.pickedUpAt ?? (request === 'completed' ? input.completedAt : null)) },
+    { id: 'payment', label: 'Payment', done: paid, at: iso(input.paidAt ?? (paid ? input.completedAt : null)) }
   ])
 }
 
