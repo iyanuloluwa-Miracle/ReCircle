@@ -5,6 +5,8 @@ import type { PickupRequestView } from '../../types'
 const props = defineProps<{
   request: PickupRequestView
   role: 'user' | 'recycler' | 'admin'
+  /** History lists collapse the timeline so pagination stays short. */
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -88,7 +90,11 @@ async function setStatus(status: string) {
       </BaseBadge>
     </header>
 
-    <StatusTimeline :steps="request.timeline" />
+    <details v-if="compact" class="request-timeline-details">
+      <summary>Status history</summary>
+      <StatusTimeline :steps="request.timeline" />
+    </details>
+    <StatusTimeline v-else :steps="request.timeline" />
 
     <div class="request-card-meta">
       <span>{{ request.distanceKm }} km</span>

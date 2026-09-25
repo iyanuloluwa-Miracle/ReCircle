@@ -22,7 +22,8 @@ type HistoryResponse = {
   requestsTotal: number
   itemsPage: number
   requestsPage: number
-  pageSize: number
+  itemsPageSize: number
+  requestsPageSize: number
 }
 
 const q = ref('')
@@ -48,10 +49,32 @@ const { data, pending, refresh } = await useAsyncData(
   { watch: [query] }
 )
 
-const itemsPageCount = computed(() => Math.max(1, Math.ceil((data.value?.itemsTotal ?? 0) / (data.value?.pageSize ?? 10))))
-const requestsPageCount = computed(() => Math.max(1, Math.ceil((data.value?.requestsTotal ?? 0) / (data.value?.pageSize ?? 10))))
-const showItemsPager = computed(() => (data.value?.itemsTotal ?? 0) > (data.value?.pageSize ?? 10))
-const showRequestsPager = computed(() => (data.value?.requestsTotal ?? 0) > (data.value?.pageSize ?? 10))
+watch(data, (value) => {
+  if (!value) return
+  if (value.itemsPage !== itemsPage.value) itemsPage.value = value.itemsPage
+  if (value.requestsPage !== requestsPage.value) requestsPage.value = value.requestsPage
+})
+
+const itemsPageSize = computed(() => data.value?.itemsPageSize ?? 5)
+const requestsPageSize = computed(() => data.value?.requestsPageSize ?? 3)
+const itemsTotal = computed(() => data.value?.itemsTotal ?? 0)
+const requestsTotal = computed(() => data.value?.requestsTotal ?? 0)
+const itemsPageCount = computed(() => Math.max(1, Math.ceil(itemsTotal.value / itemsPageSize.value)))
+const requestsPageCount = computed(() => Math.max(1, Math.ceil(requestsTotal.value / requestsPageSize.value)))
+
+const itemsRangeLabel = computed(() => {
+  if (!itemsTotal.value) return ''
+  const start = (itemsPage.value - 1) * itemsPageSize.value + 1
+  const end = Math.min(itemsPage.value * itemsPageSize.value, itemsTotal.value)
+  return `Showing ${start}–${end} of ${itemsTotal.value}`
+})
+
+const requestsRangeLabel = computed(() => {
+  if (!requestsTotal.value) return ''
+  const start = (requestsPage.value - 1) * requestsPageSize.value + 1
+  const end = Math.min(requestsPage.value * requestsPageSize.value, requestsTotal.value)
+  return `Showing ${start}–${end} of ${requestsTotal.value}`
+})
 
 function itemLink(item: { id: string; status: string }) {
   return item.status === 'draft' || item.status === 'analyzed' ? `/scan/${item.id}/analysis` : `/scan/${item.id}/match`
@@ -89,6 +112,9 @@ function onRequestUpdated() {
     <LoadingSkeleton v-if="pending" :lines="6" label="Loading history" />
     <template v-else>
       <DashboardSection title="Your scans" description="Recent items, from first photo to completed recycling.">
+        <template v-if="itemsRangeLabel" #action>
+          <span class="history-range">{{ itemsRangeLabel }}</span>
+        </template>
         <div v-if="data?.items.length" class="history-list">
           <NuxtLink v-for="item in data.items" :key="item.id" :to="itemLink(item)">
             <WasteThumb :src="item.imageUrl" :alt="item.itemName || 'Waste scan'" />
@@ -100,27 +126,31 @@ function onRequestUpdated() {
           </NuxtLink>
         </div>
         <EmptyState v-else compact title="No scans found" description="Try a different search or scan a new item." />
-        <nav v-if="showItemsPager" class="history-pagination" aria-label="Scans pagination">
+        <nav v-if="itemsPageCount > 1" class="history-pagination" aria-label="Scans pagination">
           <BaseButton size="sm" variant="ghost" :disabled="itemsPage <= 1" @click="itemsPage -= 1">Previous</BaseButton>
-          <span>Page {{ data?.itemsPage ?? itemsPage }} of {{ itemsPageCount }}</span>
+          <span>Page {{ itemsPage }} of {{ itemsPageCount }}</span>
           <BaseButton size="sm" variant="ghost" :disabled="itemsPage >= itemsPageCount" @click="itemsPage += 1">Next</BaseButton>
         </nav>
       </DashboardSection>
 
       <DashboardSection title="Pickup requests" description="Every recycler request and its latest status.">
+        <template v-if="requestsRangeLabel" #action>
+          <span class="history-range">{{ requestsRangeLabel }}</span>
+        </template>
         <div v-if="data?.requests.length" class="request-list">
           <RequestCard
             v-for="request in data.requests"
             :key="request.id"
             :request="request"
             role="user"
+            compact
             @updated="onRequestUpdated"
           />
         </div>
         <EmptyState v-else compact title="No pickup requests found" description="Pickup requests will appear here once you choose a recycler." />
-        <nav v-if="showRequestsPager" class="history-pagination" aria-label="Pickup requests pagination">
+        <nav v-if="requestsPageCount > 1" class="history-pagination" aria-label="Pickup requests pagination">
           <BaseButton size="sm" variant="ghost" :disabled="requestsPage <= 1" @click="requestsPage -= 1">Previous</BaseButton>
-          <span>Page {{ data?.requestsPage ?? requestsPage }} of {{ requestsPageCount }}</span>
+          <span>Page {{ requestsPage }} of {{ requestsPageCount }}</span>
           <BaseButton size="sm" variant="ghost" :disabled="requestsPage >= requestsPageCount" @click="requestsPage += 1">Next</BaseButton>
         </nav>
       </DashboardSection>

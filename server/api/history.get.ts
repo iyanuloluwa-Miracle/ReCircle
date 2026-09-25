@@ -4,7 +4,10 @@ import { WasteItem } from '../models/WasteItem'
 import { listRequestsForActor } from '../services/pickup-requests'
 import { requireSessionUser } from '../utils/session'
 
-const PAGE_SIZE = 10
+/** Keep scan pages short so the pager is usable without long scrolling. */
+const ITEMS_PAGE_SIZE = 5
+/** Request cards include full timelines; fewer per page keeps the section readable. */
+const REQUESTS_PAGE_SIZE = 3
 
 const schema = z.object({
   q: z.string().trim().max(80).optional(),
@@ -27,12 +30,12 @@ export default defineEventHandler(async (event) => {
     listRequestsForActor({ userId: user.id, role: 'user' })
   ])
 
-  const itemsPageMax = Math.max(1, Math.ceil(itemsTotal / PAGE_SIZE))
+  const itemsPageMax = Math.max(1, Math.ceil(itemsTotal / ITEMS_PAGE_SIZE))
   const itemsPage = Math.min(query.itemsPage, itemsPageMax)
   const items = await WasteItem.find(filter)
     .sort({ createdAt: -1 })
-    .skip((itemsPage - 1) * PAGE_SIZE)
-    .limit(PAGE_SIZE)
+    .skip((itemsPage - 1) * ITEMS_PAGE_SIZE)
+    .limit(ITEMS_PAGE_SIZE)
     .select('imageUrl itemName materialCode status weightKg createdAt')
     .lean()
 
@@ -40,9 +43,9 @@ export default defineEventHandler(async (event) => {
     ? requests.filter(entry => `${entry.businessName} ${entry.itemName} ${entry.materialCode}`.toLowerCase().includes(query.q!.toLowerCase()))
     : requests
   const requestsTotal = requestMatches.length
-  const requestsPageMax = Math.max(1, Math.ceil(requestsTotal / PAGE_SIZE))
+  const requestsPageMax = Math.max(1, Math.ceil(requestsTotal / REQUESTS_PAGE_SIZE))
   const requestsPage = Math.min(query.requestsPage, requestsPageMax)
-  const pagedRequests = requestMatches.slice((requestsPage - 1) * PAGE_SIZE, requestsPage * PAGE_SIZE)
+  const pagedRequests = requestMatches.slice((requestsPage - 1) * REQUESTS_PAGE_SIZE, requestsPage * REQUESTS_PAGE_SIZE)
 
   return {
     items: items.map(item => ({
@@ -59,6 +62,7 @@ export default defineEventHandler(async (event) => {
     requestsTotal,
     itemsPage,
     requestsPage,
-    pageSize: PAGE_SIZE
+    itemsPageSize: ITEMS_PAGE_SIZE,
+    requestsPageSize: REQUESTS_PAGE_SIZE
   }
 })
