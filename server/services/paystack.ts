@@ -1,6 +1,7 @@
 import { createError } from 'h3'
 import { getServerConfig } from '../utils/config'
 import { nairaToKobo, transferReferenceForRequest, verifyPaystackSignature } from '../../utils/paystack'
+import { logPayout } from '../utils/payout-logger'
 
 export { nairaToKobo, transferReferenceForRequest, verifyPaystackSignature }
 
@@ -79,6 +80,11 @@ async function paystackFetch<T>(
     throw createError({ statusCode: 502, statusMessage: 'Paystack returned an invalid response' })
   }
   if (!response.ok || !payload?.status) {
+    logPayout('paystack.api.error', payload?.message || 'Paystack request failed', {
+      path,
+      httpStatus: response.status,
+      paystackMessage: payload?.message || null
+    }, 'error')
     throw createError({
       statusCode: response.status >= 400 && response.status < 500 ? 400 : 502,
       statusMessage: payload?.message || 'Paystack request failed'

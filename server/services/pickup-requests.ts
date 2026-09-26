@@ -12,6 +12,7 @@ import {
   isPaystackConfigured,
   transferReferenceForRequest
 } from './paystack'
+import { getPayoutLogs, isPayoutDebugEnabled, logPayout } from '../utils/payout-logger'
 import { withMongoTransaction } from '../utils/db'
 import { matchRecyclersForWaste } from './recycler-matching'
 import {
@@ -402,11 +403,22 @@ export async function updateRequestStatus(options: {
           .select('paystackRecipientCode')
           .session(session)
           .lean()
+        const paystackConfigured = isPaystackConfigured()
+        const hasRecipient = Boolean(consumer?.paystackRecipientCode)
+        const payoutAmount = request.expectedPayout
         const paystackReady = Boolean(
-          isPaystackConfigured()
-          && consumer?.paystackRecipientCode
-          && request.expectedPayout > 0
+          paystackConfigured
+          && hasRecipient
+          && payoutAmount > 0
         )
+        logPayout('payout.decision', paystackReady ? 'Using Paystack Transfer' : 'Falling back to mock wallet credit', {
+          requestId: request._id.toString(),
+          actorRole: options.actorRole,
+          paystackConfigured,
+          hasRecipient,
+          expectedPayout: payoutAmount,
+          path: paystackReady ? 'paystack' : 'mock'
+        })
         if (paystackReady) {
           const reference = transferReferenceForRequest(request._id.toString())
           await Transaction.create([{
@@ -428,6 +440,12 @@ export async function updateRequestStatus(options: {
             reference,
             reason: `ReCircle recycling reward for pickup ${request._id.toString()}`
           }
+          logPayout('payout.paystack.queued', 'Paystack transfer queued after DB commit', {
+            requestId: request._id.toString(),
+            reference,
+            amountNaira: request.expectedPayout,
+            recipientCode: consumer!.paystackRecipientCode!
+          })
         } else {
           await Transaction.create([{
             userId: request.userId,
@@ -441,7 +459,24 @@ export async function updateRequestStatus(options: {
             failureReason: null,
             isDemo: request.isDemo ?? false
           }], { session })
+          logPayout('payout.mock.created', 'Demo wallet transaction created', {
+            requestId: request._id.toString(),
+            amountNaira: request.expectedPayout,
+            reason: !paystackConfigured
+              ? 'PAYSTACK_TEST_keys_missing_or_invalid'
+              : !hasRecipient
+                ? 'consumer_has_no_paystackRecipientCode'
+                : payoutAmount <= 0
+                  ? 'expectedPayout_not_positive'
+                  : 'unknown'
+          }, 'warn')
         }
+      } else {
+        logPayout('payout.skip', 'Transaction already exists for this request', {
+          requestId: request._id.toString(),
+          existingProvider: existingTx.provider,
+          existingStatus: existingTx.status
+        }, 'warn')
       }
     }
 
@@ -490,16 +525,34 @@ export async function updateRequestStatus(options: {
     await settlePaystackTransfer(result.pendingPaystack)
     const tx = await Transaction.findOne({ requestId: result.pendingPaystack.transactionRequestId }).lean()
     if (tx) {
-      return {
+      const view = {
         ...result.view,
         transactionStatus: tx.status as 'pending' | 'completed' | 'failed',
         transactionProvider: tx.provider as 'mock' | 'paystack',
         transactionId: tx._id.toString()
       }
+      return nextStatus === 'completed'
+        ? attachPayoutDebug(view, result.pendingPaystack.transactionRequestId)
+        : view
     }
   }
 
-  return result.view
+  return nextStatus === 'completed'
+    ? attachPayoutDebug(result.view, options.requestId)
+    : result.view
+}
+
+function attachPayoutDebug<T extends Record<string, unknown>>(view: T, requestId: string) {
+  if (!isPayoutDebugEnabled()) return view
+  return {
+    ...view,
+    payoutDebug: {
+      enabled: true,
+      requestId,
+      hint: 'Copy this payoutDebug block (or terminal lines tagged [recircle:payout]) and share it for debugging.',
+      logs: getPayoutLogs({ requestId, limit: 40 })
+    }
+  }
 }
 
 async function settlePaystackTransfer(options: {
@@ -510,6 +563,12 @@ async function settlePaystackTransfer(options: {
   reason: string
 }) {
   const requestObjectId = new Types.ObjectId(options.transactionRequestId)
+  logPayout('payout.paystack.transfer.start', 'Calling Paystack /transfer', {
+    requestId: options.transactionRequestId,
+    amountNaira: options.amountNaira,
+    reference: options.reference,
+    recipientCode: options.recipientCode
+  })
   try {
     const transfer = await initiateTransfer({
       amountNaira: options.amountNaira,
@@ -528,6 +587,13 @@ async function settlePaystackTransfer(options: {
         }
       }
     )
+    logPayout('payout.paystack.transfer.result', `Paystack transfer status=${transfer.status} → tx=${status}`, {
+      requestId: options.transactionRequestId,
+      paystackStatus: transfer.status,
+      transferCode: transfer.transferCode,
+      reference: transfer.reference || options.reference,
+      mappedStatus: status
+    })
     if (status === 'completed') {
       const tx = await Transaction.findOne({ requestId: requestObjectId }).select('userId').lean()
       if (tx) {
@@ -544,6 +610,12 @@ async function settlePaystackTransfer(options: {
     const reason = error && typeof error === 'object' && 'statusMessage' in error
       ? String((error as { statusMessage?: string }).statusMessage || 'Paystack transfer failed')
       : 'Paystack transfer failed'
+    logPayout('payout.paystack.transfer.error', reason, {
+      requestId: options.transactionRequestId,
+      reference: options.reference,
+      recipientCode: options.recipientCode,
+      amountNaira: options.amountNaira
+    }, 'error')
     await Transaction.updateOne(
       { requestId: requestObjectId, provider: 'paystack' },
       { $set: { status: 'failed', failureReason: reason.slice(0, 280) } }

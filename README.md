@@ -120,6 +120,16 @@ To exercise real Transfers locally:
 3. Complete a pickup as the recycler.
 4. Confirm wallet activity shows **Paystack** (not Demo) and the transfer in your Paystack dashboard.
 
+### Payout debug logger
+
+Set `PAYOUT_DEBUG=1` in `.env` and restart `npm run dev`. After **Release payout**:
+
+- Terminal lines tagged `[recircle:payout]`
+- Expand **Payout debug log** on the request card and use **Copy debug JSON**
+- Or open `GET /api/debug/payout-log` while logged in and paste the `copyPaste` field
+
+Share that dump when investigating mock vs Paystack paths. Recipient codes are redacted.
+
 Estimated payouts use `weightKg × pricePerKg` (two decimal places). The UI shows
 fractional amounts such as `NGN 1.08` instead of rounding small values to whole naira only.
 

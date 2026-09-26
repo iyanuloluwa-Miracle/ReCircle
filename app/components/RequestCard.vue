@@ -96,16 +96,33 @@ function rewardStatusLabel(request: PickupRequestView) {
 }
 
 const rewardLabel = computed(() => rewardStatusLabel(props.request))
+const lastPayoutDebug = ref<string | null>(null)
+
+async function copyPayoutDebug() {
+  if (!lastPayoutDebug.value) return
+  try {
+    await navigator.clipboard.writeText(lastPayoutDebug.value)
+    toast.success('Payout debug copied', 'Paste it into chat so we can inspect the path.')
+  } catch {
+    toast.error('Could not copy', 'Select the debug text manually and copy it.')
+  }
+}
 
 async function setStatus(status: string) {
   busy.value = true
   actionError.value = ''
   try {
-    const updated = await $fetch<PickupRequestView>(`/api/requests/${props.request.id}/status`, {
+    const updated = await $fetch<PickupRequestView & {
+      payoutDebug?: { enabled: boolean; requestId: string; hint: string; logs: unknown[] }
+    }>(`/api/requests/${props.request.id}/status`, {
       method: 'PATCH',
       body: { status }
     })
     emit('updated', updated)
+    if (updated.payoutDebug) {
+      lastPayoutDebug.value = JSON.stringify(updated.payoutDebug, null, 2)
+      console.info('[recircle:payout]', updated.payoutDebug)
+    }
     toast.success(
       status === 'completed' ? 'Collection confirmed' : 'Request updated',
       status === 'completed'
@@ -203,5 +220,40 @@ async function setStatus(status: string) {
     </div>
 
     <p v-if="actionError" class="form-error" role="alert">{{ actionError }}</p>
+    <details v-if="lastPayoutDebug" class="payout-debug">
+      <summary>Payout debug log (copy and share)</summary>
+      <p class="muted">Set <code>PAYOUT_DEBUG=1</code> and restart the server if this is empty after a release.</p>
+      <BaseButton size="sm" variant="ghost" type="button" @click="copyPayoutDebug">Copy debug JSON</BaseButton>
+      <pre>{{ lastPayoutDebug }}</pre>
+    </details>
   </article>
 </template>
+
+<style scoped>
+.payout-debug {
+  margin-top: .85rem;
+  padding: .75rem;
+  border: 1px dashed #c9d6b8;
+  border-radius: .65rem;
+  background: #f7f9f2;
+}
+.payout-debug summary {
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 650;
+  color: #36583d;
+}
+.payout-debug pre {
+  margin: .65rem 0 0;
+  max-height: 14rem;
+  overflow: auto;
+  padding: .65rem;
+  border-radius: .45rem;
+  background: #123f32;
+  color: #d3f28a;
+  font-size: .68rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+</style>

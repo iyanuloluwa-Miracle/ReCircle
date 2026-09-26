@@ -4,6 +4,7 @@ import { User } from '../../models/User'
 import { createTransferRecipient, resolveBankAccount } from '../../services/paystack'
 import { connectDatabase } from '../../utils/db'
 import { assertSameOrigin } from '../../utils/origin'
+import { logPayout } from '../../utils/payout-logger'
 import { requireSessionUser } from '../../utils/session'
 import { readValidatedJson } from '../../utils/validation'
 
@@ -17,6 +18,12 @@ export default defineEventHandler(async (event) => {
   const sessionUser = await requireSessionUser(event, ['user'])
   const body = await readValidatedJson(event, bodySchema)
   await connectDatabase()
+
+  logPayout('payout.bank.resolve.start', 'Resolving NUBAN and creating Paystack recipient', {
+    userId: sessionUser.id,
+    bankCode: body.bankCode,
+    accountNumberLast4: body.accountNumber.slice(-4)
+  })
 
   const resolved = await resolveBankAccount(body.accountNumber, body.bankCode)
   const recipient = await createTransferRecipient({
@@ -39,6 +46,13 @@ export default defineEventHandler(async (event) => {
   ).select('bankCode accountNumber accountName paystackRecipientCode')
 
   if (!user) throw createError({ statusCode: 404, statusMessage: 'Account not found' })
+
+  logPayout('payout.bank.recipient.saved', 'Consumer Paystack recipient saved', {
+    userId: sessionUser.id,
+    accountName: user.accountName,
+    hasRecipient: Boolean(user.paystackRecipientCode),
+    recipientCode: user.paystackRecipientCode
+  })
 
   return {
     payout: {
