@@ -616,18 +616,34 @@ async function settlePaystackTransfer(options: {
       recipientCode: options.recipientCode,
       amountNaira: options.amountNaira
     }, 'error')
+
+    // Demo wallet fallback so local/demo flows still credit when Transfers are blocked
+    // (e.g. Paystack Starter cannot initiate third-party payouts).
     await Transaction.updateOne(
-      { requestId: requestObjectId, provider: 'paystack' },
-      { $set: { status: 'failed', failureReason: reason.slice(0, 280) } }
+      { requestId: requestObjectId },
+      {
+        $set: {
+          provider: 'mock',
+          status: 'completed',
+          providerRef: null,
+          failureReason: `Demo wallet fallback after Paystack error: ${reason}`.slice(0, 280)
+        }
+      }
     )
+    logPayout('payout.mock.fallback', 'Credited demo wallet after Paystack transfer failure', {
+      requestId: options.transactionRequestId,
+      amountNaira: options.amountNaira,
+      paystackError: reason.slice(0, 160)
+    }, 'warn')
+
     const tx = await Transaction.findOne({ requestId: requestObjectId }).select('userId').lean()
     if (tx) {
       await Notification.create([{
         userId: tx.userId,
-        type: 'payout_failed',
-        title: 'Payout failed',
-        body: 'Your recycling reward could not be sent. Contact support or update your payout bank account.',
-        href: '/dashboard/settings'
+        type: 'payout_completed',
+        title: 'Demo reward recorded',
+        body: 'Paystack could not send a bank transfer, so your recycling reward was credited to the demo wallet instead.',
+        href: '/dashboard/user'
       }])
     }
   }

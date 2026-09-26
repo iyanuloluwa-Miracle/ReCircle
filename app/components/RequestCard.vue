@@ -73,7 +73,7 @@ function payoutReleaseMessage(updated: PickupRequestView) {
     return 'Reward sent via Paystack Transfer to the consumer bank account.'
   }
   if (updated.transactionProvider === 'mock') {
-    return 'Demo wallet credit recorded (no Paystack page). Add TEST keys and a payout bank account for real transfers.'
+    return 'Demo wallet credit recorded. Paystack bank transfer was skipped or unavailable (fallback).'
   }
   return 'Payout has been released to the consumer wallet.'
 }
@@ -187,7 +187,7 @@ async function setStatus(status: string) {
               : 'Pickup completed'
         }}</strong>
         <span v-if="request.transactionProvider === 'mock'">
-          No Paystack checkout page is used. Rewards credit the in-app wallet unless TEST keys and a verified bank account are set in Settings.
+          Demo wallet credit recorded. If Paystack Transfers are blocked (for example Starter business), the app falls back to this in-app credit.
         </span>
         <span v-else-if="request.transactionProvider === 'paystack' && request.transactionStatus === 'pending'">
           Bank transfer was initiated. Funds appear in the consumer account once Paystack settles the transfer.

@@ -168,7 +168,7 @@ function walletStatusLabel(status: string) {
                 <span v-else-if="entry.provider === 'paystack' && entry.status === 'pending'" class="muted">
                   Bank transfer pending
                 </span>
-                <span v-if="entry.status === 'failed' && entry.failureReason" class="muted">
+                <span v-if="entry.failureReason" class="muted">
                   {{ entry.failureReason }}
                 </span>
               </div>

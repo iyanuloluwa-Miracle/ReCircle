@@ -112,6 +112,7 @@ a hosted Paystack UI.
 |-------|----------------------------------|
 | `PAYSTACK_SECRET_KEY` / `PAYSTACK_PUBLIC_KEY` empty, or consumer has no saved bank recipient | Creates a **mock** wallet transaction (`provider: mock`, status completed). Money appears in the in-app wallet only. |
 | TEST keys set (`sk_test_` / `pk_test_`) **and** consumer saved a NUBAN in **Settings → Payout bank account** | Creates a Paystack Transfer (`provider: paystack`). Status may be pending until the transfer settles. |
+| Paystack Transfer API errors (for example Starter business cannot do third-party payouts) | Falls back to a **demo wallet** credit (`provider: mock`, status completed) so local demos still work. The Paystack error is stored on the transaction for debugging. |
 
 To exercise real Transfers locally:
 
