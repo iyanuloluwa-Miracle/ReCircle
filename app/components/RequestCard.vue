@@ -18,6 +18,19 @@ const actionError = ref('')
 const toast = useToast()
 const rescheduling = ref(false)
 const pickupTime = ref('')
+const { openRequestChat } = useRequestChat()
+
+const canChat = computed(() => props.role === 'user' || props.role === 'recycler')
+
+function openChat() {
+  openRequestChat({
+    requestId: props.request.id,
+    title: props.request.itemName || props.request.materialCode || 'Pickup chat',
+    subtitle: props.role === 'user'
+      ? (props.request.businessName || 'Recycler')
+      : 'Consumer pickup'
+  })
+}
 
 function localDateTime(value?: string | null) {
   if (!value) return ''
@@ -141,6 +154,7 @@ async function setStatus(status: string) {
     </div>
 
     <div v-if="role === 'user' && request.status === 'pending'" class="request-card-actions">
+      <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
       <BaseButton size="sm" variant="ghost" :disabled="busy" @click="rescheduling = !rescheduling; pickupTime = localDateTime(request.requestedPickupTime)">{{ rescheduling ? 'Close schedule' : 'Change time' }}</BaseButton>
       <BaseButton size="sm" variant="ghost" :to="`/scan/${request.wasteItemId}/match?reassign=1`">Change recycler</BaseButton>
       <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('cancelled')">Cancel request</BaseButton>
@@ -164,6 +178,7 @@ async function setStatus(status: string) {
         <span v-else-if="request.transactionProvider === 'paystack'">
           Recycling reward was sent to the consumer’s saved bank account via Paystack Transfer.
         </span>
+        <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
       </template>
       <template v-else>
         <strong>{{ request.status === 'picked_up' ? 'Collected — awaiting payment' : 'Pickup confirmed' }}</strong>
@@ -171,15 +186,20 @@ async function setStatus(status: string) {
         <span v-else>Awaiting a confirmed arrival time.</span>
         <a v-if="request.recyclerPhone" :href="`tel:${request.recyclerPhone}`">Call recycler: {{ request.recyclerPhone }}</a>
         <span v-else>Recycler contact will appear when they add it.</span>
+        <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
       </template>
     </div>
     <div v-else-if="role === 'recycler'" class="request-card-actions">
+      <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
       <template v-if="request.status === 'pending'">
         <BaseButton size="sm" :loading="busy" @click="setStatus('accepted')">Accept</BaseButton>
         <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('rejected')">Reject</BaseButton>
       </template>
       <BaseButton v-else-if="request.status === 'accepted'" size="sm" :loading="busy" @click="setStatus('completed')">Confirm collected &amp; release payout</BaseButton>
       <BaseButton v-else-if="request.status === 'picked_up'" size="sm" :loading="busy" @click="setStatus('completed')">Release payout</BaseButton>
+    </div>
+    <div v-else-if="canChat && !['pending', 'accepted', 'picked_up'].includes(request.status)" class="request-card-actions">
+      <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
     </div>
 
     <p v-if="actionError" class="form-error" role="alert">{{ actionError }}</p>

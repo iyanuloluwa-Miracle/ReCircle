@@ -6,6 +6,7 @@ import { Recycler } from '../server/models/Recycler.ts'
 import { WasteItem } from '../server/models/WasteItem.ts'
 import { Request } from '../server/models/Request.ts'
 import { Transaction } from '../server/models/Transaction.ts'
+import { Message } from '../server/models/Message.ts'
 
 const owner = new Types.ObjectId()
 const location = { type: 'Point', coordinates: [3.39, 6.45] }
@@ -68,4 +69,16 @@ test('operational collections declare required geospatial and lookup indexes', (
   assert.ok(hasIndex(WasteItem.schema.indexes(), { location: '2dsphere' }))
   assert.ok(hasIndex(Request.schema.indexes(), { recyclerId: 1, status: 1 }))
   assert.ok(hasIndex(Transaction.schema.indexes(), { status: 1, createdAt: -1 }))
+  assert.ok(hasIndex(Message.schema.indexes(), { requestId: 1, createdAt: 1 }))
+})
+
+test('pickup messages require a request, sender, and non-empty body', async () => {
+  const message = new Message({
+    requestId: owner,
+    senderUserId: owner,
+    body: 'Gate code is 204'
+  })
+  assert.equal(await message.validate(), undefined)
+  message.body = ''
+  await assert.rejects(message.validate())
 })

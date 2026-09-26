@@ -74,6 +74,21 @@ export interface PickupRequestView {
   timeline: TimelineStepView[]
 }
 
+export interface RequestChatMessageView {
+  id: string
+  requestId: string
+  senderUserId: string
+  body: string
+  createdAt: string | null
+}
+
+export interface RequestChatThreadView {
+  requestId: string
+  status: string
+  canSend: boolean
+  messages: RequestChatMessageView[]
+}
+
 export interface DashboardMetric {
   label: string
   value: string

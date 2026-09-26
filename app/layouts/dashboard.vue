@@ -8,6 +8,7 @@ const route = useRoute()
 const loggingOut = ref(false)
 const logoutError = ref('')
 const toast = useToast()
+const { openRequestChat, requestId: openChatRequestId } = useRequestChat()
 const SIDEBAR_COLLAPSED_KEY = 'recircle.workspace.sidebarCollapsed'
 const navOpen = ref(false)
 const isMobile = ref(false)
@@ -65,6 +66,22 @@ watch(() => route.fullPath, async () => {
   await nextTick()
   main.value?.scrollTo({ top: 0 })
 })
+
+function syncChatFromQuery() {
+  if (!user.value || (user.value.role !== 'user' && user.value.role !== 'recycler')) return
+  const chatId = typeof route.query.chat === 'string' ? route.query.chat : null
+  if (!chatId || !/^[a-f\d]{24}$/i.test(chatId)) return
+  if (openChatRequestId.value === chatId) return
+  openRequestChat({
+    requestId: chatId,
+    title: 'Pickup chat',
+    subtitle: user.value.role === 'user' ? 'Message your recycler' : 'Message the consumer'
+  })
+}
+
+watch(() => [route.query.chat, user.value?.id, user.value?.role] as const, () => {
+  syncChatFromQuery()
+}, { immediate: true })
 watch(navOpen, async (open) => {
   if (!import.meta.client) return
   await nextTick()
@@ -179,5 +196,8 @@ async function signOut() {
       <main id="main-content" ref="main" class="workspace-main" tabindex="-1"><slot /></main>
     </div>
     <div v-if="user" :inert="isMobile && navOpen"><AiAssistantDrawer /></div>
+    <div v-if="user && (user.role === 'user' || user.role === 'recycler')" :inert="isMobile && navOpen">
+      <RequestChatDrawer />
+    </div>
   </div>
 </template>

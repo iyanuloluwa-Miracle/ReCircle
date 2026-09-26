@@ -7,6 +7,7 @@ import { Recycler } from '../server/models/Recycler.ts'
 import { WasteItem } from '../server/models/WasteItem.ts'
 import { Request } from '../server/models/Request.ts'
 import { Transaction } from '../server/models/Transaction.ts'
+import { Message } from '../server/models/Message.ts'
 import { hashPassword } from '../server/services/password.ts'
 import { AVATAR_PRESETS } from '../utils/avatar-presets.ts'
 import { alwaysOpenOperatingHours } from '../utils/recycler-hours.ts'
@@ -174,6 +175,7 @@ async function runSeed(mongodbUri: string) {
     await verifyIndexes(WasteItem)
     await verifyIndexes(Request)
     await verifyIndexes(Transaction)
+    await verifyIndexes(Message)
     async function verifyDemoRecords<T>(model: Model<T>, ids: number[]) {
       const count = await model.countDocuments({ _id: { $in: ids.map(id) }, isDemo: true })
       if (count !== ids.length) throw new Error(`Demo record verification failed for ${model.modelName}`)

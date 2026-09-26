@@ -14,6 +14,15 @@ const busy = ref(false)
 const actionError = ref('')
 const toast = useToast()
 const confirmedTime = ref('')
+const { openRequestChat } = useRequestChat()
+
+function openChat() {
+  openRequestChat({
+    requestId: props.request.id,
+    title: props.request.itemName || props.request.materialCode || 'Pickup chat',
+    subtitle: 'Incoming request'
+  })
+}
 
 function localDateTime(value?: string | null) {
   if (!value) return ''
@@ -70,6 +79,7 @@ async function setStatus(status: 'accepted' | 'rejected') {
         <div v-if="request.requestedPickupTime"><dt>Preferred time</dt><dd>{{ formatPickupTime(request.requestedPickupTime) }}</dd></div>
       </dl>
       <div class="incoming-card-actions">
+        <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
         <BaseButton size="sm" :loading="busy" @click="setStatus('accepted')">Accept</BaseButton>
         <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('rejected')">Reject</BaseButton>
       </div>
