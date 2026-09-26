@@ -6,7 +6,6 @@ import {
   estimateValueRange,
   filterEligibleRecyclers,
   scoreRecyclerMatches,
-  topMatches,
   type EligibleRecyclerInput,
   type ScoredMatch
 } from '../../utils/recycler-matching'
@@ -91,13 +90,14 @@ export async function matchRecyclersForWaste(options: {
 
   const eligible = filterEligibleRecyclers(candidates, materialCode, weightKg)
   const scored = scoreRecyclerMatches(eligible, materialCode, weightKg)
-  const matches = topMatches(scored, 3)
-  const { estimatedValueMin, estimatedValueMax } = estimateValueRange(matches)
+  const withinRadius = scored.filter(entry => entry.withinServiceRadius)
+  const estimateSource = withinRadius.length > 0 ? withinRadius : scored
+  const { estimatedValueMin, estimatedValueMax } = estimateValueRange(estimateSource)
 
   return {
-    matches,
+    matches: scored,
     allMatches: scored,
-    recommended: matches[0] ?? null,
+    recommended: scored[0] ?? null,
     estimatedValueMin,
     estimatedValueMax,
     currency: 'NGN',

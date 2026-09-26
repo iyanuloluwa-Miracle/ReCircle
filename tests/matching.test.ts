@@ -71,11 +71,61 @@ test('no recyclers yields an empty score list', () => {
   assert.deepEqual(estimateValueRange([]), { estimatedValueMin: null, estimatedValueMax: null })
 })
 
-test('recycler outside service radius is ineligible', () => {
+test('recycler outside service radius stays eligible and is flagged', () => {
   const eligible = filterEligibleRecyclers([
     recycler({ id: 'outside', businessName: 'Outside', distanceKm: 20, serviceRadiusKm: 10 })
   ], 'PET', 1)
-  assert.equal(eligible.length, 0)
+  assert.equal(eligible.length, 1)
+  assert.equal(eligible[0]!.withinServiceRadius, false)
+  const scored = scoreRecyclerMatches(eligible, 'PET', 1)
+  assert.equal(scored.length, 1)
+  assert.equal(scored[0]!.withinServiceRadius, false)
+  assert.ok(scored[0]!.reasons.some(reason => reason.includes('Outside their usual service area')))
+  assert.ok(scored[0]!.whySelected.some(reason => reason.includes('Outside their usual service area')))
+})
+
+test('within-radius recyclers are flagged true', () => {
+  const eligible = filterEligibleRecyclers([
+    recycler({ id: 'near', businessName: 'Near', distanceKm: 5, serviceRadiusKm: 10 })
+  ], 'PET', 1)
+  assert.equal(eligible.length, 1)
+  assert.equal(eligible[0]!.withinServiceRadius, true)
+})
+
+test('full scored list includes far recyclers alongside nearby ones', () => {
+  const eligible = filterEligibleRecyclers([
+    recycler({ id: 'near', businessName: 'Near', distanceKm: 2, serviceRadiusKm: 10, pricingRules: [{ material: 'pet', pricePerKg: 90 }] }),
+    recycler({ id: 'far', businessName: 'Far', distanceKm: 25, serviceRadiusKm: 10, pricingRules: [{ material: 'pet', pricePerKg: 95 }] })
+  ], 'PET', 2)
+  assert.equal(eligible.length, 2)
+  const scored = scoreRecyclerMatches(eligible, 'PET', 2)
+  assert.equal(scored.length, 2)
+  assert.equal(scored.find(entry => entry.recyclerId === 'near')?.withinServiceRadius, true)
+  assert.equal(scored.find(entry => entry.recyclerId === 'far')?.withinServiceRadius, false)
+  const range = estimateValueRange(scored.filter(entry => entry.withinServiceRadius))
+  assert.equal(range.estimatedValueMin, 180)
+  assert.equal(range.estimatedValueMax, 180)
+})
+
+test('equal scores prefer within-radius recyclers when ranking', () => {
+  const eligible = filterEligibleRecyclers([
+    recycler({ id: 'far', businessName: 'Far', distanceKm: 20, serviceRadiusKm: 5, pricingRules: [{ material: 'pet', pricePerKg: 80 }], currentLoadKg: 20 }),
+    recycler({ id: 'near', businessName: 'Near', distanceKm: 20, serviceRadiusKm: 25, pricingRules: [{ material: 'pet', pricePerKg: 80 }], currentLoadKg: 20 })
+  ], 'PET', 1)
+  const scored = scoreRecyclerMatches(eligible, 'PET', 1)
+  assert.equal(scored.length, 2)
+  assert.equal(scored[0]!.matchScore, scored[1]!.matchScore)
+  assert.equal(scored[0]!.recyclerId, 'near')
+  assert.equal(scored[0]!.withinServiceRadius, true)
+  assert.equal(scored[1]!.withinServiceRadius, false)
+})
+
+test('invalid service radius is treated as outside the usual area', () => {
+  const eligible = filterEligibleRecyclers([
+    recycler({ id: 'bad-radius', businessName: 'Bad Radius', distanceKm: 3, serviceRadiusKm: Number.NaN })
+  ], 'PET', 1)
+  assert.equal(eligible.length, 1)
+  assert.equal(eligible[0]!.withinServiceRadius, false)
 })
 
 test('unavailable recycler is ineligible', () => {

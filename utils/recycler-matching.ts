@@ -11,6 +11,7 @@ export interface MatchCandidate {
   availability: 'available' | 'busy' | 'offline'
   acceptedMaterials: string[]
   serviceRadiusKm: number
+  withinServiceRadius: boolean
 }
 
 export interface ScoredMatch {
@@ -23,6 +24,7 @@ export interface ScoredMatch {
   matchScore: number
   remainingCapacityKg: number
   capacityAvailablePct: number
+  withinServiceRadius: boolean
   reasons: string[]
   whySelected: string[]
 }
@@ -75,7 +77,6 @@ export function filterEligibleRecyclers(
   for (const recycler of recyclers) {
     if (recycler.availability !== 'available') continue
     if (!recycler.acceptedMaterials.some(material => materialsMatch(canonical, material))) continue
-    if (!(recycler.distanceKm <= recycler.serviceRadiusKm)) continue
     const remaining = remainingCapacityKg(recycler.capacityKgPerDay, recycler.currentLoadKg)
     if (remaining < weightKg) continue
     const pricePerKg = findPricePerKg(recycler.pricingRules, canonical)
@@ -90,7 +91,9 @@ export function filterEligibleRecyclers(
       currentLoadKg: recycler.currentLoadKg,
       availability: recycler.availability,
       acceptedMaterials: recycler.acceptedMaterials,
-      serviceRadiusKm: recycler.serviceRadiusKm
+      serviceRadiusKm: recycler.serviceRadiusKm,
+      withinServiceRadius: Number.isFinite(recycler.serviceRadiusKm)
+        && recycler.distanceKm <= recycler.serviceRadiusKm
     })
   }
   return eligible
@@ -121,12 +124,14 @@ function formatCapacity(pct: number) {
 
 function buildReasons(candidate: MatchCandidate, materialCode: string): string[] {
   const pct = capacityAvailablePct(candidate.capacityKgPerDay, candidate.currentLoadKg)
-  return [
+  const reasons = [
     formatDistance(candidate.distanceKm),
     formatPrice(candidate.pricePerKg),
     `Currently accepting ${toCanonicalMaterialCode(materialCode)}`,
     formatCapacity(pct)
   ]
+  if (!candidate.withinServiceRadius) reasons.push('Outside their usual service area')
+  return reasons
 }
 
 function buildWhySelected(
@@ -134,11 +139,14 @@ function buildWhySelected(
   pool: Array<Omit<ScoredMatch, 'whySelected'>>
 ): string[] {
   const why: string[] = []
-  const closest = Math.min(...pool.map(entry => entry.distanceKm))
+  const withinPool = pool.filter(entry => entry.withinServiceRadius)
+  const distancePeers = withinPool.length > 0 ? withinPool : pool
+  const closest = Math.min(...distancePeers.map(entry => entry.distanceKm))
   const bestPrice = Math.max(...pool.map(entry => entry.pricePerKg))
   const mostCapacity = Math.max(...pool.map(entry => entry.capacityAvailablePct))
 
-  if (scored.distanceKm === closest) why.push('Closest eligible recycler')
+  if (!scored.withinServiceRadius) why.push('Outside their usual service area')
+  else if (scored.distanceKm === closest) why.push('Closest eligible recycler')
   else if (scored.distanceKm <= closest * 1.25) why.push('Nearby eligible recycler')
 
   if (scored.pricePerKg === bestPrice) why.push('Highest offered price')
@@ -185,12 +193,18 @@ export function scoreRecyclerMatches(
       matchScore,
       remainingCapacityKg: remainingCapacityKg(candidate.capacityKgPerDay, candidate.currentLoadKg),
       capacityAvailablePct: Math.round(capacityPct * 10) / 10,
+      withinServiceRadius: candidate.withinServiceRadius,
       reasons: buildReasons(candidate, materialCode),
       whySelected: [] as string[]
     }
   })
 
-  scored.sort((a, b) => b.matchScore - a.matchScore || a.distanceKm - b.distanceKm || b.pricePerKg - a.pricePerKg)
+  scored.sort((a, b) =>
+    b.matchScore - a.matchScore
+    || Number(b.withinServiceRadius) - Number(a.withinServiceRadius)
+    || a.distanceKm - b.distanceKm
+    || b.pricePerKg - a.pricePerKg
+  )
 
   return scored.map(entry => ({
     ...entry,
