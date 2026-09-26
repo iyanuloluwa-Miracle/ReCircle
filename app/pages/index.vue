@@ -21,7 +21,7 @@ async function submitArea() {
             <label for="hero-area">See what we offer in your neighborhood</label>
             <div class="hero-area-input">
               <span class="hero-area-icon" aria-hidden="true">
-                <AppIcon name="pin" :size="18" />
+                <AppIcon name="pin" :size="18" tone="brand" />
               </span>
               <input
                 id="hero-area"

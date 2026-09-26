@@ -129,7 +129,7 @@ function onKeydown(event: KeyboardEvent) {
       @click="toggle"
     >
       <span class="ai-assistant-fab-icon" aria-hidden="true">
-        <DashboardIcon :name="open ? 'close' : 'spark'" />
+        <DashboardIcon :name="open ? 'close' : 'spark'" :tone="open ? 'plain' : 'brand'" />
       </span>
       <span class="ai-assistant-fab-label">{{ open ? 'Close' : 'Ask ReCircle' }}</span>
     </button>
@@ -147,7 +147,7 @@ function onKeydown(event: KeyboardEvent) {
       <header class="ai-assistant-header">
         <div class="ai-assistant-heading">
           <span class="ai-assistant-heading-icon" aria-hidden="true">
-            <DashboardIcon name="spark" />
+            <DashboardIcon name="spark" tone="brand" />
           </span>
           <div>
             <p class="eyebrow">ReCircle AI</p>

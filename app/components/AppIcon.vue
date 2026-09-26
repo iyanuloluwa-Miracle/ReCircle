@@ -3,38 +3,38 @@ import type { Component } from 'vue'
 import {
   ArrowRight,
   ArrowUpRight,
-  BarChart3,
+  BadgeCheck,
   Bell,
-  Building2,
-  Calendar,
+  CalendarClock,
   Camera,
+  ChartColumnIncreasing,
   Check,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
   Eye,
   EyeOff,
+  Factory,
+  HandCoins,
+  Handshake,
   Home,
   Image,
   Info,
-  LayoutGrid,
-  Leaf,
+  LayoutDashboard,
   LogOut,
-  MapPin,
+  MapPinned,
   Minus,
-  Package,
+  PackageOpen,
   Plus,
+  Recycle,
   RefreshCw,
-  Scale,
-  ScanLine,
+  Route,
+  ScanSearch,
   Settings,
-  ShieldCheck,
-  Sparkles,
+  Sparkle,
   Trash2,
-  Truck,
   Upload,
-  Users,
-  Wallet,
+  Weight,
   X
 } from 'lucide-vue-next'
 
@@ -77,46 +77,50 @@ export type AppIconName =
   | 'alert'
   | 'external'
 
+export type AppIconTone = 'plain' | 'brand'
+
 const props = withDefaults(defineProps<{
   name: AppIconName | string
   size?: number | string
   strokeWidth?: number | string
+  tone?: AppIconTone
   class?: string
 }>(), {
   size: 24,
-  strokeWidth: 1.75
+  strokeWidth: undefined,
+  tone: 'plain'
 })
 
 const icons: Record<AppIconName, Component> = {
-  overview: LayoutGrid,
-  chart: BarChart3,
-  scan: ScanLine,
+  overview: LayoutDashboard,
+  chart: ChartColumnIncreasing,
+  scan: ScanSearch,
   arrow: ArrowRight,
   home: Home,
-  leaf: Leaf,
-  wallet: Wallet,
-  truck: Truck,
-  spark: Sparkles,
-  sparkles: Sparkles,
+  leaf: Recycle,
+  wallet: HandCoins,
+  truck: Route,
+  spark: Sparkle,
+  sparkles: Sparkle,
   check: Check,
   close: X,
   logout: LogOut,
   settings: Settings,
-  box: Package,
-  calendar: Calendar,
-  people: Users,
+  box: PackageOpen,
+  calendar: CalendarClock,
+  people: Handshake,
   bell: Bell,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
   chevron: ChevronRight,
   camera: Camera,
   image: Image,
-  pin: MapPin,
-  scale: Scale,
+  pin: MapPinned,
+  scale: Weight,
   trash: Trash2,
   refresh: RefreshCw,
-  building: Building2,
-  shield: ShieldCheck,
+  building: Factory,
+  shield: BadgeCheck,
   upload: Upload,
   eye: Eye,
   'eye-off': EyeOff,
@@ -128,14 +132,18 @@ const icons: Record<AppIconName, Component> = {
 }
 
 const icon = computed(() => icons[props.name as AppIconName] ?? icons.leaf)
+const resolvedStroke = computed(() => {
+  if (props.strokeWidth != null) return props.strokeWidth
+  return props.tone === 'brand' ? 2 : 1.75
+})
 </script>
 
 <template>
   <component
     :is="icon"
     :size="size"
-    :stroke-width="strokeWidth"
-    :class="['app-icon', props.class]"
+    :stroke-width="resolvedStroke"
+    :class="['app-icon', tone === 'brand' ? 'app-icon--brand' : null, props.class]"
     aria-hidden="true"
   />
 </template>

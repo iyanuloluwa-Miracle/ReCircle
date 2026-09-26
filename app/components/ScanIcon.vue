@@ -2,9 +2,13 @@
 withDefaults(defineProps<{
   name: 'camera' | 'image' | 'pin' | 'arrow' | 'check' | 'sparkles' | 'leaf' | 'scale' | 'chevron' | 'trash' | 'refresh' | 'building' | 'shield' | 'upload'
   size?: number
-}>(), { size: 20 })
+  tone?: 'plain' | 'brand'
+}>(), {
+  size: 20,
+  tone: 'plain'
+})
 </script>
 
 <template>
-  <AppIcon :name="name" :size="size" />
+  <AppIcon :name="name" :size="size" :tone="tone" />
 </template>

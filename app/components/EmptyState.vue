@@ -16,7 +16,7 @@ const icon = computed(() => {
 </script>
 <template>
   <div class="empty-state" :class="{ 'empty-state--compact': compact }">
-    <span class="empty-symbol" aria-hidden="true"><DashboardIcon :name="icon" /></span>
+    <span class="empty-symbol" aria-hidden="true"><DashboardIcon :name="icon" tone="brand" /></span>
     <h2>{{ title }}</h2>
     <p>{{ description }}</p>
     <div v-if="$slots.default" class="empty-action"><slot /></div>

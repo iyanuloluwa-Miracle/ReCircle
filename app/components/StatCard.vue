@@ -13,7 +13,7 @@ const icon = computed(() => {
 </script>
 <template>
   <BaseCard class="stat-card" :class="{ 'stat-card--accent': accent }">
-    <div class="stat-card-top"><p class="eyebrow">{{ label }}</p><span class="stat-icon"><DashboardIcon :name="icon" /></span></div>
+    <div class="stat-card-top"><p class="eyebrow">{{ label }}</p><span class="stat-icon"><DashboardIcon :name="icon" tone="brand" /></span></div>
     <LoadingSkeleton v-if="loading" :lines="2" />
     <template v-else><p class="stat-value">{{ value ?? '—' }}</p><p v-if="detail" class="muted stat-detail">{{ detail }}</p></template>
   </BaseCard>

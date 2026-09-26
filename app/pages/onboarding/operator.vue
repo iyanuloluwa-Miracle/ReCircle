@@ -63,7 +63,7 @@ useSeoMeta({ title: 'Admin setup — ReCircle', robots: 'noindex' })
           <span class="onboard-guide-rail" aria-hidden="true" />
           <span class="onboard-guide-number">{{ String(index + 1).padStart(2, '0') }}</span>
           <span class="onboard-guide-icon">
-            <ScanIcon :name="guide.icon" :size="18" />
+            <ScanIcon :name="guide.icon" :size="18" tone="brand" />
           </span>
           <div class="onboard-guide-copy">
             <strong>{{ guide.title }}</strong>

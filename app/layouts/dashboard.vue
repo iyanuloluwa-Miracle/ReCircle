@@ -145,11 +145,11 @@ async function signOut() {
       <p class="eyebrow workspace-label">Workspace</p>
       <nav class="workspace-nav" aria-label="Workspace navigation">
         <NuxtLink v-for="item in navigation" :key="item.to" :to="item.to" class="workspace-nav-item" :class="{ 'is-active': item.active }" :aria-current="item.active ? 'page' : undefined" :title="desktopSidebarCollapsed ? item.label : undefined">
-          <DashboardIcon :name="item.icon" /><span>{{ item.label }}</span><span v-if="item.active" class="workspace-active-dot" aria-hidden="true" />
+          <DashboardIcon :name="item.icon" tone="brand" /><span>{{ item.label }}</span><span v-if="item.active" class="workspace-active-dot" aria-hidden="true" />
         </NuxtLink>
       </nav>
       <div class="workspace-sidebar-impact">
-        <span class="workspace-impact-icon"><DashboardIcon name="leaf" /></span>
+        <span class="workspace-impact-icon"><DashboardIcon name="leaf" tone="brand" /></span>
         <p>A little greener,<br><strong>every day.</strong></p>
         <span>Give your recyclables a new beginning.</span>
         <NuxtLink v-if="user?.role === 'user'" to="/scan">Make your next scan <DashboardIcon name="arrow" /></NuxtLink>
@@ -172,7 +172,7 @@ async function signOut() {
           <div class="workspace-crumb"><span class="workspace-crumb-brand">Workspace</span><span class="workspace-crumb-sep" aria-hidden="true">/</span><span>{{ headerCrumb }}</span></div>
         </div>
         <p v-if="headerNudge" class="workspace-header-nudge" aria-live="polite">
-          <span class="workspace-header-nudge-icon" aria-hidden="true"><DashboardIcon :name="headerNudge.icon" /></span>
+          <span class="workspace-header-nudge-icon" aria-hidden="true"><DashboardIcon :name="headerNudge.icon" tone="brand" /></span>
           <span>{{ headerNudge.text }}</span>
         </p>
         <div class="workspace-header-actions">

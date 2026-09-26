@@ -43,13 +43,13 @@ function onPlaceSelect(payload: { location: NonNullable<typeof pickup.location.v
   <div class="scan-workspace">
     <header class="scan-page-heading">
       <div><p class="scan-eyebrow">A little action. A new beginning.</p><h1>Scan an item<span>.</span></h1><p>Find out what it is, what it’s worth, and where it can go next.</p></div>
-      <span class="scan-heading-chip"><ScanIcon name="sparkles" :size="16" /> AI-powered identification</span>
+      <span class="scan-heading-chip"><ScanIcon name="sparkles" :size="16" tone="brand" /> AI-powered identification</span>
     </header>
     <ScanSteps :current="1" />
 
     <div class="scan-capture-grid">
       <section class="scan-panel scan-photo-panel" aria-labelledby="photo-heading">
-        <header class="scan-panel-heading"><div class="scan-heading-with-icon"><span class="scan-icon-box"><ScanIcon name="camera" /></span><div><h2 id="photo-heading">Start with a photo</h2><p>One material at a time works best.</p></div></div><span class="scan-small-number">01</span></header>
+        <header class="scan-panel-heading"><div class="scan-heading-with-icon"><span class="scan-icon-box"><ScanIcon name="camera" tone="brand" /></span><div><h2 id="photo-heading">Start with a photo</h2><p>One material at a time works best.</p></div></div><span class="scan-small-number">01</span></header>
         <div
           class="scan-dropzone" :class="{ 'is-dragging': dragging, 'has-preview': upload.previewUrl.value }"
           role="button" :tabindex="upload.busy.value ? -1 : 0" :aria-disabled="upload.busy.value" :aria-label="upload.previewUrl.value ? 'Change selected photo' : 'Choose a photo of your recyclable item'"
@@ -72,7 +72,7 @@ function onPlaceSelect(payload: { location: NonNullable<typeof pickup.location.v
 
       <aside class="scan-side-stack">
         <section class="scan-panel scan-location-panel" aria-labelledby="pickup-heading">
-          <header class="scan-heading-with-icon"><span class="scan-icon-box"><ScanIcon name="pin" /></span><div><h2 id="pickup-heading">Set a pickup point</h2><p>A nearby recycler starts here.</p></div></header>
+          <header class="scan-heading-with-icon"><span class="scan-icon-box"><ScanIcon name="pin" tone="brand" /></span><div><h2 id="pickup-heading">Set a pickup point</h2><p>A nearby recycler starts here.</p></div></header>
           <div class="scan-location-state" :class="{ 'is-ready': pickup.location.value }"><ScanIcon :name="pickup.location.value ? 'check' : 'pin'" :size="18" /><div><strong>{{ pickup.location.value ? 'Pickup location set' : 'Where is your item?' }}</strong><p>{{ pickup.label.value }}</p></div></div>
           <p v-if="pickup.source.value === 'demo'" class="scan-demo-note">You’re using the demo pickup point in Africa. You can set your own below.</p>
           <p v-else-if="pickup.label.value === 'Saved pickup location'" class="scan-demo-note">Using your saved pickup location. Change it below if this item is elsewhere.</p>
@@ -89,7 +89,7 @@ function onPlaceSelect(payload: { location: NonNullable<typeof pickup.location.v
           <p v-if="pickup.error.value" class="scan-alert scan-alert--error" role="alert">{{ pickup.error.value }}</p>
         </section>
         <section class="scan-continue-panel" aria-labelledby="next-heading">
-          <div class="scan-continue-title"><span class="scan-dark-icon"><ScanIcon name="leaf" :size="22" /></span><h2 id="next-heading">Ready for a second life?</h2></div><p>We’ll save your photo and pickup point, then help identify the material.</p>
+          <div class="scan-continue-title"><span class="scan-dark-icon"><ScanIcon name="leaf" :size="22" tone="brand" /></span><h2 id="next-heading">Ready for a second life?</h2></div><p>We’ll save your photo and pickup point, then help identify the material.</p>
           <ul class="scan-readiness"><li :class="{ 'is-ready': upload.file.value }"><span><ScanIcon v-if="upload.file.value" name="check" :size="12" /></span>{{ upload.file.value ? 'Photo added' : 'Add an item photo' }}</li><li :class="{ 'is-ready': pickup.location.value }"><span><ScanIcon v-if="pickup.location.value" name="check" :size="12" /></span>{{ pickup.location.value ? 'Pickup point set' : 'Set a pickup point' }}</li></ul>
           <div v-if="upload.busy.value" class="scan-upload-progress" role="status" aria-live="polite"><div><span>{{ upload.stage.value === 'token' ? 'Preparing your upload' : upload.stage.value === 'saving' ? 'Saving your item' : 'Uploading photo' }}</span><strong>{{ upload.progress.value }}%</strong></div><progress :value="upload.progress.value" max="100" aria-label="Photo upload progress" /></div>
           <BaseButton variant="secondary" class="scan-full-button" :disabled="!upload.file.value || upload.busy.value" :loading="upload.busy.value" @click="saveDraft">{{ upload.uploadedPath.value ? 'Retry saving item' : 'Upload & continue' }}<ScanIcon v-if="!upload.busy.value" name="arrow" :size="18" /></BaseButton>
