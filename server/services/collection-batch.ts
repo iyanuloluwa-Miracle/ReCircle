@@ -28,7 +28,7 @@ export async function optimizeCollectionBatches(options?: {
       explanation: 'ReCircle groups nearby pickups to reduce unnecessary collection travel.',
       disclaimer: 'Straight-line estimates only — not road-routing optimization.',
       zones: [
-        { id: ALL_NIGERIA_ZONE_ID, name: 'All Nigeria' },
+        { id: ALL_NIGERIA_ZONE_ID, name: 'All regions' },
         ...nigeriaAreas.map(area => ({ id: area.id, name: area.name }))
       ],
       batches: [],
@@ -74,7 +74,7 @@ export async function optimizeCollectionBatches(options?: {
     explanation: 'ReCircle groups nearby pickups to reduce unnecessary collection travel.',
     disclaimer: 'Suggested collection sequence uses straight-line nearest-neighbour heuristics — not actual road routing.',
     zones: [
-      { id: ALL_NIGERIA_ZONE_ID, name: 'All Nigeria' },
+      { id: ALL_NIGERIA_ZONE_ID, name: 'All regions' },
       ...nigeriaAreas.map(area => ({ id: area.id, name: area.name }))
     ],
     batches,

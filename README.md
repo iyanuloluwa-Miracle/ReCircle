@@ -1,6 +1,6 @@
 # ReCircle ♻️
 
-ReCircle is a Nigeria-focused recycling coordination platform that makes recycling more practical, transparent, and rewarding. It helps people identify recyclable materials, estimate their value, find suitable nearby recyclers, and request pickups—all from one streamlined experience.
+ReCircle is an Africa-focused recycling coordination platform that makes recycling more practical, transparent, and rewarding. It helps people identify recyclable materials, estimate their value, find suitable nearby recyclers, and request pickups—all from one streamlined experience.
 
 Built to connect consumers, recycling companies, and platform admins, ReCircle turns the journey from “I have recyclable waste” into a clear, trackable workflow—and gives partner companies a shared channel to discover supply, manage capacity, and complete collections.
 
@@ -8,7 +8,7 @@ Built to connect consumers, recycling companies, and platform admins, ReCircle t
 
 | | |
 |---|---|
-| **Target audience** | Everyday consumers with recyclable waste at home or work; partner recycling companies and collection yards that buy materials and run pickups; and internal admins who oversee the network across cities in Nigeria. |
+| **Target audience** | Everyday consumers with recyclable waste at home or work; partner recycling companies and collection yards that buy materials and run pickups; and internal admins who oversee the network across cities in Africa. |
 | **Demo video** | [Watch the ReCircle walkthrough](https://www.youtube.com/watch?v=PLACEHOLDER_RECIRCLE_DEMO) *(dummy link — replace with the real demo)* |
 
 ## Screenshots
@@ -59,7 +59,7 @@ The platform follows the full recycling journey:
 - AI-assisted waste classification with confidence scores and safety/preparation guidance
 - Consumer confirmation and correction when AI confidence is low
 - Location-aware recycler matching based on distance, pricing, accepted materials, service radius, and available capacity
-- Transparent estimated recycling value in Nigerian Naira (NGN), including fractional amounts (for example `NGN 1.08`)
+- Transparent estimated recycling value in local currency (NGN via Paystack), including fractional amounts (for example `NGN 1.08`)
 - Pickup request lifecycle with clear statuses from pending to completed
 - Role-based dashboards for consumers, recyclers, and admins
 - Partnership-ready recycler profiles so companies can publish materials, pricing, and capacity in one place

@@ -17,7 +17,7 @@ const guideSteps = [
   {
     icon: 'building' as const,
     title: 'Capacity',
-    detail: 'Review recycler utilization across Nigeria.'
+    detail: 'Review recycler utilization across Africa.'
   },
   {
     icon: 'pin' as const,

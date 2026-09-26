@@ -160,7 +160,7 @@ async function signOut() {
           <div class="workspace-user-avatar" aria-hidden="true"><img v-if="avatarSrc" :src="avatarSrc" alt=""><span v-else>{{ user.name.slice(0, 1).toUpperCase() }}</span></div>
           <div class="workspace-user-copy"><strong>{{ user.name }}</strong><span>{{ roleLabel[user.role] }} account</span></div>
         </div>
-        <p class="workspace-note"><span class="status-dot" /> Made for a greener Nigeria</p>
+        <p class="workspace-note"><span class="status-dot" /> Made for a greener Africa</p>
       </div>
     </aside>
     <div class="workspace-body" :inert="isMobile && navOpen">

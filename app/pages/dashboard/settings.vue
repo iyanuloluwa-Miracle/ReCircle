@@ -453,7 +453,7 @@ onUnmounted(() => {
           required
         >
         <p v-if="!payoutBanks.length && !payoutError" class="muted">
-          Add Paystack TEST keys to load Nigerian banks and enable transfers.
+          Add Paystack TEST keys to load supported banks and enable transfers.
         </p>
         <p v-if="payoutError" class="form-error" role="alert">{{ payoutError }}</p>
         <p v-else-if="payoutSuccess" class="settings-success" role="status">{{ payoutSuccess }}</p>

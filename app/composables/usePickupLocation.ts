@@ -38,7 +38,7 @@ export function usePickupLocation() {
   if (auth.user.value?.isDemo && auth.user.value.location) {
     location.value = auth.user.value.location
     source.value = 'demo'
-    label.value = 'Demo pickup location · Nigeria'
+    label.value = 'Demo pickup location · Africa'
   } else if (auth.user.value?.location) {
     location.value = auth.user.value.location
     source.value = 'manual'
@@ -116,7 +116,7 @@ export function usePickupLocation() {
         ? Number((err as { statusCode?: number }).statusCode)
         : undefined
       if (status === 404) {
-        error.value = 'No matching address found in Nigeria. Try a clearer street or area name.'
+        error.value = 'No matching address found in Africa. Try a clearer street or area name.'
       } else if (status === 503) {
         error.value = 'Google Maps is not configured yet. Add the Maps API keys to continue.'
       } else {

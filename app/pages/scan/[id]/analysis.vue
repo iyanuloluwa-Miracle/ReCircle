@@ -162,7 +162,7 @@ function label(value: string | null) {
     <div v-else class="scan-analysis-grid">
       <aside class="scan-item-aside">
         <figure class="scan-item-image" :class="{ 'is-analyzing': analyzing }"><img v-if="!imageFailed" :src="data.imageUrl" alt="Your uploaded item for material analysis" @error="imageFailed = true"><div v-else class="scan-image-unavailable" role="img" aria-label="Item photo unavailable"><ScanIcon name="image" :size="32" /><span>Your item photo is unavailable</span></div><figcaption><ScanIcon :name="data.status === 'draft' ? 'image' : 'check'" :size="15" />{{ analyzing ? 'Analyzing your photo…' : data.status === 'draft' ? 'Your uploaded photo' : 'Material reviewed' }}</figcaption><div v-if="analyzing" class="scan-analysis-sweep" aria-hidden="true" /></figure>
-        <div class="scan-image-meta"><ScanIcon name="pin" :size="18" /><div><strong>Pickup point saved</strong><p>{{ data.locationSource === 'demo' ? 'Demo pickup point · Nigeria' : data.locationSource === 'device' ? 'Current device location' : 'Manually entered location' }}</p></div></div>
+        <div class="scan-image-meta"><ScanIcon name="pin" :size="18" /><div><strong>Pickup point saved</strong><p>{{ data.locationSource === 'demo' ? 'Demo pickup point · Africa' : data.locationSource === 'device' ? 'Current device location' : 'Manually entered location' }}</p></div></div>
         <div class="scan-analysis-note"><ScanIcon name="shield" :size="20" /><p>AI identifies visible material. You can always confirm or correct the result.</p></div>
         <BaseButton to="/scan" variant="ghost" size="sm"><ScanIcon name="camera" :size="17" />Scan another item</BaseButton>
       </aside>

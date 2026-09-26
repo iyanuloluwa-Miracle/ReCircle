@@ -62,7 +62,7 @@ const columns = [
       </div>
 
       <div class="footer-bottom">
-        <p>© {{ year }} ReCircle. Built for Nigeria.</p>
+        <p>© {{ year }} ReCircle. Built for Africa.</p>
       </div>
     </div>
   </footer>

@@ -42,8 +42,6 @@ export default defineEventHandler(async (event): Promise<GeocodeResponse> => {
 
   const url = new URL('https://maps.googleapis.com/maps/api/geocode/json')
   url.searchParams.set('address', query)
-  url.searchParams.set('components', 'country:NG')
-  url.searchParams.set('region', 'ng')
   url.searchParams.set('key', googleMapsApiKey)
 
   let payload: GoogleGeocodeResponse
@@ -54,7 +52,7 @@ export default defineEventHandler(async (event): Promise<GeocodeResponse> => {
   }
 
   if (payload.status === 'ZERO_RESULTS' || !payload.results?.length) {
-    throw createError({ statusCode: 404, statusMessage: 'No matching address found in Nigeria' })
+    throw createError({ statusCode: 404, statusMessage: 'No matching address found in Africa' })
   }
   if (payload.status && payload.status !== 'OK') {
     throw createError({
@@ -69,7 +67,7 @@ export default defineEventHandler(async (event): Promise<GeocodeResponse> => {
   if (typeof lat !== 'number' || typeof lng !== 'number'
     || !Number.isFinite(lat) || !Number.isFinite(lng)
     || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-    throw createError({ statusCode: 404, statusMessage: 'No matching address found in Nigeria' })
+    throw createError({ statusCode: 404, statusMessage: 'No matching address found in Africa' })
   }
 
   const label = typeof hit.formatted_address === 'string' && hit.formatted_address.trim()

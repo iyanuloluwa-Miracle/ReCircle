@@ -28,8 +28,8 @@ type MapsApi = {
   }
 }
 
-const NIGERIA_CENTER = { lat: 9.082, lng: 8.6753 }
-const DEFAULT_ZOOM = 6
+const AFRICA_CENTER = { lat: 1.5, lng: 17.5 }
+const DEFAULT_ZOOM = 3
 const SELECTED_ZOOM = 15
 
 const props = withDefaults(defineProps<{
@@ -43,7 +43,7 @@ const props = withDefaults(defineProps<{
   label: '',
   disabled: false,
   inputId: 'place-picker-input',
-  placeholder: 'Search an address in Nigeria'
+  placeholder: 'Search an address in Africa'
 })
 
 const emit = defineEmits<{
@@ -57,7 +57,7 @@ const STATUS_LABELS = new Set([
   'Choose a pickup location',
   'Saved pickup location',
   'Current device location',
-  'Demo pickup location · Nigeria',
+  'Demo pickup location · Africa',
   'Manually entered pickup location',
   'Selected pickup location'
 ])
@@ -117,7 +117,7 @@ async function geocodeTypedAddress() {
       ? Number((err as { statusCode?: number }).statusCode)
       : undefined
     if (status === 404) {
-      loadError.value = 'No matching address found in Nigeria. Try a clearer street or area name.'
+      loadError.value = 'No matching address found in Africa. Try a clearer street or area name.'
     } else if (status === 503) {
       loadError.value = 'Google Maps is not configured yet. Add the Maps API keys to continue.'
     } else {
@@ -155,7 +155,7 @@ onMounted(async () => {
     if (!mapEl.value || !inputEl.value || !mapsApi) return
 
     map = new mapsApi.Map(mapEl.value, {
-      center: props.location ? pointToLatLng(props.location) : NIGERIA_CENTER,
+      center: props.location ? pointToLatLng(props.location) : AFRICA_CENTER,
       zoom: props.location ? SELECTED_ZOOM : DEFAULT_ZOOM,
       disableDefaultUI: true,
       zoomControl: true,
@@ -169,7 +169,6 @@ onMounted(async () => {
 
     autocomplete = new mapsApi.places.Autocomplete(inputEl.value, {
       fields: ['formatted_address', 'geometry', 'name'],
-      componentRestrictions: { country: 'ng' },
       types: ['geocode']
     })
     autocomplete.bindTo('bounds', map)
@@ -240,7 +239,7 @@ onBeforeUnmount(() => {
       class="place-picker-map"
       :class="{ 'is-ready': mapsReady && location }"
       role="img"
-      :aria-label="location ? `Map pin for ${label || 'selected location'}` : 'Map preview of Nigeria'"
+      :aria-label="location ? `Map pin for ${label || 'selected location'}` : 'Map preview of Africa'"
     />
     <p v-if="loadError" class="place-picker-error" role="alert">{{ loadError }}</p>
   </div>

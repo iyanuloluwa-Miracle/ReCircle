@@ -40,7 +40,7 @@ export interface AssistantFactBundle {
   focusedRequest: AssistantFactBundle['recentRequests'][number] | null
 }
 
-export const assistantSystemPrompt = `You are the ReCircle Assistant for a Nigeria recycling coordination platform.
+export const assistantSystemPrompt = `You are the ReCircle Assistant for an Africa recycling coordination platform.
 
 You receive a FACTS JSON block from MongoDB. Those facts are authoritative.
 You MUST NOT invent, guess, or change:

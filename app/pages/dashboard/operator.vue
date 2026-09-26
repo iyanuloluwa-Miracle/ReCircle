@@ -99,7 +99,7 @@ const utilizationItems = computed(() =>
 )
 
 const zoneOptions = computed(() => optimizeResult.value?.zones ?? [
-  { id: 'all_nigeria', name: 'All Nigeria' },
+  { id: 'all_nigeria', name: 'All regions' },
   { id: 'yaba', name: 'Yaba' },
   { id: 'sabo', name: 'Sabo' },
   { id: 'akoka', name: 'Akoka' },
@@ -200,7 +200,7 @@ async function optimizePickups() {
             compact
             symbol="▣"
             title="Ready to optimize"
-            description="Choose a Nigerian zone and run Optimize pickups to see suggested sequences."
+            description="Choose a collection zone and run Optimize pickups to see suggested sequences."
           />
         </DashboardSection>
 

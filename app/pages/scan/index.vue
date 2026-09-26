@@ -74,7 +74,7 @@ function onPlaceSelect(payload: { location: NonNullable<typeof pickup.location.v
         <section class="scan-panel scan-location-panel" aria-labelledby="pickup-heading">
           <header class="scan-heading-with-icon"><span class="scan-icon-box"><ScanIcon name="pin" /></span><div><h2 id="pickup-heading">Set a pickup point</h2><p>A nearby recycler starts here.</p></div></header>
           <div class="scan-location-state" :class="{ 'is-ready': pickup.location.value }"><ScanIcon :name="pickup.location.value ? 'check' : 'pin'" :size="18" /><div><strong>{{ pickup.location.value ? 'Pickup location set' : 'Where is your item?' }}</strong><p>{{ pickup.label.value }}</p></div></div>
-          <p v-if="pickup.source.value === 'demo'" class="scan-demo-note">You’re using the demo pickup point in Nigeria. You can set your own below.</p>
+          <p v-if="pickup.source.value === 'demo'" class="scan-demo-note">You’re using the demo pickup point in Africa. You can set your own below.</p>
           <p v-else-if="pickup.label.value === 'Saved pickup location'" class="scan-demo-note">Using your saved pickup location. Change it below if this item is elsewhere.</p>
           <BaseButton variant="ghost" class="scan-outline-button scan-full-button" :loading="pickup.pending.value" :disabled="pickup.pending.value || upload.busy.value" @click="pickup.useDeviceLocation()"><ScanIcon v-if="!pickup.pending.value" name="pin" :size="17" />{{ pickup.pending.value ? 'Finding your location…' : 'Use current location' }}</BaseButton>
           <PlacePicker

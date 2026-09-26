@@ -30,7 +30,7 @@ test('haversine distance is symmetric and zero for identical points', () => {
   assert.ok(haversineKm(a, b) > 4 && haversineKm(a, b) < 6)
 })
 
-test('nearest area label picks the closest Nigerian demo area', () => {
+test('nearest area label picks the closest demo area', () => {
   assert.equal(nearestAreaName({ latitude: 6.5095, longitude: 3.3889 }), 'Yaba')
   assert.equal(nearestAreaName({ latitude: 6.5512, longitude: 3.3891 }), 'Gbagada')
 })

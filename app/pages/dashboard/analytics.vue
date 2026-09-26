@@ -175,7 +175,7 @@ function values(key: string) {
         <DashboardSection
           v-if="data.role === 'admin'"
           title="Geographic / zone distribution"
-          description="Kg attributed to nearest Nigerian area."
+          description="Kg attributed to nearest African area."
         >
           <AnalyticsChart
             type="bar"
@@ -184,7 +184,7 @@ function values(key: string) {
             :values="values('zoneDistribution')"
             dataset-label="Kg by zone"
             empty-title="No geo distribution yet"
-            empty-description="Pickup locations map to Nigerian zones when requests exist."
+            empty-description="Pickup locations map to African zones when requests exist."
           />
         </DashboardSection>
       </div>

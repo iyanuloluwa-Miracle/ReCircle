@@ -82,7 +82,7 @@ export function useGoogleMaps() {
       script.id = SCRIPT_ID
       script.async = true
       script.defer = true
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey.value)}&libraries=places&callback=__recircleGoogleMapsReady&v=weekly&region=NG&language=en`
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey.value)}&libraries=places&callback=__recircleGoogleMapsReady&v=weekly&language=en`
       script.onerror = () => {
         fail('Could not load Google Maps. Check your network and NUXT_PUBLIC_GOOGLE_MAPS_API_KEY.')
       }

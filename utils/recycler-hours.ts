@@ -42,7 +42,7 @@ export const alwaysOpenOperatingHours: OperatingHoursDay[] = [
 ]
 
 /**
- * Nigeria is currently the supported collection market, so matching is evaluated in WAT.
+ * Matching hours are evaluated in WAT (Africa/Lagos) as the default operating timezone.
  * Recyclers without an explicit schedule stay matchable; availability still gates them.
  */
 export function isOpenForMatching(hours?: OperatingHoursDay[] | null, now = new Date()) {

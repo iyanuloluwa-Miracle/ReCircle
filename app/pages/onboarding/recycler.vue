@@ -151,7 +151,7 @@ useSeoMeta({ title: 'Recycler setup — ReCircle', robots: 'noindex' })
           :location="pickup.location.value"
           :label="pickup.label.value"
           :disabled="pickup.pending.value"
-          placeholder="Yard address in Nigeria"
+          placeholder="Yard address in Africa"
           @select="({ location, label }) => pickup.setPlace(location, label, 'manual')"
         />
         <div class="auth-form">

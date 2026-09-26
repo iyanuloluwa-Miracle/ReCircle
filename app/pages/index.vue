@@ -31,7 +31,7 @@ async function submitArea() {
                 v-model="area"
                 type="text"
                 autocomplete="address-level2"
-                placeholder="Enter your area in Nigeria"
+                placeholder="Enter your area in Africa"
                 required
               >
             </div>
@@ -70,7 +70,7 @@ async function submitArea() {
     <section id="the-mission" class="section container">
       <div class="mission-panel">
         <div>
-          <p class="eyebrow">Made for the Nigeria we believe in</p>
+          <p class="eyebrow">Made for the Africa we believe in</p>
           <h2>Waste is a challenge.<br>What comes next is<br><span>an opportunity.</span></h2>
         </div>
         <div class="mission-copy">
@@ -81,7 +81,7 @@ async function submitArea() {
     </section>
 
     <BaseModal v-model:open="showPreview" title="Building a better circle">
-      <p class="muted">ReCircle helps Nigeria identify recyclables, estimate their worth, and coordinate pickup with trusted recyclers — so less waste is lost and more value stays in the community.</p>
+      <p class="muted">ReCircle helps Africa identify recyclables, estimate their worth, and coordinate pickup with trusted recyclers — so less waste is lost and more value stays in the community.</p>
       <template #footer><BaseButton @click="showPreview = false">Got it</BaseButton></template>
     </BaseModal>
   </div>

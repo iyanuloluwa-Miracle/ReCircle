@@ -11,7 +11,7 @@ import { Message } from '../server/models/Message.ts'
 const owner = new Types.ObjectId()
 const location = { type: 'Point', coordinates: [3.39, 6.45] }
 
-test('GeoJSON accepts Nigerian coordinates and rejects out-of-range coordinates', async () => {
+test('GeoJSON accepts valid coordinates and rejects out-of-range coordinates', async () => {
   const user = new User({ name: 'Demo User', email: 'demo@example.invalid', passwordHash: 'hash', role: 'user', location })
   assert.equal(await user.validate(), undefined)
   user.location = { type: 'Point', coordinates: [6.45, 190] }

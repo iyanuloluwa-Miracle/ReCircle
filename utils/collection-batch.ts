@@ -23,7 +23,7 @@ export interface NamedArea {
   radiusKm: number
 }
 
-/** Demo Nigerian areas for zone filters and sequence labels. */
+/** Demo areas for zone filters and sequence labels (sample African cities). */
 export const nigeriaAreas: NamedArea[] = [
   { id: 'yaba', name: 'Yaba', latitude: 6.5095, longitude: 3.3889, radiusKm: 3.5 },
   { id: 'sabo', name: 'Sabo', latitude: 6.5055, longitude: 3.3795, radiusKm: 2.5 },

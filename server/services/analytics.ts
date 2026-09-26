@@ -324,7 +324,7 @@ async function operatorAnalytics() {
     ])
   ])
 
-  // Map reduced geo buckets (not every request) onto named Nigerian zones.
+  // Map reduced geo buckets (not every request) onto named African zones.
   const zoneTotals = new Map<string, number>()
   for (const bucket of geoBuckets) {
     const zone = nearestAreaName({ latitude: bucket.lat, longitude: bucket.lng }, nigeriaAreas)
