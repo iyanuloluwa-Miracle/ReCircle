@@ -39,7 +39,7 @@ onUnmounted(() => {
         <NuxtLink to="/#faq" @click="open = false">FAQ</NuxtLink>
         <NuxtLink to="/#the-mission" @click="open = false">The mission</NuxtLink>
         <NuxtLink to="/login" @click="open = false">Sign in</NuxtLink>
-        <BaseButton to="/register" size="sm">Get started <span aria-hidden="true">↗</span></BaseButton>
+        <BaseButton to="/register" size="sm">Get started <AppIcon name="external" :size="14" /></BaseButton>
       </div>
     </nav>
   </header>

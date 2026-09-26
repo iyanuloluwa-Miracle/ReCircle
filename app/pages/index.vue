@@ -21,10 +21,7 @@ async function submitArea() {
             <label for="hero-area">See what we offer in your neighborhood</label>
             <div class="hero-area-input">
               <span class="hero-area-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
-                  <path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z" stroke="currentColor" stroke-width="1.8" />
-                  <circle cx="12" cy="10" r="2.4" stroke="currentColor" stroke-width="1.8" />
-                </svg>
+                <AppIcon name="pin" :size="18" />
               </span>
               <input
                 id="hero-area"
@@ -75,7 +72,7 @@ async function submitArea() {
         </div>
         <div class="mission-copy">
           <p>We believe recycling should feel like a natural next step. ReCircle connects people with recyclers so materials move from homes to recovery with clarity and fair value.</p>
-          <BaseButton variant="secondary" @click="showPreview = true">Our mission <span aria-hidden="true">↗</span></BaseButton>
+          <BaseButton variant="secondary" @click="showPreview = true">Our mission <AppIcon name="external" :size="16" /></BaseButton>
         </div>
       </div>
     </section>

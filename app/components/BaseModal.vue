@@ -16,7 +16,9 @@ function close() { emit('update:open', false) }
     <div class="modal-content">
       <header class="modal-heading">
         <h2 :id="headingId">{{ title }}</h2>
-        <button class="icon-button" type="button" aria-label="Close dialog" @click="close">×</button>
+        <button class="icon-button" type="button" aria-label="Close dialog" @click="close">
+          <AppIcon name="close" :size="18" />
+        </button>
       </header>
       <slot />
       <footer v-if="$slots.footer" class="modal-footer"><slot name="footer" /></footer>

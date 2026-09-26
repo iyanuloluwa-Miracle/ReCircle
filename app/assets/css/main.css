@@ -26,6 +26,14 @@
 html { scroll-behavior: smooth; scroll-padding-top: 6.25rem; overflow-x: clip; }
 body { margin: 0; min-width: 20rem; overflow-x: clip; }
 img, video, svg { max-width: 100%; height: auto; }
+.app-icon,
+.dashboard-icon {
+  display: block;
+  flex-shrink: 0;
+  color: inherit;
+  max-width: none;
+  height: auto;
+}
 button, a, input { -webkit-tap-highlight-color: transparent; }
 button, a { touch-action: manipulation; }
 button { cursor: pointer; font: inherit; }
@@ -206,7 +214,19 @@ h1, h2, h3, p { margin: 0; }
 .modal { width: min(500px, calc(100% - 40px)); max-height: calc(100dvh - 48px); padding: 0; border: 0; border-radius: 18px; background: #fffef9; color: #263c34; margin: auto; }
 .modal::backdrop { background: #10281bd9; backdrop-filter: blur(4px); }
 .modal-content { padding: 28px; }.modal-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }.modal-heading h2 { font-size: 23px; letter-spacing: -.03em; }.modal-footer { display: flex; justify-content: end; margin-top: 24px; }
-.icon-button { width: 40px; height: 40px; border-radius: 50%; font-size: 26px; flex-shrink: 0; background: #edf1e4; }
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #edf1e4;
+  color: #263c34;
+}
+.icon-button:hover { background: #e2e8d6; }
 .empty-state { text-align: center; padding: 2.75rem 1rem; }
 .empty-state--compact { padding: 1.75rem .75rem 1.5rem; }
 .empty-symbol {
@@ -289,10 +309,10 @@ h1, h2, h3, p { margin: 0; }
 .toast-region { position: fixed; z-index: 200; top: max(1rem, env(safe-area-inset-top)); right: max(1rem, env(safe-area-inset-right)); display: grid; width: min(25rem, calc(100vw - 2rem)); gap: .7rem; pointer-events: none; }
 .toast { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 2rem; align-items: start; gap: .75rem; padding: .85rem; border: 1px solid #dfe7d9; border-radius: .85rem; background: #fffefa; color: #244335; box-shadow: 0 .8rem 2rem #123f3220; pointer-events: auto; }
 .toast--success { border-color: #cfe1bd; }.toast--error { border-color: #efd0c5; }.toast--info { border-color: #d8e4d1; }
-.toast-mark { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: #eef5e7; color: #3f7635; font-size: .9rem; font-weight: 800; }
+.toast-mark { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: #eef5e7; color: #3f7635; }
 .toast--error .toast-mark { background: #fff0ea; color: #a44431; }.toast--info .toast-mark { background: #edf3e8; color: #486642; }
 .toast-copy { min-width: 0; padding-top: .1rem; }.toast-copy strong { display: block; font-size: .8rem; font-weight: 700; line-height: 1.35; }.toast-copy p { margin: .2rem 0 0; color: #657269; font-size: .73rem; line-height: 1.5; }
-.toast-dismiss { display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: .45rem; background: transparent; color: #697565; font-size: 1.35rem; line-height: 1; }.toast-dismiss:hover { background: #eef2e9; color: #123f32; }.toast-dismiss:focus-visible { outline: 3px solid #6e974d; outline-offset: 2px; }
+.toast-dismiss { display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: .45rem; background: transparent; color: #697565; padding: 0; }.toast-dismiss:hover { background: #eef2e9; color: #123f32; }.toast-dismiss:focus-visible { outline: 3px solid #6e974d; outline-offset: 2px; }
 .toast-enter-active, .toast-leave-active { transition: opacity .2s ease, transform .2s ease; }.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(1rem); }
 
 /* Dashboard app shell — left sidebar + main viewport */
@@ -1920,8 +1940,6 @@ h1, h2, h3, p { margin: 0; }
   border-radius: 50%;
   background: #edf1e4;
   color: #123f32;
-  font-size: 1.375rem;
-  line-height: 1;
   transition: background .2s ease, color .2s ease;
 }
 .home-faq-item.is-open .home-faq-icon { background: #123f32; color: #d3f28a; }
@@ -2083,7 +2101,7 @@ h1, h2, h3, p { margin: 0; }
   .recycle-item-examples,
   .recycle-item-prep { display: none; }
   .home-faq-trigger { gap: .875rem; }
-  .home-faq-icon { width: 1.875rem; height: 1.875rem; font-size: 1.2rem; }
+  .home-faq-icon { width: 1.875rem; height: 1.875rem; }
   .dash-metrics { grid-template-columns: 1fr; }
   .skeleton-metrics { grid-template-columns: 1fr; }
   .footer-sitemap { gap: 1.5rem 1rem; }

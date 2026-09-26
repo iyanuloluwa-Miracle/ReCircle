@@ -59,7 +59,9 @@ function toggle(id: string) {
               @click="toggle(item.id)"
             >
               <span>{{ item.question }}</span>
-              <span class="home-faq-icon" aria-hidden="true">{{ openId === item.id ? '−' : '+' }}</span>
+              <span class="home-faq-icon" aria-hidden="true">
+                <AppIcon :name="openId === item.id ? 'minus' : 'plus'" :size="16" />
+              </span>
             </button>
           </h3>
           <div

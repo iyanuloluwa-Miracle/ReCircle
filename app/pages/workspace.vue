@@ -13,7 +13,7 @@ useSeoMeta({ title: 'Workspace — ReCircle', robots: 'noindex' })
         title="Ready when you are"
         description="Create an account to open your dashboard, scan recyclables, and request pickup."
       >
-        <BaseButton to="/register">Create an account <span aria-hidden="true">↗</span></BaseButton>
+        <BaseButton to="/register">Create an account <AppIcon name="external" :size="16" /></BaseButton>
         <BaseButton to="/login" variant="secondary">Sign in</BaseButton>
       </EmptyState>
     </BaseCard>

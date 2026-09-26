@@ -154,7 +154,9 @@ function onKeydown(event: KeyboardEvent) {
             <h2>Assistant</h2>
           </div>
         </div>
-        <button class="icon-button" type="button" aria-label="Close assistant" @click="open = false">×</button>
+        <button class="icon-button" type="button" aria-label="Close assistant" @click="open = false">
+          <AppIcon name="close" :size="18" />
+        </button>
       </header>
 
       <p class="ai-assistant-note muted">
@@ -186,7 +188,7 @@ function onKeydown(event: KeyboardEvent) {
         </button>
       </div>
       <nav class="ai-assistant-actions" aria-label="Quick actions">
-        <NuxtLink v-for="action in actions" :key="action.label" :to="action.to" @click="open = false">{{ action.label }} <span aria-hidden="true">→</span></NuxtLink>
+        <NuxtLink v-for="action in actions" :key="action.label" :to="action.to" @click="open = false">{{ action.label }} <AppIcon name="arrow" :size="14" /></NuxtLink>
       </nav>
 
       <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
