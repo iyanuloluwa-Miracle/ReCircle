@@ -11,6 +11,29 @@ Built to connect consumers, recycling companies, and platform admins, ReCircle t
 | **Target audience** | Everyday consumers with recyclable waste at home or work; partner recycling companies and collection yards that buy materials and run pickups; and internal admins who oversee the network across cities in Nigeria. |
 | **Demo video** | [Watch the ReCircle walkthrough](https://www.youtube.com/watch?v=PLACEHOLDER_RECIRCLE_DEMO) *(dummy link — replace with the real demo)* |
 
+## Screenshots
+
+Drop PNG/JPG files into [`docs/screenshots/`](docs/screenshots/), keep the filenames below (or update the paths), then refresh GitHub to see them in this README.
+
+| Screen | File to add | Preview |
+|--------|-------------|---------|
+| Landing (desktop) | `docs/screenshots/01-landing-desktop.png` | ![Landing desktop](docs/screenshots/01-landing-desktop.png) |
+| Landing (mobile) | `docs/screenshots/02-landing-mobile.png` | ![Landing mobile](docs/screenshots/02-landing-mobile.png) |
+| Consumer dashboard | `docs/screenshots/03-consumer-dashboard.png` | ![Consumer dashboard](docs/screenshots/03-consumer-dashboard.png) |
+| Scan / match recycler | `docs/screenshots/04-scan-match.png` | ![Scan match](docs/screenshots/04-scan-match.png) |
+| Recycler incoming pickups | `docs/screenshots/05-recycler-dashboard.png` | ![Recycler dashboard](docs/screenshots/05-recycler-dashboard.png) |
+| Release payout / wallet | `docs/screenshots/06-payout-wallet.png` | ![Payout wallet](docs/screenshots/06-payout-wallet.png) |
+| Admin / analytics | `docs/screenshots/07-admin-analytics.png` | ![Admin analytics](docs/screenshots/07-admin-analytics.png) |
+| Settings payout bank | `docs/screenshots/08-settings-payout.png` | ![Settings payout](docs/screenshots/08-settings-payout.png) |
+
+**How to attach screenshots**
+
+1. Capture the UI (desktop ~1280px wide; mobile ~390px wide works well).
+2. Save into `docs/screenshots/` using the names in the table (or rename and edit the image paths above).
+3. Commit the images with the README so GitHub renders them.
+
+Until a file exists, GitHub may show a broken-image icon for that row—that is expected.
+
 ## Inspiration 🧠
 
 Recycling often breaks down before it begins: people may not know whether an item is recyclable, how to prepare it, what it is worth, or where to take it. Meanwhile, recycling companies need a reliable way to discover available materials, coordinate pickups, and manage daily capacity—often without a shared system that works across partners.
@@ -36,7 +59,7 @@ The platform follows the full recycling journey:
 - AI-assisted waste classification with confidence scores and safety/preparation guidance
 - Consumer confirmation and correction when AI confidence is low
 - Location-aware recycler matching based on distance, pricing, accepted materials, service radius, and available capacity
-- Transparent estimated recycling value in Nigerian Naira (NGN)
+- Transparent estimated recycling value in Nigerian Naira (NGN), including fractional amounts (for example `NGN 1.08`)
 - Pickup request lifecycle with clear statuses from pending to completed
 - Role-based dashboards for consumers, recyclers, and admins
 - Partnership-ready recycler profiles so companies can publish materials, pricing, and capacity in one place
@@ -44,14 +67,42 @@ The platform follows the full recycling journey:
 - Analytics for materials, collections, payouts, recycler capacity, and pickup activity
 - A grounded AI assistant that answers questions using available ReCircle data without inventing prices, earnings, pickup statuses, or distances
 - Secure authentication through Google sign-in or email OTP verification
+- Request-scoped chat between consumers and recyclers during an active pickup
+- Mobile-responsive marketing pages, auth/onboarding, scan workspace, and role dashboards (breakpoints at 480 / 768 / 1024)
 
 ## How we built it 🖥️
 
-ReCircle is built with **Nuxt 4**, **Vue 3**, **TypeScript**, and **Tailwind CSS 4** for a fast, responsive frontend experience.
+ReCircle is built with **Nuxt 4**, **Vue 3**, **TypeScript**, and **Tailwind CSS 4** for a fast, responsive frontend experience. Layout responsiveness uses custom CSS (Flexbox/Grid, fluid `clamp` tokens, and shared breakpoints) on top of the Tailwind entry.
 
 The backend uses **Nuxt server APIs**, **MongoDB**, and **Mongoose** to manage users, recyclers, waste items, pickup requests, transactions, notifications, and analytics. MongoDB’s GeoJSON and geospatial indexing power nearby recycler discovery and location-based matching.
 
-We also integrated **OpenRouter** for structured waste-image analysis, **Byteship** for secure uploads, **Google Maps** for pickup-location selection and geocoding, **Google OAuth** and **Resend OTP** for authentication, **Paystack** for payout-ready transaction flows, **Chart.js** for analytics, and **Zod** for API validation.
+We also integrated **OpenRouter** for structured waste-image analysis, **Byteship** for secure uploads, **Google Maps** for pickup-location selection and geocoding, **Google OAuth** and **Resend OTP** for authentication, **Paystack** for recycling-reward Transfers (with demo-wallet fallback), **Chart.js** for analytics, and **Zod** for API validation.
+
+## Implementation highlights
+
+Recent product and platform work shipped in this codebase:
+
+### Responsive UI (landing → dashboards)
+
+- Shared fluid design tokens (`--text-*`, `--space-*`, `--tap-min`) and unified breakpoints at **≤480 / ≤768 / ≤1024**
+- Marketing hamburger nav, dashboard off-canvas sidebar, scan workspace grids that stack on smaller screens
+- Touch-friendly tap targets, footer links, auth/onboarding density fixes, and icon-only AI FAB / sign-out on narrow viewports
+
+### Matching, pickups, and collaboration
+
+- Deterministic recycler ranking (distance, price, capacity, service radius)
+- Eligible recyclers listed even outside radius (flagged), with consumer reassign while pending
+- Pickup lifecycle with strict status transitions; recycler **Confirm collected & release payout**
+- Request-scoped chat for consumers and recyclers on active pickups
+- Notifications and paginated history / list surfaces for operational volume
+
+### Rewards, wallet, and Paystack
+
+- Consumers save a payout bank (NUBAN) in **Settings**; estimated payout = `weightKg × pricePerKg`
+- On pickup complete, ReCircle attempts a **Paystack Transfer** to the consumer (not Checkout)
+- If keys/recipient are missing, or Transfer fails (for example Paystack **Starter** cannot do third-party payouts), the app credits a **demo wallet** so demos still complete
+- Wallet and request UI surface **Demo** vs **Paystack** provider and status
+- Optional `PAYOUT_DEBUG=1` logger (`[recircle:payout]` lines, copyable debug on the request card, `GET /api/debug/payout-log`)
 
 ## Challenges we ran into 🏃
 
@@ -60,6 +111,8 @@ One of the biggest challenges was making AI useful without allowing it to become
 Recycler matching was another complex area. A nearby recycler is not automatically the best recycler, so the platform evaluates distance, material acceptance, service radius, pricing, and remaining capacity before making a recommendation.
 
 We also had to design role-specific workflows that remain connected: consumers need a simple recycling experience, partner recycling companies need operational clarity, and admins need network oversight without being able to alter restricted pickup actions.
+
+On payouts, Paystack **Transfers** behave differently from Checkout: consumers are paid when a pickup completes. Starter Paystack businesses often cannot initiate third-party payouts, so ReCircle records a clear failure path and falls back to demo wallet credit for local demos until Transfers are enabled on the business account.
 
 ## Accomplishments we’re proud of 🚀
 
@@ -72,6 +125,7 @@ We are especially proud of building more than a recycling directory. ReCircle su
 - Mobile-responsive dashboards for every user role
 - Analytics built from real platform data instead of misleading environmental estimates
 - An AI assistant designed to stay grounded in verified platform data
+- Paystack Transfer integration with transparent demo-wallet fallback for demos and blocked payouts
 
 ## What we learned 📖
 
@@ -120,6 +174,7 @@ To exercise real Transfers locally:
 2. Sign in as a consumer → **Dashboard → Settings** → save bank + 10-digit NUBAN.
 3. Complete a pickup as the recycler.
 4. Confirm wallet activity shows **Paystack** (not Demo) and the transfer in your Paystack dashboard.
+5. If Paystack returns a Starter / third-party payout error, upgrade the Paystack business so Transfers are allowed—or rely on the demo-wallet fallback for demos.
 
 ### Payout debug logger
 
@@ -163,13 +218,14 @@ app/
   middleware/     Role-aware navigation guards
   assets/css/     Tailwind entry, design tokens and responsive styles
 server/
-  api/            HTTP endpoints
+  api/            HTTP endpoints (including debug/payout-log when PAYOUT_DEBUG=1)
   middleware/     Response headers
   models/         Mongoose operational models and GeoJSON validation
   services/       Password hashing, classification, matching, pickup requests,
-                  analytics, assistant context and clients
-  utils/          Configuration, database, sessions and validation
+                  Paystack transfers, analytics, assistant context and clients
+  utils/          Configuration, database, sessions, validation, payout logger
 scripts/           Demo seed and live HTTP verification
+docs/screenshots/  README screenshots (add PNGs here)
 types/            Shared contracts; never put secrets here
 utils/            Pure formatting, classification, matching, lifecycle and assistant utilities
 tests/            Password, model, classification, matching, lifecycle and assistant tests
@@ -186,4 +242,5 @@ Documentation:
 [H3 sessions](https://h3.dev/examples/handle-session),
 [Byteship](https://byteship.dev/docs/uploading-a-file),
 [OpenRouter](https://openrouter.ai/docs/quickstart),
-[Chart.js](https://www.chartjs.org/docs/latest/getting-started/integration.html).
+[Chart.js](https://www.chartjs.org/docs/latest/getting-started/integration.html),
+[Paystack Transfers](https://paystack.com/docs/transfers/).
