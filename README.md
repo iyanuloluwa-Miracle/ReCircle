@@ -18,7 +18,7 @@ Drop PNG/JPG files into [`docs/screenshots/`](docs/screenshots/), keep the filen
 | Screen | File to add | Preview |
 |--------|-------------|---------|
 | Landing (desktop) | `docs/screenshots/01-landing-desktop.png` | ![Landing desktop](docs/screenshots/01-landing-desktop.png) |
-| Landing (mobile) | `docs/screenshots/02-landing-mobile.png` | ![Landing mobile](docs/screenshots/02-landing-mobile.png) |
+| Landing (mobile) | `docs/screenshots/02-landing-mobile.png` | ![Landing mobile](docs/screenshots/02-landing-mobile.jpeg) |
 | Consumer dashboard | `docs/screenshots/03-consumer-dashboard.png` | ![Consumer dashboard](docs/screenshots/03-consumer-dashboard.png) |
 | Scan / match recycler | `docs/screenshots/04-scan-match.png` | ![Scan match](docs/screenshots/04-scan-match.png) |
 | Recycler incoming pickups | `docs/screenshots/05-recycler-dashboard.png` | ![Recycler dashboard](docs/screenshots/05-recycler-dashboard.png) |

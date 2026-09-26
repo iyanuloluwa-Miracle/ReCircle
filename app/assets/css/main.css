@@ -38,7 +38,8 @@ img, video, svg { max-width: 100%; height: auto; }
   color: #123f32;
 }
 .stat-card--accent .app-icon--brand,
-.workspace-nav-item.is-active .app-icon--brand,
+.workspace-nav-item .app-icon--brand,
+.workspace-impact-icon .app-icon--brand,
 .scan-dark-icon .app-icon--brand,
 .ai-assistant-fab-icon .app-icon--brand {
   color: inherit;
