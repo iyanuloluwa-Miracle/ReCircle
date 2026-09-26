@@ -8,11 +8,14 @@ const route = useRoute()
 const loggingOut = ref(false)
 const logoutError = ref('')
 const toast = useToast()
+const SIDEBAR_COLLAPSED_KEY = 'recircle.workspace.sidebarCollapsed'
 const navOpen = ref(false)
 const isMobile = ref(false)
+const sidebarCollapsed = ref(false)
 const sidebar = ref<HTMLElement | null>(null)
 const menuButton = ref<HTMLButtonElement | null>(null)
 const main = ref<HTMLElement | null>(null)
+const desktopSidebarCollapsed = computed(() => sidebarCollapsed.value && !isMobile.value)
 const roleLabel: Record<UserRole, string> = { user: 'Consumer', recycler: 'Recycler', admin: 'Admin' }
 const overviewPath = computed(() => user.value ? dashboardPathByRole[user.value.role] : '/workspace')
 const headerCrumb = computed(() => {
@@ -65,7 +68,7 @@ watch(() => route.fullPath, async () => {
 watch(navOpen, async (open) => {
   if (!import.meta.client) return
   await nextTick()
-  if (open) sidebar.value?.querySelector<HTMLButtonElement>('button')?.focus()
+  if (open) sidebar.value?.querySelector<HTMLButtonElement>('.workspace-nav-close')?.focus()
   else if (isMobile.value) menuButton.value?.focus()
 })
 let media: MediaQueryList | undefined
@@ -83,10 +86,21 @@ function onNavKeydown(event: KeyboardEvent) {
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
 }
+function persistSidebarCollapsed(value: boolean) {
+  if (!import.meta.client) return
+  try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, value ? '1' : '0') }
+  catch { /* ignore quota / private mode */ }
+}
+function toggleSidebarCollapsed() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  persistSidebarCollapsed(sidebarCollapsed.value)
+}
 onMounted(() => {
   media = window.matchMedia('(max-width: 1024px)')
   syncViewport()
   media.addEventListener('change', syncViewport)
+  try { sidebarCollapsed.value = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1' }
+  catch { /* ignore */ }
 })
 onUnmounted(() => media?.removeEventListener('change', syncViewport))
 async function signOut() {
@@ -99,18 +113,21 @@ async function signOut() {
 </script>
 
 <template>
-  <div class="workspace-app">
+  <div class="workspace-app" :class="{ 'is-sidebar-collapsed': desktopSidebarCollapsed }">
     <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="workspace-backdrop" :class="{ 'is-open': navOpen }" aria-hidden="true" @click="navOpen = false" />
-    <aside id="workspace-navigation" ref="sidebar" class="workspace-sidebar" :class="{ 'is-open': navOpen }" :inert="isMobile && !navOpen" aria-label="Workspace" @keydown="onNavKeydown">
+    <aside id="workspace-navigation" ref="sidebar" class="workspace-sidebar" :class="{ 'is-open': navOpen, 'is-collapsed': desktopSidebarCollapsed }" :inert="isMobile && !navOpen" aria-label="Workspace" @keydown="onNavKeydown">
       <div class="workspace-sidebar-top">
         <BrandMark />
+        <button type="button" class="workspace-sidebar-collapse" :aria-expanded="!sidebarCollapsed" aria-controls="workspace-navigation" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" @click="toggleSidebarCollapsed">
+          <DashboardIcon :name="sidebarCollapsed ? 'chevron-right' : 'chevron-left'" />
+        </button>
         <button type="button" class="workspace-nav-close" aria-label="Close navigation" @click="navOpen = false"><DashboardIcon name="close" /></button>
       </div>
       <div class="workspace-brand-caption">Small actions. Lasting impact.</div>
       <p class="eyebrow workspace-label">Workspace</p>
       <nav class="workspace-nav" aria-label="Workspace navigation">
-        <NuxtLink v-for="item in navigation" :key="item.to" :to="item.to" class="workspace-nav-item" :class="{ 'is-active': item.active }" :aria-current="item.active ? 'page' : undefined">
+        <NuxtLink v-for="item in navigation" :key="item.to" :to="item.to" class="workspace-nav-item" :class="{ 'is-active': item.active }" :aria-current="item.active ? 'page' : undefined" :title="desktopSidebarCollapsed ? item.label : undefined">
           <DashboardIcon :name="item.icon" /><span>{{ item.label }}</span><span v-if="item.active" class="workspace-active-dot" aria-hidden="true" />
         </NuxtLink>
       </nav>
@@ -122,7 +139,7 @@ async function signOut() {
         <NuxtLink v-else-if="user" to="/dashboard/analytics">Explore your impact <DashboardIcon name="arrow" /></NuxtLink>
       </div>
       <div class="workspace-sidebar-foot">
-        <div v-if="user" class="workspace-user">
+        <div v-if="user" class="workspace-user" :title="desktopSidebarCollapsed ? `${user.name} · ${roleLabel[user.role]}` : undefined">
           <div class="workspace-user-avatar" aria-hidden="true"><img v-if="avatarSrc" :src="avatarSrc" alt=""><span v-else>{{ user.name.slice(0, 1).toUpperCase() }}</span></div>
           <div class="workspace-user-copy"><strong>{{ user.name }}</strong><span>{{ roleLabel[user.role] }} account</span></div>
         </div>

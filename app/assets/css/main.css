@@ -344,6 +344,24 @@ h1, h2, h3, p { margin: 0; }
   line-height: 1;
 }
 .workspace-nav-close:hover { background: #e0e8d4; }
+.workspace-sidebar-collapse {
+  display: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: .5rem;
+  background: transparent;
+  color: #123f32;
+  padding: 0;
+  place-items: center;
+  transition: background .15s ease, color .15s ease;
+}
+.workspace-sidebar-collapse:hover { background: #e0e8d4; }
+.workspace-sidebar-collapse .dashboard-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
 .workspace-label {
   color: #697565;
   margin: 2.25rem .5rem .85rem;

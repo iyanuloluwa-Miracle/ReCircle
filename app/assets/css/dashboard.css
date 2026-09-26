@@ -1,10 +1,35 @@
 ﻿/* Workspace-only refinements. Marketing and authentication keep their existing styles. */
-.workspace-app { --workspace-border: #e2e8dc; --workspace-muted: #657269; grid-template-columns: 15.5rem minmax(0, 1fr); background: #f8f8f0; }
+.workspace-app {
+  --workspace-border: #e2e8dc;
+  --workspace-muted: #657269;
+  --workspace-sidebar-width: 15.5rem;
+  --workspace-sidebar-collapsed-width: 4.75rem;
+  grid-template-columns: var(--workspace-sidebar-width) minmax(0, 1fr);
+  background: #f8f8f0;
+  transition: grid-template-columns .22s ease;
+}
+.workspace-app.is-sidebar-collapsed {
+  grid-template-columns: var(--workspace-sidebar-collapsed-width) minmax(0, 1fr);
+}
 .workspace-app .dashboard-icon { width: 1.2rem; height: 1.2rem; flex-shrink: 0; }
-.workspace-app .workspace-sidebar { padding: 2rem 1.15rem 1.1rem; background: #123f32; color: #f8f8f0; border: 0; }
+.workspace-app .workspace-sidebar {
+  padding: 2rem 1.15rem 1.1rem;
+  background: #123f32;
+  color: #f8f8f0;
+  border: 0;
+  transition: padding .22s ease;
+}
 .workspace-app .workspace-sidebar-top { padding-inline: .5rem; }
 .workspace-app .workspace-sidebar-top .brand { color: #f8f8f0; font-size: 1.6rem; letter-spacing: -.065em; }
 .workspace-app .workspace-sidebar-top .brand img { background: #f8f8f0; border-radius: .65rem; padding: .25rem; width: 2.25rem; height: 2.25rem; }
+.workspace-app .workspace-sidebar-collapse {
+  display: grid;
+  color: #c6d7cb;
+}
+.workspace-app .workspace-sidebar-collapse:hover {
+  background: #ffffff14;
+  color: #d3f28a;
+}
 .workspace-app .workspace-brand-caption { font-size: .65rem; color: #becdc0; padding: .85rem .5rem 0; letter-spacing: .01em; }
 .workspace-app .workspace-label { margin: 2.75rem .85rem 1rem; font-size: .625rem; color: #aabfaf; letter-spacing: .16em; }
 .workspace-app .workspace-nav { flex: 0 0 auto; min-height: auto; gap: .5rem; }
@@ -28,6 +53,66 @@
 .workspace-app .workspace-user-copy span { color: #b9cfbf; font-size: .68rem; }
 .workspace-app .workspace-note { font-size: .62rem; color: #b9cfbf; text-align: center; }
 .workspace-app .workspace-note .status-dot { background: #d3f28a; width: .3rem; height: .3rem; }
+
+/* Desktop collapsed rail — icons only; mobile drawer stays full-width */
+.workspace-app.is-sidebar-collapsed .workspace-sidebar {
+  padding: 1.35rem .55rem 1rem;
+  overflow-x: hidden;
+}
+.workspace-app.is-sidebar-collapsed .workspace-sidebar-top {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: .65rem;
+  padding-inline: 0;
+}
+.workspace-app.is-sidebar-collapsed .workspace-sidebar-top .brand {
+  justify-content: center;
+  width: 100%;
+}
+.workspace-app.is-sidebar-collapsed .workspace-sidebar-top .brand span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.workspace-app.is-sidebar-collapsed .workspace-sidebar-top .brand img {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+.workspace-app.is-sidebar-collapsed .workspace-brand-caption,
+.workspace-app.is-sidebar-collapsed .workspace-label,
+.workspace-app.is-sidebar-collapsed .workspace-sidebar-impact,
+.workspace-app.is-sidebar-collapsed .workspace-user-copy,
+.workspace-app.is-sidebar-collapsed .workspace-note,
+.workspace-app.is-sidebar-collapsed .workspace-nav-item > span {
+  display: none;
+}
+.workspace-app.is-sidebar-collapsed .workspace-nav {
+  align-items: center;
+  gap: .35rem;
+  margin-top: 1.25rem;
+}
+.workspace-app.is-sidebar-collapsed .workspace-nav-item {
+  justify-content: center;
+  width: 2.85rem;
+  min-height: 2.85rem;
+  padding: 0;
+  gap: 0;
+}
+.workspace-app.is-sidebar-collapsed .workspace-sidebar-foot {
+  align-items: center;
+}
+.workspace-app.is-sidebar-collapsed .workspace-user {
+  justify-content: center;
+  padding: .75rem 0 0;
+  border-top-color: #ffffff20;
+}
 .workspace-app .workspace-body { background: #f8f8f0; }
 .workspace-app .workspace-header {
   position: relative;
@@ -263,11 +348,13 @@
 @media (max-width: 1200px) { .workspace-app .dash-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .workspace-app .dash-grid { grid-template-columns: 1fr; } }
 @media (max-width: 1024px) {
   .workspace-app { grid-template-columns: minmax(0, 1fr); }
+  .workspace-app.is-sidebar-collapsed { grid-template-columns: minmax(0, 1fr); }
   .workspace-app .workspace-sidebar { position: fixed; top: 0; left: 0; z-index: 60; width: min(18rem, 88vw); height: 100dvh; transform: translateX(-105%); transition: transform .22s ease; }
   .workspace-app .workspace-sidebar.is-open { transform: translateX(0); box-shadow: 1rem 0 2.5rem #123f3228; }
   .workspace-app .workspace-backdrop { display: block; position: fixed; inset: 0; z-index: 55; opacity: 0; pointer-events: none; background: #082a2170; backdrop-filter: blur(3px); transition: opacity .2s; }
   .workspace-app .workspace-backdrop.is-open { opacity: 1; pointer-events: auto; }
   .workspace-app .workspace-nav-toggle, .workspace-app .workspace-nav-close { display: grid; place-items: center; width: var(--tap-min); height: var(--tap-min); }
+  .workspace-app .workspace-sidebar-collapse { display: none; }
   .workspace-app .workspace-nav-close { color: #d3f28a; }
   .workspace-app .workspace-nav-close:hover { background: #ffffff18; }
   .workspace-app .workspace-header { min-height: 4.5rem; padding: .7rem 1.25rem; overflow: visible; position: relative; z-index: 40; }
@@ -361,7 +448,10 @@
   .workspace-app .stat-card.card { padding: .75rem; }
   .workspace-app .stat-icon { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .workspace-app .workspace-main { scroll-behavior: auto; } }
+@media (prefers-reduced-motion: reduce) {
+  .workspace-app { transition: none; }
+  .workspace-app .workspace-sidebar { transition: none; }
+}
 .workspace-app .recycler-hours { display: grid; gap: .45rem; border: 1px solid #d8e1ce; border-radius: .6rem; padding: .75rem; }
 .workspace-app .recycler-hours > div { display: grid; grid-template-columns: minmax(5rem, 1fr) minmax(0, 1fr) auto minmax(0, 1fr); gap: .45rem; align-items: center; }
 .workspace-app .recycler-hours label { display: flex; align-items: center; gap: .35rem; font-size: .76rem; }
