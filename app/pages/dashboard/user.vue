@@ -154,13 +154,19 @@ function walletStatusLabel(status: string) {
           </EmptyState>
         </DashboardSection>
 
-        <DashboardSection title="Wallet activity" description="Recycling rewards from completed pickups.">
+        <DashboardSection title="Wallet activity" description="Recycling rewards from completed pickups. Demo entries are in-app only; Paystack means a bank Transfer was attempted.">
           <ul v-if="data.walletActivity.length" class="wallet-list">
             <li v-for="entry in data.walletActivity" :key="entry.id">
               <div>
                 <strong>{{ formatNaira(entry.amount) }}</strong>
                 <span class="muted">
                   {{ walletProviderLabel(entry.provider) }} · {{ walletStatusLabel(entry.status) }}
+                </span>
+                <span v-if="entry.provider === 'mock'" class="muted">
+                  In-app demo credit (no bank transfer)
+                </span>
+                <span v-else-if="entry.provider === 'paystack' && entry.status === 'pending'" class="muted">
+                  Bank transfer pending
                 </span>
                 <span v-if="entry.status === 'failed' && entry.failureReason" class="muted">
                   {{ entry.failureReason }}

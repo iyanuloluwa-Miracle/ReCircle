@@ -65,6 +65,10 @@ export interface PickupRequestView {
   rejectedAt: string | null
   cancelledAt: string | null
   recyclerPhone?: string | null
+  transactionId?: string | null
+  transactionStatus?: 'pending' | 'completed' | 'failed' | null
+  /** Present when a recycling_reward transaction exists for this request. */
+  transactionProvider?: 'mock' | 'paystack' | null
   createdAt: string | null
   updatedAt: string | null
   timeline: TimelineStepView[]

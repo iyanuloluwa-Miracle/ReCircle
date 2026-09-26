@@ -49,6 +49,41 @@ function friendlyError(error: unknown, fallback: string) {
   return fallback
 }
 
+function payoutReleaseMessage(updated: PickupRequestView) {
+  if (updated.transactionProvider === 'paystack') {
+    if (updated.transactionStatus === 'pending') {
+      return 'Paystack bank transfer started. The consumer wallet will update when the transfer settles.'
+    }
+    if (updated.transactionStatus === 'failed') {
+      return 'Paystack transfer failed. Check the consumer payout account or wallet activity.'
+    }
+    return 'Reward sent via Paystack Transfer to the consumer bank account.'
+  }
+  if (updated.transactionProvider === 'mock') {
+    return 'Demo wallet credit recorded (no Paystack page). Add TEST keys and a payout bank account for real transfers.'
+  }
+  return 'Payout has been released to the consumer wallet.'
+}
+
+function rewardStatusLabel(request: PickupRequestView) {
+  if (!request.transactionStatus && !request.transactionProvider) return null
+  const provider = request.transactionProvider === 'paystack'
+    ? 'Paystack'
+    : request.transactionProvider === 'mock'
+      ? 'Demo wallet'
+      : 'Reward'
+  const status = request.transactionStatus === 'pending'
+    ? 'pending'
+    : request.transactionStatus === 'failed'
+      ? 'failed'
+      : request.transactionStatus === 'completed'
+        ? 'completed'
+        : 'recorded'
+  return `${provider} · ${status}`
+}
+
+const rewardLabel = computed(() => rewardStatusLabel(props.request))
+
 async function setStatus(status: string) {
   busy.value = true
   actionError.value = ''
@@ -61,7 +96,7 @@ async function setStatus(status: string) {
     toast.success(
       status === 'completed' ? 'Collection confirmed' : 'Request updated',
       status === 'completed'
-        ? 'Payout has been released to the consumer wallet / Paystack.'
+        ? payoutReleaseMessage(updated)
         : `Status changed to ${status.replaceAll('_', ' ')}.`
     )
   } catch (error) {
@@ -99,6 +134,7 @@ async function setStatus(status: string) {
     <div class="request-card-meta">
       <span>{{ request.distanceKm }} km</span>
       <span>NGN {{ Math.round(request.pricePerKg).toLocaleString('en-NG') }}/kg</span>
+      <span v-if="rewardLabel">{{ rewardLabel }}</span>
       <span v-if="request.requestedPickupTime">Preferred pickup: {{ formatPickupTime(request.requestedPickupTime) }}</span>
       <span v-if="request.confirmedPickupTime">Confirmed pickup: {{ formatPickupTime(request.confirmedPickupTime) }}</span>
       <time v-if="request.createdAt" :datetime="request.createdAt">Requested {{ new Date(request.createdAt).toLocaleString('en-NG') }}</time>
@@ -110,12 +146,32 @@ async function setStatus(status: string) {
       <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('cancelled')">Cancel request</BaseButton>
     </div>
     <form v-if="role === 'user' && request.status === 'pending' && rescheduling" class="request-reschedule" @submit.prevent="reschedule"><label :for="`pickup-time-${request.id}`">New preferred pickup time<input :id="`pickup-time-${request.id}`" v-model="pickupTime" type="datetime-local" :min="earliestPickupTime()" required></label><BaseButton size="sm" :loading="busy" type="submit">Save time</BaseButton></form>
-    <div v-if="role === 'user' && ['accepted', 'picked_up'].includes(request.status)" class="pickup-tracking" aria-label="Pickup tracking details">
-      <strong>{{ request.status === 'picked_up' ? 'Collected — awaiting payment' : 'Pickup confirmed' }}</strong>
-      <span v-if="request.confirmedPickupTime">Expected arrival: {{ formatPickupTime(request.confirmedPickupTime) }}</span>
-      <span v-else>Awaiting a confirmed arrival time.</span>
-      <a v-if="request.recyclerPhone" :href="`tel:${request.recyclerPhone}`">Call recycler: {{ request.recyclerPhone }}</a>
-      <span v-else>Recycler contact will appear when they add it.</span>
+    <div v-if="role === 'user' && ['accepted', 'picked_up', 'completed'].includes(request.status)" class="pickup-tracking" aria-label="Pickup tracking details">
+      <template v-if="request.status === 'completed'">
+        <strong>{{
+          request.transactionProvider === 'paystack'
+            ? (request.transactionStatus === 'pending' ? 'Paystack transfer pending' : request.transactionStatus === 'failed' ? 'Paystack transfer failed' : 'Paid via Paystack Transfer')
+            : request.transactionProvider === 'mock'
+              ? 'Demo wallet credit recorded'
+              : 'Pickup completed'
+        }}</strong>
+        <span v-if="request.transactionProvider === 'mock'">
+          No Paystack checkout page is used. Rewards credit the in-app wallet unless TEST keys and a verified bank account are set in Settings.
+        </span>
+        <span v-else-if="request.transactionProvider === 'paystack' && request.transactionStatus === 'pending'">
+          Bank transfer was initiated. Funds appear in the consumer account once Paystack settles the transfer.
+        </span>
+        <span v-else-if="request.transactionProvider === 'paystack'">
+          Recycling reward was sent to the consumer’s saved bank account via Paystack Transfer.
+        </span>
+      </template>
+      <template v-else>
+        <strong>{{ request.status === 'picked_up' ? 'Collected — awaiting payment' : 'Pickup confirmed' }}</strong>
+        <span v-if="request.confirmedPickupTime">Expected arrival: {{ formatPickupTime(request.confirmedPickupTime) }}</span>
+        <span v-else>Awaiting a confirmed arrival time.</span>
+        <a v-if="request.recyclerPhone" :href="`tel:${request.recyclerPhone}`">Call recycler: {{ request.recyclerPhone }}</a>
+        <span v-else>Recycler contact will appear when they add it.</span>
+      </template>
     </div>
     <div v-else-if="role === 'recycler'" class="request-card-actions">
       <template v-if="request.status === 'pending'">

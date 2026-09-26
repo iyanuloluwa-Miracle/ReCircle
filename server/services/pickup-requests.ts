@@ -66,6 +66,7 @@ export function serializeRequest(doc: RequestLean, extras?: {
   weightKg?: number | null
   wasteStatus?: string | null
   transactionStatus?: 'pending' | 'completed' | 'failed' | null
+  transactionProvider?: 'mock' | 'paystack' | null
   transactionId?: string | null
   transactionCreatedAt?: Date | string | null
   recyclerPhone?: string | null
@@ -111,6 +112,7 @@ export function serializeRequest(doc: RequestLean, extras?: {
     updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : null,
     transactionId: extras?.transactionId ?? null,
     transactionStatus: extras?.transactionStatus ?? null,
+    transactionProvider: extras?.transactionProvider ?? null,
     recyclerPhone: extras?.recyclerPhone ?? null,
     timeline,
     isDemo: doc.isDemo ?? false
@@ -273,7 +275,7 @@ export async function listRequestsForActor(options: {
   const [wasteItems, recyclers, transactions] = await Promise.all([
     WasteItem.find({ _id: { $in: wasteIds } }).select('materialCode itemName weightKg status').lean(),
     Recycler.find({ _id: { $in: recyclerIds } }).select('businessName contactPhone').lean(),
-    Transaction.find({ requestId: { $in: requestIds } }).select('requestId status createdAt').lean()
+    Transaction.find({ requestId: { $in: requestIds } }).select('requestId status provider createdAt').lean()
   ])
 
   const wasteById = new Map(wasteItems.map(entry => [entry._id.toString(), entry]))
@@ -291,9 +293,10 @@ export async function listRequestsForActor(options: {
       weightKg: waste?.weightKg ?? null,
       wasteStatus: waste?.status ?? null,
       transactionStatus: tx?.status ?? null,
+      transactionProvider: (tx?.provider as 'mock' | 'paystack' | undefined) ?? null,
       transactionId: tx?._id?.toString() ?? null,
-      transactionCreatedAt: tx?.createdAt ?? null
-      , recyclerPhone: recycler?.contactPhone ?? null
+      transactionCreatedAt: tx?.createdAt ?? null,
+      recyclerPhone: recycler?.contactPhone ?? null
     })
   })
 }
@@ -474,9 +477,10 @@ export async function updateRequestStatus(options: {
         weightKg: item.weightKg,
         wasteStatus: item.status,
         transactionStatus: tx?.status ?? null,
+        transactionProvider: (tx?.provider as 'mock' | 'paystack' | undefined) ?? null,
         transactionId: tx?._id?.toString() ?? null,
-        transactionCreatedAt: tx?.createdAt ?? null
-        , recyclerPhone: recycler?.contactPhone ?? null
+        transactionCreatedAt: tx?.createdAt ?? null,
+        recyclerPhone: recycler?.contactPhone ?? null
       }),
       pendingPaystack
     }
@@ -489,6 +493,7 @@ export async function updateRequestStatus(options: {
       return {
         ...result.view,
         transactionStatus: tx.status as 'pending' | 'completed' | 'failed',
+        transactionProvider: tx.provider as 'mock' | 'paystack',
         transactionId: tx._id.toString()
       }
     }

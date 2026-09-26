@@ -102,6 +102,27 @@ vision model in `OPENROUTER_MODEL` that supports strict structured output.
 Payment keys may remain empty.
 Set `SESSION_SECRET` to at least 32 random characters before using authentication.
 
+### Recycling rewards (Paystack Transfers)
+
+ReCircle pays consumers with **Paystack Transfers** when a recycler marks a pickup
+**completed**. There is **no Checkout / payment page** — consumers do not pay through
+a hosted Paystack UI.
+
+| Setup | What happens on pickup complete |
+|-------|----------------------------------|
+| `PAYSTACK_SECRET_KEY` / `PAYSTACK_PUBLIC_KEY` empty, or consumer has no saved bank recipient | Creates a **mock** wallet transaction (`provider: mock`, status completed). Money appears in the in-app wallet only. |
+| TEST keys set (`sk_test_` / `pk_test_`) **and** consumer saved a NUBAN in **Settings → Payout bank account** | Creates a Paystack Transfer (`provider: paystack`). Status may be pending until the transfer settles. |
+
+To exercise real Transfers locally:
+
+1. Add Paystack **TEST** keys to `.env` (live keys are rejected).
+2. Sign in as a consumer → **Dashboard → Settings** → save bank + 10-digit NUBAN.
+3. Complete a pickup as the recycler.
+4. Confirm wallet activity shows **Paystack** (not Demo) and the transfer in your Paystack dashboard.
+
+Estimated payouts use `weightKg × pricePerKg` (two decimal places). The UI shows
+fractional amounts such as `NGN 1.08` instead of rounding small values to whole naira only.
+
 ## Commands
 
 - `npm run dev`: development server

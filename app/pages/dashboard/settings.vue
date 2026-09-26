@@ -409,11 +409,28 @@ onUnmounted(() => {
     <DashboardSection
       v-if="user?.role === 'user'"
       title="Payout bank account"
-      description="Recycling rewards are sent here via Paystack TEST transfers when a pickup completes."
+      description="Recycling rewards are paid via Paystack Transfers to this bank account when a pickup completes. There is no Checkout payment page."
     >
       <p v-if="payoutLoading" class="muted">Loading payout settings…</p>
       <form v-else class="settings-form" @submit.prevent="savePayoutDetails">
-        <p v-if="payoutAccountName" class="location-status">
+        <p
+          v-if="!payoutBanks.length"
+          class="settings-payout-banner"
+          role="status"
+        >
+          Rewards are recorded as <strong>demo wallet credit</strong> until Paystack TEST keys
+          (<code>PAYSTACK_SECRET_KEY</code> / <code>PAYSTACK_PUBLIC_KEY</code>) are set and a verified bank account is saved.
+          No hosted Paystack page will appear — Transfers run in the background on pickup completion.
+        </p>
+        <p
+          v-else-if="!payoutHasRecipient"
+          class="settings-payout-banner"
+          role="status"
+        >
+          Paystack TEST keys are configured. Save a verified NUBAN account below so completed pickups can send
+          <strong>Paystack Transfers</strong> instead of demo wallet credit.
+        </p>
+        <p v-else-if="payoutAccountName" class="location-status">
           Verified as {{ payoutAccountName }}
           <template v-if="payoutHasRecipient"> · ready for transfers</template>
         </p>
@@ -436,7 +453,7 @@ onUnmounted(() => {
           required
         >
         <p v-if="!payoutBanks.length && !payoutError" class="muted">
-          Add Paystack TEST keys to load Nigerian banks and enable transfers. Without keys, completed pickups still record a demo (mock) reward.
+          Add Paystack TEST keys to load Nigerian banks and enable transfers.
         </p>
         <p v-if="payoutError" class="form-error" role="alert">{{ payoutError }}</p>
         <p v-else-if="payoutSuccess" class="settings-success" role="status">{{ payoutSuccess }}</p>
@@ -533,6 +550,20 @@ onUnmounted(() => {
   margin: .35rem 0 0;
   font-size: .8125rem;
   color: #3d6b2f;
+}
+.settings-payout-banner {
+  margin: 0;
+  padding: .85rem 1rem;
+  border: 1px solid #dbe7c9;
+  border-radius: .75rem;
+  background: #f3f7ec;
+  color: #36583d;
+  font-size: .8125rem;
+  line-height: 1.55;
+}
+.settings-payout-banner code {
+  font-size: .75rem;
+  word-break: break-word;
 }
 .location-status {
   margin: 0 0 .75rem;
