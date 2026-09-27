@@ -124,9 +124,9 @@ async function setStatus(status: string) {
       console.info('[recircle:payout]', updated.payoutDebug)
     }
     toast.success(
-      status === 'completed' ? 'Collection confirmed' : 'Request updated',
+      status === 'completed' ? 'Payment confirmed' : 'Request updated',
       status === 'completed'
-        ? payoutReleaseMessage(updated)
+        ? `${payoutReleaseMessage(updated)} Moved to Completed collections.`
         : `Status changed to ${status.replaceAll('_', ' ')}.`
     )
   } catch (error) {

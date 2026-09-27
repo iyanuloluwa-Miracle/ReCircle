@@ -112,6 +112,7 @@ export async function getRecyclerDashboard(user: AuthUser) {
       },
       incoming: [],
       acceptedPickups: [],
+      completedPickups: [],
       materialBreakdown: [],
       capacity: null
     }
@@ -154,6 +155,14 @@ export async function getRecyclerDashboard(user: AuthUser) {
   const enriched = await enrichRequestsWithImages(requests)
   const incoming = enriched.filter(entry => entry.status === 'pending')
   const acceptedPickups = enriched.filter(entry => entry.status === 'accepted' || entry.status === 'picked_up')
+  const completedPickups = enriched
+    .filter(entry => entry.status === 'completed')
+    .sort((a, b) => {
+      const aAt = a.completedAt ? new Date(a.completedAt).getTime() : 0
+      const bAt = b.completedAt ? new Date(b.completedAt).getTime() : 0
+      return bAt - aAt
+    })
+    .slice(0, 10)
   const availableSupplyKg = Math.round(
     incoming.reduce((sum, entry) => sum + (entry.weightKg ?? 0), 0) * 100
   ) / 100
@@ -187,6 +196,7 @@ export async function getRecyclerDashboard(user: AuthUser) {
     },
     incoming,
     acceptedPickups,
+    completedPickups,
     materialBreakdown: materialBreakdown.map(entry => ({
       materialCode: entry.materialCode,
       weightKg: Math.round(entry.weightKg * 100) / 100,

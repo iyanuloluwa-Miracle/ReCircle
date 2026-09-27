@@ -16,6 +16,7 @@ interface RecyclerDashboard {
   }
   incoming: PickupRequestView[]
   acceptedPickups: PickupRequestView[]
+  completedPickups: PickupRequestView[]
   materialBreakdown: Array<{ materialCode: string; weightKg: number; count: number; valueNgn: number }>
   capacity: {
     capacityKgPerDay: number
@@ -126,6 +127,30 @@ function onUpdated() {
             symbol="◈"
             title="No accepted pickups"
             description="Accepted and in-transit jobs will list here with timeline controls."
+          />
+        </DashboardSection>
+
+        <DashboardSection
+          class="dash-span-2"
+          title="Completed collections"
+          description="Recent pickups after you confirm payment. Active jobs stay above."
+        >
+          <div v-if="data.completedPickups.length" class="request-list">
+            <RequestCard
+              v-for="request in data.completedPickups"
+              :key="request.id"
+              :request="request"
+              role="recycler"
+              compact
+              @updated="onUpdated"
+            />
+          </div>
+          <EmptyState
+            v-else
+            compact
+            symbol="◈"
+            title="No completed collections yet"
+            description="Completed pickups appear here after you confirm payment."
           />
         </DashboardSection>
 
