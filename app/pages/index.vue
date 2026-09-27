@@ -40,18 +40,15 @@ async function submitArea() {
 
       <div class="hero-media container" aria-label="ReCircle demo video">
         <div class="demo-video-frame">
-          <video
+          <img
             class="demo-video"
-            poster="/demo-video-poster.jpg"
-            autoplay
-            muted
-            loop
-            playsinline
-            controls
-            preload="metadata"
+            src="/demo-video.gif"
+            alt="ReCircle demo: recycling bins ready for pickup"
+            width="1280"
+            height="720"
+            decoding="async"
+            fetchpriority="high"
           >
-            <source src="/Demo-video.mp4" type="video/mp4">
-          </video>
         </div>
       </div>
     </section>

@@ -9,7 +9,7 @@ Built to connect consumers, recycling companies, and platform admins, ReCircle t
 | | |
 |---|---|
 | **Target audience** | Everyday consumers with recyclable waste at home or work; partner recycling companies and collection yards that buy materials and run pickups; and internal admins who oversee the network across cities in Africa. |
-| **Demo video** | [Watch the ReCircle walkthrough](https://www.youtube.com/watch?v=PLACEHOLDER_RECIRCLE_DEMO) *(dummy link — replace with the real demo)* |
+| **Demo video** | [ReCircle walkthrough (GIF)](public/demo-video.gif) |
 
 ## Screenshots
 
