@@ -7,12 +7,26 @@ useSeoMeta({ title: 'Recycler workspace — ReCircle', robots: 'noindex' })
 
 interface RecyclerDashboard {
   user: { name: string; email: string; isDemo: boolean }
-  recycler: { businessName: string; availability: 'available' | 'busy' | 'offline'; businessHours: string; operatingHours: Array<{ day: number; open: string; close: string; enabled: boolean }>; contactPhone: string | null; serviceRadiusKm: number; capacityKgPerDay: number; acceptedMaterials: string[]; pricingRules: Array<{ material: string; pricePerKg: number; currency: 'NGN' }> } | null
+  recycler: {
+    businessName: string
+    availability: 'available' | 'busy' | 'offline'
+    businessHours: string
+    operatingHours: Array<{ day: number; open: string; close: string; enabled: boolean }>
+    contactPhone: string | null
+    serviceRadiusKm: number
+    capacityKgPerDay: number
+    acceptedMaterials: string[]
+    pricingRules: Array<{ material: string; pricePerKg: number; currency: 'NGN' }>
+    walletAvailable?: number
+    walletReserved?: number
+  } | null
   metrics: {
     availableSupplyKg: number
     jobsToday: number
     potentialPurchaseValueNgn: number
     completedCollections: number
+    walletAvailableNgn?: number
+    walletReservedNgn?: number
   }
   incoming: PickupRequestView[]
   acceptedPickups: PickupRequestView[]
@@ -26,18 +40,22 @@ interface RecyclerDashboard {
   } | null
 }
 
+const toast = useToast()
 const { data, pending, error, refresh } = await useAsyncData('recycler-dashboard', async () => {
   const fetcher = import.meta.server ? useRequestFetch() : $fetch
   return fetcher<RecyclerDashboard>('/api/dashboard/recycler')
 })
 
+const topUpAmount = ref('5000')
+const toppingUp = ref(false)
+
 const metrics = computed(() => {
   const m = data.value?.metrics
   return [
+    { label: 'Wallet available', value: formatNaira(m?.walletAvailableNgn ?? 0) },
+    { label: 'Wallet reserved', value: formatNaira(m?.walletReservedNgn ?? 0) },
     { label: 'Available supply', value: `${formatNumber(m?.availableSupplyKg ?? 0)} kg` },
-    { label: 'Jobs today', value: String(m?.jobsToday ?? 0) },
-    { label: 'Potential purchase value', value: formatNaira(m?.potentialPurchaseValueNgn ?? 0) },
-    { label: 'Completed collections', value: String(m?.completedCollections ?? 0) }
+    { label: 'Jobs today', value: String(m?.jobsToday ?? 0) }
   ]
 })
 
@@ -52,6 +70,49 @@ const materialItems = computed(() =>
 function onUpdated() {
   refresh()
 }
+
+async function topUpWallet() {
+  const amount = Number(topUpAmount.value)
+  if (!Number.isFinite(amount) || amount < 100) {
+    toast.error('Enter an amount', 'Minimum top-up is ₦100.')
+    return
+  }
+  toppingUp.value = true
+  try {
+    // Prefer Paystack Checkout when configured; otherwise demo credit for local flows.
+    try {
+      const paystack = await $fetch<{ authorizationUrl: string; amount: number }>('/api/wallet/top-up', {
+        method: 'POST',
+        body: { amount }
+      })
+      if (import.meta.client && paystack.authorizationUrl) {
+        window.location.href = paystack.authorizationUrl
+        return
+      }
+    } catch (paystackError) {
+      const message = paystackError && typeof paystackError === 'object' && 'data' in paystackError
+        ? String((paystackError.data as { statusMessage?: string })?.statusMessage || '')
+        : ''
+      if (!message.toLowerCase().includes('demo top-up') && !message.toLowerCase().includes('not configured')) {
+        throw paystackError
+      }
+      const demo = await $fetch<{ amount: number; available: number }>('/api/wallet/top-up/demo', {
+        method: 'POST',
+        body: { amount }
+      })
+      await refresh()
+      toast.success('Demo top-up complete', `${formatNaira(demo.amount)} added. Available: ${formatNaira(demo.available)}.`)
+      return
+    }
+  } catch (error) {
+    const message = error && typeof error === 'object' && 'data' in error
+      ? String((error.data as { statusMessage?: string })?.statusMessage || 'Could not top up')
+      : 'Could not top up'
+    toast.error('Top-up failed', message)
+  } finally {
+    toppingUp.value = false
+  }
+}
 </script>
 
 <template>
@@ -61,7 +122,7 @@ function onUpdated() {
         <p class="eyebrow">Recycler workspace</p>
         <h1 class="page-title">{{ data?.recycler?.businessName || 'Your recycling desk' }}</h1>
         <p class="muted workspace-intro">
-          Incoming matched waste, capacity, and purchase value from live records.
+          Top up your wallet to accept pickups. Accept locks funds; complete settles them to the consumer wallet.
         </p>
       </div>
       <div class="dash-hero-actions">
@@ -89,10 +150,24 @@ function onUpdated() {
       <DashboardMetrics :metrics="metrics" />
 
       <div class="dash-grid">
+        <DashboardSection title="Wallet" description="Available funds can accept new pickups. Reserved funds are locked on accepted jobs.">
+          <form class="wallet-topup" @submit.prevent="topUpWallet">
+            <p class="muted">
+              Available {{ formatNaira(data.metrics.walletAvailableNgn ?? 0) }}
+              · Reserved {{ formatNaira(data.metrics.walletReservedNgn ?? 0) }}
+            </p>
+            <label>
+              Top-up amount (₦)
+              <input v-model="topUpAmount" type="number" min="100" step="100" required>
+            </label>
+            <BaseButton type="submit" size="sm" :loading="toppingUp">Top up wallet</BaseButton>
+          </form>
+        </DashboardSection>
+
         <DashboardSection
           class="dash-span-2"
           title="Incoming matched waste"
-          description="Pending requests assigned to your business. Accept reserves daily capacity."
+          description="Pending requests assigned to your business. Accept locks wallet funds and reserves daily capacity."
         >
           <div v-if="data.incoming.length" class="incoming-grid">
             <IncomingRequestCard
@@ -133,7 +208,7 @@ function onUpdated() {
         <DashboardSection
           class="dash-span-2"
           title="Completed collections"
-          description="Recent pickups after you confirm payment. Active jobs stay above."
+          description="Recent pickups after you confirm collection. Active jobs stay above."
         >
           <div v-if="data.completedPickups.length" class="request-list">
             <RequestCard
@@ -150,7 +225,7 @@ function onUpdated() {
             compact
             symbol="◈"
             title="No completed collections yet"
-            description="Completed pickups appear here after you confirm payment."
+            description="Completed pickups appear here after you confirm collection."
           />
         </DashboardSection>
 
@@ -177,3 +252,22 @@ function onUpdated() {
     </template>
   </div>
 </template>
+
+<style scoped>
+.wallet-topup {
+  display: grid;
+  gap: .75rem;
+}
+.wallet-topup label {
+  display: grid;
+  gap: .35rem;
+  font-size: .85rem;
+  font-weight: 600;
+}
+.wallet-topup input {
+  max-width: 14rem;
+  padding: .55rem .7rem;
+  border: 1px solid #c9d6b8;
+  border-radius: .55rem;
+}
+</style>

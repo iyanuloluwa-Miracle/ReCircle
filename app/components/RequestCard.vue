@@ -22,6 +22,8 @@ const { openRequestChat } = useRequestChat()
 
 const canChat = computed(() => props.role === 'user' || props.role === 'recycler')
 
+const displayPayout = computed(() => props.request.lockedPayout ?? props.request.expectedPayout)
+
 function openChat() {
   openRequestChat({
     requestId: props.request.id,
@@ -62,73 +64,23 @@ function friendlyError(error: unknown, fallback: string) {
   return fallback
 }
 
-function payoutReleaseMessage(updated: PickupRequestView) {
-  if (updated.transactionProvider === 'paystack') {
-    if (updated.transactionStatus === 'pending') {
-      return 'Paystack bank transfer started. The consumer wallet will update when the transfer settles.'
-    }
-    if (updated.transactionStatus === 'failed') {
-      return 'Paystack transfer failed. Check the consumer payout account or wallet activity.'
-    }
-    return 'Reward sent via Paystack Transfer to the consumer bank account.'
-  }
-  if (updated.transactionProvider === 'mock') {
-    return 'Demo wallet credit recorded. Paystack bank transfer was skipped or unavailable (fallback).'
-  }
-  return 'Payout has been released to the consumer wallet.'
-}
-
-function rewardStatusLabel(request: PickupRequestView) {
-  if (!request.transactionStatus && !request.transactionProvider) return null
-  const provider = request.transactionProvider === 'paystack'
-    ? 'Paystack'
-    : request.transactionProvider === 'mock'
-      ? 'Demo wallet'
-      : 'Reward'
-  const status = request.transactionStatus === 'pending'
-    ? 'pending'
-    : request.transactionStatus === 'failed'
-      ? 'failed'
-      : request.transactionStatus === 'completed'
-        ? 'completed'
-        : 'recorded'
-  return `${provider} · ${status}`
-}
-
-const rewardLabel = computed(() => rewardStatusLabel(props.request))
-const lastPayoutDebug = ref<string | null>(null)
-
-async function copyPayoutDebug() {
-  if (!lastPayoutDebug.value) return
-  try {
-    await navigator.clipboard.writeText(lastPayoutDebug.value)
-    toast.success('Payout debug copied', 'Paste it into chat so we can inspect the path.')
-  } catch {
-    toast.error('Could not copy', 'Select the debug text manually and copy it.')
-  }
-}
-
 async function setStatus(status: string) {
   busy.value = true
   actionError.value = ''
   try {
-    const updated = await $fetch<PickupRequestView & {
-      payoutDebug?: { enabled: boolean; requestId: string; hint: string; logs: unknown[] }
-    }>(`/api/requests/${props.request.id}/status`, {
+    const updated = await $fetch<PickupRequestView>(`/api/requests/${props.request.id}/status`, {
       method: 'PATCH',
       body: { status }
     })
     emit('updated', updated)
-    if (updated.payoutDebug) {
-      lastPayoutDebug.value = JSON.stringify(updated.payoutDebug, null, 2)
-      console.info('[recircle:payout]', updated.payoutDebug)
+    const locked = formatNaira(updated.lockedPayout ?? updated.expectedPayout)
+    if (status === 'accepted') {
+      toast.success('Pickup accepted', `${locked} will be locked for this pickup.`)
+    } else if (status === 'completed') {
+      toast.success('Collection confirmed', `${locked} added to the consumer wallet.`)
+    } else {
+      toast.success('Request updated', `Status changed to ${status.replaceAll('_', ' ')}.`)
     }
-    toast.success(
-      status === 'completed' ? 'Payment confirmed' : 'Request updated',
-      status === 'completed'
-        ? `${payoutReleaseMessage(updated)} Moved to Completed collections.`
-        : `Status changed to ${status.replaceAll('_', ' ')}.`
-    )
   } catch (error) {
     actionError.value = friendlyError(error, 'Could not update this request.')
     toast.error('Could not update request', actionError.value)
@@ -146,7 +98,7 @@ async function setStatus(status: string) {
         <h3>{{ request.itemName || request.materialCode || 'Waste item' }}</h3>
         <p class="muted">
           {{ request.weightKg ?? '—' }} kg
-          · {{ formatNaira(request.expectedPayout) }}
+          · {{ formatNaira(displayPayout) }}
           · score {{ request.matchScore }}/100
         </p>
       </div>
@@ -164,7 +116,9 @@ async function setStatus(status: string) {
     <div class="request-card-meta">
       <span>{{ request.distanceKm }} km</span>
       <span>NGN {{ Math.round(request.pricePerKg).toLocaleString('en-NG') }}/kg</span>
-      <span v-if="rewardLabel">{{ rewardLabel }}</span>
+      <span v-if="request.lockedPayout != null && ['accepted', 'picked_up'].includes(request.status)">
+        Locked {{ formatNaira(request.lockedPayout) }}
+      </span>
       <span v-if="request.requestedPickupTime">Preferred pickup: {{ formatPickupTime(request.requestedPickupTime) }}</span>
       <span v-if="request.confirmedPickupTime">Confirmed pickup: {{ formatPickupTime(request.confirmedPickupTime) }}</span>
       <time v-if="request.createdAt" :datetime="request.createdAt">Requested {{ new Date(request.createdAt).toLocaleString('en-NG') }}</time>
@@ -179,30 +133,17 @@ async function setStatus(status: string) {
     <form v-if="role === 'user' && request.status === 'pending' && rescheduling" class="request-reschedule" @submit.prevent="reschedule"><label :for="`pickup-time-${request.id}`">New preferred pickup time<input :id="`pickup-time-${request.id}`" v-model="pickupTime" type="datetime-local" :min="earliestPickupTime()" required></label><BaseButton size="sm" :loading="busy" type="submit">Save time</BaseButton></form>
     <div v-if="role === 'user' && ['accepted', 'picked_up', 'completed'].includes(request.status)" class="pickup-tracking" aria-label="Pickup tracking details">
       <template v-if="request.status === 'completed'">
-        <strong>{{
-          request.transactionProvider === 'paystack'
-            ? (request.transactionStatus === 'pending' ? 'Paystack transfer pending' : request.transactionStatus === 'failed' ? 'Paystack transfer failed' : 'Paid via Paystack Transfer')
-            : request.transactionProvider === 'mock'
-              ? 'Demo wallet credit recorded'
-              : 'Pickup completed'
-        }}</strong>
-        <span v-if="request.transactionProvider === 'mock'">
-          Demo wallet credit recorded. If Paystack Transfers are blocked (for example Starter business), the app falls back to this in-app credit.
-        </span>
-        <span v-else-if="request.transactionProvider === 'paystack' && request.transactionStatus === 'pending'">
-          Bank transfer was initiated. Funds appear in the consumer account once Paystack settles the transfer.
-        </span>
-        <span v-else-if="request.transactionProvider === 'paystack'">
-          Recycling reward was sent to the consumer’s saved bank account via Paystack Transfer.
-        </span>
+        <strong>{{ formatNaira(displayPayout) }} added to your wallet</strong>
+        <span>Withdraw to your bank anytime from your dashboard or Settings.</span>
         <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
       </template>
       <template v-else>
-        <strong>{{ request.status === 'picked_up' ? 'Collected — awaiting payment' : 'Pickup confirmed' }}</strong>
+        <strong>{{ request.status === 'picked_up' ? 'Collected — awaiting wallet credit' : `${formatNaira(displayPayout)} locked for your pickup` }}</strong>
         <span v-if="request.confirmedPickupTime">Expected arrival: {{ formatPickupTime(request.confirmedPickupTime) }}</span>
         <span v-else>Awaiting a confirmed arrival time.</span>
         <a v-if="request.recyclerPhone" :href="`tel:${request.recyclerPhone}`">Call recycler: {{ request.recyclerPhone }}</a>
         <span v-else>Recycler contact will appear when they add it.</span>
+        <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('cancelled')">Cancel pickup</BaseButton>
         <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
       </template>
     </div>
@@ -212,48 +153,16 @@ async function setStatus(status: string) {
         <BaseButton size="sm" :loading="busy" @click="setStatus('accepted')">Accept</BaseButton>
         <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('rejected')">Reject</BaseButton>
       </template>
-      <BaseButton v-else-if="request.status === 'accepted'" size="sm" :loading="busy" @click="setStatus('completed')">Confirm collected &amp; release payout</BaseButton>
-      <BaseButton v-else-if="request.status === 'picked_up'" size="sm" :loading="busy" @click="setStatus('completed')">Release payout</BaseButton>
+      <template v-else-if="request.status === 'accepted'">
+        <BaseButton size="sm" :loading="busy" @click="setStatus('completed')">Confirm collected</BaseButton>
+        <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('rejected')">Cancel / unlock</BaseButton>
+      </template>
+      <BaseButton v-else-if="request.status === 'picked_up'" size="sm" :loading="busy" @click="setStatus('completed')">Confirm collected</BaseButton>
     </div>
     <div v-else-if="canChat && !['pending', 'accepted', 'picked_up'].includes(request.status)" class="request-card-actions">
       <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
     </div>
 
     <p v-if="actionError" class="form-error" role="alert">{{ actionError }}</p>
-    <details v-if="lastPayoutDebug" class="payout-debug">
-      <summary>Payout debug log (copy and share)</summary>
-      <p class="muted">Set <code>PAYOUT_DEBUG=1</code> and restart the server if this is empty after a release.</p>
-      <BaseButton size="sm" variant="ghost" type="button" @click="copyPayoutDebug">Copy debug JSON</BaseButton>
-      <pre>{{ lastPayoutDebug }}</pre>
-    </details>
   </article>
 </template>
-
-<style scoped>
-.payout-debug {
-  margin-top: .85rem;
-  padding: .75rem;
-  border: 1px dashed #c9d6b8;
-  border-radius: .65rem;
-  background: #f7f9f2;
-}
-.payout-debug summary {
-  cursor: pointer;
-  font-size: .78rem;
-  font-weight: 650;
-  color: #36583d;
-}
-.payout-debug pre {
-  margin: .65rem 0 0;
-  max-height: 14rem;
-  overflow: auto;
-  padding: .65rem;
-  border-radius: .45rem;
-  background: #123f32;
-  color: #d3f28a;
-  font-size: .68rem;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-</style>

@@ -10,7 +10,10 @@ interface AdminDashboard {
     activePickups: number
     kgAwaitingCollection: number
     completedToday: number
-    totalPayoutsNgn: number
+    totalSettledNgn: number
+    reservedTotalNgn: number
+    failedTopUps: number
+    failedWithdrawals: number
   }
   statusDistribution: Array<{ status: string; count: number }>
   recentActivity: Array<{
@@ -21,6 +24,7 @@ interface AdminDashboard {
     materialCode: string | null
     weightKg: number | null
     expectedPayout: number
+    lockedPayout?: number | null
     updatedAt: string | null
   }>
   recyclerUtilization: Array<{
@@ -32,9 +36,12 @@ interface AdminDashboard {
     utilizationPct: number
     availability: string
     openJobs: number
+    walletAvailable?: number
+    walletReserved?: number
   }>
   collectionQueue: PickupRequestView[]
 }
+
 
 useSeoMeta({ title: 'Admin console — ReCircle', robots: 'noindex' })
 
@@ -81,9 +88,9 @@ const metrics = computed(() => {
   const m = data.value?.metrics
   return [
     { label: 'Active pickups', value: String(m?.activePickups ?? 0) },
-    { label: 'Kg awaiting collection', value: `${formatNumber(m?.kgAwaitingCollection ?? 0)} kg` },
-    { label: 'Completed today', value: String(m?.completedToday ?? 0) },
-    { label: 'Total payouts', value: formatNaira(m?.totalPayoutsNgn ?? 0) }
+    { label: 'Total settled', value: formatNaira(m?.totalSettledNgn ?? 0) },
+    { label: 'Reserved (network)', value: formatNaira(m?.reservedTotalNgn ?? 0) },
+    { label: 'Failed rails', value: String((m?.failedTopUps ?? 0) + (m?.failedWithdrawals ?? 0)) }
   ]
 })
 
@@ -94,7 +101,7 @@ const utilizationItems = computed(() =>
   (data.value?.recyclerUtilization ?? []).map(entry => ({
     label: entry.businessName,
     value: entry.utilizationPct,
-    detail: `${formatNumber(entry.currentLoadKg)} / ${formatNumber(entry.capacityKgPerDay)} kg · ${entry.openJobs} open · ${entry.availability}`
+    detail: `${formatNumber(entry.currentLoadKg)} / ${formatNumber(entry.capacityKgPerDay)} kg · ${entry.openJobs} open · avail ${formatNaira(entry.walletAvailable ?? 0)} · res ${formatNaira(entry.walletReserved ?? 0)}`
   }))
 )
 

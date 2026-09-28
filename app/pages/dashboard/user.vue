@@ -9,6 +9,7 @@ interface ConsumerDashboard {
   user: { name: string; email: string; isDemo: boolean }
   metrics: {
     wasteDivertedKg: number
+    walletAvailableNgn: number
     totalEarnedNgn: number
     activePickups: number
     recyclingStreakDays: number
@@ -29,7 +30,7 @@ interface ConsumerDashboard {
     id: string
     amount: number
     currency: string
-    status: string
+    type: string
     provider: string
     failureReason: string | null
     createdAt: string | null
@@ -38,20 +39,23 @@ interface ConsumerDashboard {
 }
 
 const { user } = useAuth()
+const toast = useToast()
 const { data, pending, error, refresh } = await useAsyncData('consumer-dashboard', async () => {
   const fetcher = import.meta.server ? useRequestFetch() : $fetch
   return fetcher<ConsumerDashboard>('/api/dashboard/user')
 })
 
 const firstName = computed(() => user.value?.name?.split(/\s+/)[0] || 'there')
+const withdrawAmount = ref('')
+const withdrawing = ref(false)
 
 const metrics = computed(() => {
   const m = data.value?.metrics
   return [
+    { label: 'Wallet balance', value: formatNaira(m?.walletAvailableNgn ?? 0) },
+    { label: 'Lifetime earned', value: formatNaira(m?.totalEarnedNgn ?? 0) },
     { label: 'Waste diverted', value: `${formatNumber(m?.wasteDivertedKg ?? 0)} kg` },
-    { label: 'Total earned', value: formatNaira(m?.totalEarnedNgn ?? 0) },
-    { label: 'Active pickups', value: String(m?.activePickups ?? 0) },
-    { label: 'Recycling streak', value: `${m?.recyclingStreakDays ?? 0} day${(m?.recyclingStreakDays ?? 0) === 1 ? '' : 's'}` }
+    { label: 'Active pickups', value: String(m?.activePickups ?? 0) }
   ]
 })
 
@@ -65,17 +69,44 @@ function scanLink(scan: ConsumerDashboard['recentScans'][number]) {
   return '/dashboard/user'
 }
 
-function walletProviderLabel(provider: string) {
-  if (provider === 'paystack') return 'Paystack'
-  if (provider === 'mock') return 'Demo'
-  return provider
+function ledgerLabel(type: string) {
+  const labels: Record<string, string> = {
+    settle_credit: 'Pickup reward',
+    withdraw: 'Withdrawal',
+    withdraw_failed: 'Withdrawal restored',
+    top_up: 'Top-up'
+  }
+  return labels[type] || type.replaceAll('_', ' ')
 }
 
-function walletStatusLabel(status: string) {
-  if (status === 'completed') return 'completed'
-  if (status === 'pending') return 'pending'
-  if (status === 'failed') return 'failed'
-  return status
+async function withdraw() {
+  const amount = Number(withdrawAmount.value)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    toast.error('Enter an amount', 'Choose how much to withdraw from your wallet.')
+    return
+  }
+  withdrawing.value = true
+  try {
+    const result = await $fetch<{ amount: number; available: number; status: string; demo?: boolean }>('/api/wallet/withdraw', {
+      method: 'POST',
+      body: { amount }
+    })
+    withdrawAmount.value = ''
+    await refresh()
+    toast.success(
+      result.demo ? 'Demo withdrawal recorded' : 'Withdrawal started',
+      result.demo
+        ? `${formatNaira(result.amount)} debited from your wallet (Paystack not configured).`
+        : `${formatNaira(result.amount)} is on its way to your bank account.`
+    )
+  } catch (error) {
+    const message = error && typeof error === 'object' && 'data' in error
+      ? String((error.data as { statusMessage?: string })?.statusMessage || 'Could not withdraw')
+      : 'Could not withdraw'
+    toast.error('Withdrawal failed', message)
+  } finally {
+    withdrawing.value = false
+  }
 }
 </script>
 
@@ -86,12 +117,12 @@ function walletStatusLabel(status: string) {
         <p class="eyebrow">Consumer workspace</p>
         <h1 class="page-title">Welcome back, {{ firstName }}.</h1>
         <p class="muted workspace-intro">
-          Live totals from your scans, pickups, and rewards — pulled straight from your account.
+          Rewards land in your wallet when a recycler completes a pickup. Withdraw to your bank when you are ready.
         </p>
       </div>
       <div class="dash-hero-actions">
         <BaseButton to="/scan" class="dash-cta">Scan waste</BaseButton>
-        <BaseButton to="/dashboard/analytics" variant="secondary" class="dash-cta">View analytics</BaseButton>
+        <BaseButton to="/dashboard/settings" variant="secondary" class="dash-cta">Bank settings</BaseButton>
       </div>
     </div>
 
@@ -105,6 +136,22 @@ function walletStatusLabel(status: string) {
       <DashboardMetrics :metrics="metrics" />
 
       <div class="dash-grid">
+        <DashboardSection title="Withdraw" description="Send available wallet balance to your saved NUBAN.">
+          <form class="withdraw-form" @submit.prevent="withdraw">
+            <label>
+              Amount (₦)
+              <input v-model="withdrawAmount" type="number" min="100" step="1" :max="data.metrics.walletAvailableNgn" placeholder="1000" required>
+            </label>
+            <p class="muted">Available: {{ formatNaira(data.metrics.walletAvailableNgn) }}</p>
+            <div class="withdraw-actions">
+              <BaseButton type="submit" size="sm" :loading="withdrawing" :disabled="data.metrics.walletAvailableNgn < 100">
+                Withdraw
+              </BaseButton>
+              <BaseButton to="/dashboard/settings" size="sm" variant="ghost">Manage bank account</BaseButton>
+            </div>
+          </form>
+        </DashboardSection>
+
         <DashboardSection title="Active pickups" description="Requests still moving through the lifecycle.">
           <div v-if="data.activePickups.length" class="request-list">
             <RequestCard
@@ -154,23 +201,13 @@ function walletStatusLabel(status: string) {
           </EmptyState>
         </DashboardSection>
 
-        <DashboardSection title="Wallet activity" description="Recycling rewards from completed pickups. Demo entries are in-app only; Paystack means a bank Transfer was attempted.">
+        <DashboardSection title="Wallet history" description="Earnings and withdrawals from your ledger.">
           <ul v-if="data.walletActivity.length" class="wallet-list">
             <li v-for="entry in data.walletActivity" :key="entry.id">
               <div>
                 <strong>{{ formatNaira(entry.amount) }}</strong>
-                <span class="muted">
-                  {{ walletProviderLabel(entry.provider) }} · {{ walletStatusLabel(entry.status) }}
-                </span>
-                <span v-if="entry.provider === 'mock'" class="muted">
-                  In-app demo credit (no bank transfer)
-                </span>
-                <span v-else-if="entry.provider === 'paystack' && entry.status === 'pending'" class="muted">
-                  Bank transfer pending
-                </span>
-                <span v-if="entry.failureReason" class="muted">
-                  {{ entry.failureReason }}
-                </span>
+                <span class="muted">{{ ledgerLabel(entry.type) }}</span>
+                <span v-if="entry.failureReason" class="muted">{{ entry.failureReason }}</span>
               </div>
               <time v-if="entry.createdAt" :datetime="entry.createdAt">
                 {{ new Date(entry.createdAt).toLocaleDateString('en-NG') }}
@@ -182,7 +219,7 @@ function walletStatusLabel(status: string) {
             compact
             symbol="◈"
             title="No wallet activity"
-            description="Rewards appear after a recycler marks a pickup completed. Add a payout bank account in Settings to receive Paystack TEST transfers."
+            description="Rewards appear when a recycler completes a pickup. Add a bank account in Settings before withdrawing."
           />
         </DashboardSection>
 
@@ -198,3 +235,27 @@ function walletStatusLabel(status: string) {
     </template>
   </div>
 </template>
+
+<style scoped>
+.withdraw-form {
+  display: grid;
+  gap: .75rem;
+}
+.withdraw-form label {
+  display: grid;
+  gap: .35rem;
+  font-size: .85rem;
+  font-weight: 600;
+}
+.withdraw-form input {
+  max-width: 16rem;
+  padding: .55rem .7rem;
+  border: 1px solid #c9d6b8;
+  border-radius: .55rem;
+}
+.withdraw-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+</style>

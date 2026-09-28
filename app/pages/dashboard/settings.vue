@@ -408,31 +408,29 @@ onUnmounted(() => {
 
     <DashboardSection
       v-if="user?.role === 'user'"
-      title="Payout bank account"
-      description="Recycling rewards are paid via Paystack Transfers to this bank account when a pickup completes. There is no Checkout payment page."
+      title="Withdrawal bank account"
+      description="Rewards credit your in-app wallet when a pickup completes. Withdrawals use Paystack Transfers to this NUBAN — not on each collection."
     >
-      <p v-if="payoutLoading" class="muted">Loading payout settings…</p>
+      <p v-if="payoutLoading" class="muted">Loading bank settings…</p>
       <form v-else class="settings-form" @submit.prevent="savePayoutDetails">
         <p
           v-if="!payoutBanks.length"
           class="settings-payout-banner"
           role="status"
         >
-          Rewards are recorded as <strong>demo wallet credit</strong> until Paystack TEST keys
-          (<code>PAYSTACK_SECRET_KEY</code> / <code>PAYSTACK_PUBLIC_KEY</code>) are set and a verified bank account is saved.
-          No hosted Paystack page will appear — Transfers run in the background on pickup completion.
+          Add Paystack TEST keys (<code>PAYSTACK_SECRET_KEY</code> / <code>PAYSTACK_PUBLIC_KEY</code>)
+          to verify a NUBAN and withdraw to bank. Until then, withdrawals can still debit the demo wallet locally.
         </p>
         <p
           v-else-if="!payoutHasRecipient"
           class="settings-payout-banner"
           role="status"
         >
-          Paystack TEST keys are configured. Save a verified NUBAN account below so completed pickups can send
-          <strong>Paystack Transfers</strong> instead of demo wallet credit.
+          Save a verified NUBAN so you can withdraw wallet balance via <strong>Paystack Transfer</strong>.
         </p>
         <p v-else-if="payoutAccountName" class="location-status">
           Verified as {{ payoutAccountName }}
-          <template v-if="payoutHasRecipient"> · ready for transfers</template>
+          <template v-if="payoutHasRecipient"> · ready for withdrawals</template>
         </p>
         <label for="payout-bank">Bank</label>
         <select id="payout-bank" v-model="payoutBankCode" :disabled="payoutSaving || !payoutBanks.length" required>
@@ -453,12 +451,12 @@ onUnmounted(() => {
           required
         >
         <p v-if="!payoutBanks.length && !payoutError" class="muted">
-          Add Paystack TEST keys to load supported banks and enable transfers.
+          Add Paystack TEST keys to load supported banks and enable withdrawals.
         </p>
         <p v-if="payoutError" class="form-error" role="alert">{{ payoutError }}</p>
         <p v-else-if="payoutSuccess" class="settings-success" role="status">{{ payoutSuccess }}</p>
         <BaseButton type="submit" :loading="payoutSaving" :disabled="payoutSaving || !payoutBanks.length">
-          Save payout account
+          Save withdrawal account
         </BaseButton>
       </form>
     </DashboardSection>

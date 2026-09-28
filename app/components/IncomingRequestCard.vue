@@ -48,7 +48,12 @@ async function setStatus(status: 'accepted' | 'rejected') {
       body: { status, ...(status === 'accepted' && confirmedTime.value ? { confirmedPickupTime: new Date(confirmedTime.value).toISOString() } : {}) }
     })
     emit('updated', updated)
-    toast.success(status === 'accepted' ? 'Pickup accepted' : 'Pickup declined', 'The requester will see the updated status.')
+    if (status === 'accepted') {
+      const locked = formatNaira(updated.lockedPayout ?? updated.expectedPayout)
+      toast.success('Pickup accepted', `${locked} will be locked for this pickup.`)
+    } else {
+      toast.success('Pickup declined', 'Funds were not locked. The requester will see the updated status.')
+    }
   } catch (error) {
     actionError.value = friendlyError(error, 'Could not update this request.')
     toast.error('Could not update request', actionError.value)
@@ -56,6 +61,7 @@ async function setStatus(status: 'accepted' | 'rejected') {
     busy.value = false
   }
 }
+
 </script>
 
 <template>
@@ -75,6 +81,7 @@ async function setStatus(status: 'accepted' | 'rejected') {
         <div><dt>Weight</dt><dd>{{ request.weightKg == null ? '—' : `${formatNumber(request.weightKg)} kg` }}</dd></div>
         <div><dt>Distance</dt><dd>{{ formatNumber(request.distanceKm) }} km</dd></div>
         <div><dt>Purchase price</dt><dd>{{ formatNaira(request.expectedPayout) }}</dd></div>
+        <div><dt>On accept</dt><dd>{{ formatNaira(request.expectedPayout) }} will be locked</dd></div>
         <div><dt>Pickup area</dt><dd>{{ request.pickupArea || '—' }}</dd></div>
         <div v-if="request.requestedPickupTime"><dt>Preferred time</dt><dd>{{ formatPickupTime(request.requestedPickupTime) }}</dd></div>
       </dl>

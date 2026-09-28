@@ -52,6 +52,8 @@ export interface PickupRequestView {
   materialCode: string | null
   weightKg: number | null
   expectedPayout: number
+  lockedPayout?: number | null
+  settledAt?: string | null
   pricePerKg: number
   distanceKm: number
   matchScore: number
@@ -65,14 +67,49 @@ export interface PickupRequestView {
   rejectedAt: string | null
   cancelledAt: string | null
   recyclerPhone?: string | null
-  transactionId?: string | null
-  transactionStatus?: 'pending' | 'completed' | 'failed' | null
-  /** Present when a recycling_reward transaction exists for this request. */
-  transactionProvider?: 'mock' | 'paystack' | null
   createdAt: string | null
   updatedAt: string | null
   timeline: TimelineStepView[]
 }
+
+export type LedgerEntryType =
+  | 'top_up'
+  | 'reserve'
+  | 'release'
+  | 'settle_debit'
+  | 'settle_credit'
+  | 'withdraw'
+  | 'withdraw_failed'
+
+export interface LedgerEntryView {
+  id: string
+  type: LedgerEntryType | string
+  amount: number
+  currency: string
+  requestId: string | null
+  topUpId?: string | null
+  withdrawalId?: string | null
+  provider: string
+  providerRef?: string | null
+  failureReason: string | null
+  createdAt: string | null
+}
+
+export interface WalletView {
+  role: 'user' | 'recycler' | 'admin'
+  available?: number
+  reserved?: number
+  hasBankAccount?: boolean
+  accountName?: string | null
+  paystackEnabled?: boolean
+  demoTopUpAllowed?: boolean
+  recent?: LedgerEntryView[]
+  recyclers?: { count: number; available: number; reserved: number }
+  consumers?: { available: number }
+  failedTopUps?: Array<{ id: string; amount: number; failureReason: string | null; createdAt: string | null }>
+  failedWithdrawals?: Array<{ id: string; amount: number; failureReason: string | null; createdAt: string | null }>
+}
+
 
 export interface RequestChatMessageView {
   id: string
