@@ -1,9 +1,10 @@
 import { Types } from 'mongoose'
 import { Request } from '../models/Request'
 import { Recycler } from '../models/Recycler'
-import { Transaction } from '../models/Transaction'
+import { LedgerEntry } from '../models/LedgerEntry'
 import { nigeriaAreas, nearestAreaName } from '../../utils/collection-batch'
 import type { AuthUser, UserRole } from '../../types'
+
 
 export type SeriesPoint = { label: string; value: number }
 export type NamedCount = { label: string; value: number; detail?: string }
@@ -52,8 +53,8 @@ async function consumerAnalytics(userId: Types.ObjectId) {
       { $project: { _id: 0, month: '$_id', value: 1 } },
       { $sort: { month: 1 } }
     ]),
-    Transaction.aggregate<{ total: number }>([
-      { $match: { userId, status: 'completed', type: 'recycling_reward' } },
+    LedgerEntry.aggregate<{ total: number }>([
+      { $match: { ownerType: 'user', ownerId: userId, type: 'settle_credit' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]),
     Request.aggregate<{ label: string; value: number }>([
@@ -76,8 +77,8 @@ async function consumerAnalytics(userId: Types.ObjectId) {
       { $project: { _id: 0, label: '$_id', value: 1 } },
       { $sort: { value: -1 } }
     ]),
-    Transaction.aggregate<{ month: string; value: number }>([
-      { $match: { userId, status: 'completed', type: 'recycling_reward' } },
+    LedgerEntry.aggregate<{ month: string; value: number }>([
+      { $match: { ownerType: 'user', ownerId: userId, type: 'settle_credit' } },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
@@ -279,8 +280,8 @@ async function operatorAnalytics() {
       },
       { $sort: { value: -1 } }
     ]),
-    Transaction.aggregate<{ total: number }>([
-      { $match: { status: 'completed', type: 'recycling_reward' } },
+    LedgerEntry.aggregate<{ total: number }>([
+      { $match: { type: 'settle_credit' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]),
     Request.aggregate<{ lat: number; lng: number; count: number; kg: number }>([
@@ -334,8 +335,8 @@ async function operatorAnalytics() {
     .map(([label, value]) => ({ label, value: round2(value) }))
     .sort((a, b) => b.value - a.value)
 
-  const payoutByMonth = await Transaction.aggregate<{ month: string; value: number }>([
-    { $match: { status: 'completed', type: 'recycling_reward' } },
+  const payoutByMonth = await LedgerEntry.aggregate<{ month: string; value: number }>([
+    { $match: { type: 'settle_credit' } },
     {
       $group: {
         _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },

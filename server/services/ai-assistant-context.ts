@@ -1,7 +1,7 @@
 import { Types } from 'mongoose'
 import { Request } from '../models/Request'
 import { Recycler } from '../models/Recycler'
-import { Transaction } from '../models/Transaction'
+import { LedgerEntry } from '../models/LedgerEntry'
 import { WasteItem } from '../models/WasteItem'
 import { haversineKm } from '../../utils/collection-batch'
 import type { AssistantFactBundle } from '../../utils/ai-assistant'
@@ -110,12 +110,14 @@ async function loadConsumerFacts(user: AuthUser, wasteItemId?: string, requestId
   const userId = new Types.ObjectId(user.id)
   const userPoint = asPoint(user.location)
 
-  const [recentItems, recentRequests, transactions, recyclers, materials] = await Promise.all([
+  const [recentItems, recentRequests, ledger, recyclers, materials] = await Promise.all([
     WasteItem.find({ userId }).sort({ createdAt: -1 }).limit(8)
       .select('itemName materialCode recyclability confidence status weightKg estimatedValueMin estimatedValueMax preparationInstructions disposalMethod')
       .lean(),
     Request.find({ userId }).sort({ createdAt: -1 }).limit(8).lean(),
-    Transaction.find({ userId }).sort({ createdAt: -1 }).limit(8).select('amount status createdAt').lean(),
+    LedgerEntry.find({ ownerType: 'user', ownerId: userId }).sort({ createdAt: -1 }).limit(8)
+      .select('amount type createdAt')
+      .lean(),
     Recycler.find({ availability: { $in: ['available', 'busy'] } })
       .select('businessName availability pricingRules location')
       .limit(20)
@@ -154,8 +156,9 @@ async function loadConsumerFacts(user: AuthUser, wasteItemId?: string, requestId
   }
 
   const focusedRequest = mappedRequests.find(entry => entry.id === requestId) ?? null
+  const settleCredits = ledger.filter(entry => entry.type === 'settle_credit')
   const totalCompletedPayoutNgn = Math.round(
-    transactions.filter(entry => entry.status === 'completed').reduce((sum, entry) => sum + entry.amount, 0)
+    settleCredits.reduce((sum, entry) => sum + entry.amount, 0)
   )
 
   return {
@@ -169,9 +172,9 @@ async function loadConsumerFacts(user: AuthUser, wasteItemId?: string, requestId
     recentRequests: mappedRequests,
     earnings: {
       totalCompletedPayoutNgn,
-      recentTransactions: transactions.map(entry => ({
+      recentTransactions: ledger.map(entry => ({
         amount: entry.amount,
-        status: entry.status,
+        status: entry.type,
         createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null
       }))
     },

@@ -1,11 +1,15 @@
 import { Types } from 'mongoose'
 import { Request } from '../models/Request'
 import { Recycler } from '../models/Recycler'
-import { Transaction } from '../models/Transaction'
+import { User } from '../models/User'
+import { LedgerEntry } from '../models/LedgerEntry'
+import { TopUp } from '../models/TopUp'
+import { Withdrawal } from '../models/Withdrawal'
 import { WasteItem } from '../models/WasteItem'
 import { listRequestsForActor } from './pickup-requests'
 import { computeRecyclingStreak, formatPickupArea } from '../../utils/dashboard-metrics'
 import type { AuthUser } from '../../types'
+
 
 const ACTIVE_REQUEST_STATUSES = ['pending', 'accepted', 'picked_up'] as const
 const COLLECTION_QUEUE_STATUSES = ['pending', 'accepted', 'picked_up'] as const
@@ -38,23 +42,23 @@ async function enrichRequestsWithImages(requests: Awaited<ReturnType<typeof list
 
 export async function getConsumerDashboard(user: AuthUser) {
   const userId = new Types.ObjectId(user.id)
-  const [requests, wasteAgg, earnedAgg, completedDates, recentScans, wallet] = await Promise.all([
+  const [requests, wasteAgg, userDoc, completedDates, recentScans, ledger] = await Promise.all([
     listRequestsForActor({ userId: user.id, role: 'user' }),
     WasteItem.aggregate<{ totalKg: number }>([
       { $match: { userId, status: { $in: ['picked_up', 'completed'] }, weightKg: { $gt: 0 } } },
       { $group: { _id: null, totalKg: { $sum: '$weightKg' } } }
     ]),
-    Transaction.aggregate<{ total: number }>([
-      { $match: { userId, status: 'completed', type: 'recycling_reward' } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]),
+    User.findById(userId).select('walletAvailable').lean(),
     Request.find({ userId, status: 'completed', completedAt: { $ne: null } }).select('completedAt').lean(),
     WasteItem.find({ userId }).sort({ createdAt: -1 }).limit(6)
       .select('imageUrl itemName materialCode status weightKg estimatedValueMin estimatedValueMax createdAt')
       .lean(),
-    Transaction.find({ userId }).sort({ createdAt: -1 }).limit(8)
-      .select('amount currency status type provider providerRef failureReason createdAt requestId')
-      .lean()
+    LedgerEntry.find({ ownerType: 'user', ownerId: userId }).sort({ createdAt: -1 }).limit(8).lean()
+  ])
+
+  const lifetimeEarned = await LedgerEntry.aggregate<{ total: number }>([
+    { $match: { ownerType: 'user', ownerId: userId, type: 'settle_credit' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
   ])
 
   const enriched = await enrichRequestsWithImages(requests)
@@ -67,7 +71,8 @@ export async function getConsumerDashboard(user: AuthUser) {
     user,
     metrics: {
       wasteDivertedKg: Math.round((wasteAgg[0]?.totalKg ?? 0) * 100) / 100,
-      totalEarnedNgn: Math.round(earnedAgg[0]?.total ?? 0),
+      walletAvailableNgn: Math.round(userDoc?.walletAvailable ?? 0),
+      totalEarnedNgn: Math.round(lifetimeEarned[0]?.total ?? 0),
       activePickups: activePickups.length,
       recyclingStreakDays: streak
     },
@@ -83,20 +88,21 @@ export async function getConsumerDashboard(user: AuthUser) {
       estimatedValueMax: entry.estimatedValueMax ?? null,
       createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null
     })),
-    walletActivity: wallet.map(entry => ({
+    walletActivity: ledger.map(entry => ({
       id: entry._id.toString(),
       amount: entry.amount,
       currency: entry.currency,
-      status: entry.status,
       type: entry.type,
       provider: entry.provider,
       failureReason: entry.failureReason ?? null,
-      requestId: entry.requestId.toString(),
+      requestId: entry.requestId ? entry.requestId.toString() : null,
+      withdrawalId: entry.withdrawalId ? entry.withdrawalId.toString() : null,
       createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null
     })),
     tips: TIPS.map(tip => ({ ...tip }))
   }
 }
+
 
 export async function getRecyclerDashboard(user: AuthUser) {
   const profile = await Recycler.findOne({ userId: user.id }).lean()
@@ -108,7 +114,9 @@ export async function getRecyclerDashboard(user: AuthUser) {
         availableSupplyKg: 0,
         jobsToday: 0,
         potentialPurchaseValueNgn: 0,
-        completedCollections: 0
+        completedCollections: 0,
+        walletAvailableNgn: 0,
+        walletReservedNgn: 0
       },
       incoming: [],
       acceptedPickups: [],
@@ -186,13 +194,17 @@ export async function getRecyclerDashboard(user: AuthUser) {
       capacityKgPerDay: profile.capacityKgPerDay,
       businessHours: profile.businessHours ?? '',
       operatingHours: profile.operatingHours ?? [],
-      contactPhone: profile.contactPhone ?? null
+      contactPhone: profile.contactPhone ?? null,
+      walletAvailable: Math.round(profile.walletAvailable ?? 0),
+      walletReserved: Math.round(profile.walletReserved ?? 0)
     },
     metrics: {
       availableSupplyKg,
       jobsToday,
       potentialPurchaseValueNgn,
-      completedCollections
+      completedCollections,
+      walletAvailableNgn: Math.round(profile.walletAvailable ?? 0),
+      walletReservedNgn: Math.round(profile.walletReserved ?? 0)
     },
     incoming,
     acceptedPickups,
@@ -219,7 +231,10 @@ export async function getAdminDashboard(user: AuthUser) {
     activePickups,
     awaitingKg,
     completedToday,
-    totalPayouts,
+    settledAgg,
+    reservedAgg,
+    failedTopUps,
+    failedWithdrawals,
     statusDistribution,
     recyclerUtilization,
     recentActivity
@@ -240,10 +255,15 @@ export async function getAdminDashboard(user: AuthUser) {
       { $group: { _id: null, totalKg: { $sum: { $ifNull: ['$waste.weightKg', 0] } } } }
     ]),
     Request.countDocuments({ status: 'completed', completedAt: { $gte: today } }),
-    Transaction.aggregate<{ total: number }>([
-      { $match: { status: 'completed', type: 'recycling_reward' } },
+    LedgerEntry.aggregate<{ total: number }>([
+      { $match: { type: 'settle_credit' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]),
+    Recycler.aggregate<{ total: number }>([
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$walletReserved', 0] } } } }
+    ]),
+    TopUp.countDocuments({ status: 'failed' }),
+    Withdrawal.countDocuments({ status: 'failed' }),
     Request.aggregate<{ status: string; count: number }>([
       { $group: { _id: '$status', count: { $sum: 1 } } },
       { $project: { _id: 0, status: '$_id', count: 1 } },
@@ -256,6 +276,8 @@ export async function getAdminDashboard(user: AuthUser) {
       currentLoadKg: number
       availability: string
       openJobs: number
+      walletAvailable: number
+      walletReserved: number
     }>([
       {
         $lookup: {
@@ -284,6 +306,8 @@ export async function getAdminDashboard(user: AuthUser) {
           capacityKgPerDay: 1,
           currentLoadKg: 1,
           availability: 1,
+          walletAvailable: { $ifNull: ['$walletAvailable', 0] },
+          walletReserved: { $ifNull: ['$walletReserved', 0] },
           openJobs: { $ifNull: [{ $arrayElemAt: ['$jobs.openJobs', 0] }, 0] }
         }
       },
@@ -313,7 +337,10 @@ export async function getAdminDashboard(user: AuthUser) {
       activePickups,
       kgAwaitingCollection: Math.round((awaitingKg[0]?.totalKg ?? 0) * 100) / 100,
       completedToday,
-      totalPayoutsNgn: Math.round(totalPayouts[0]?.total ?? 0)
+      totalSettledNgn: Math.round(settledAgg[0]?.total ?? 0),
+      reservedTotalNgn: Math.round(reservedAgg[0]?.total ?? 0),
+      failedTopUps,
+      failedWithdrawals
     },
     statusDistribution,
     recentActivity: recentActivity.map((entry) => {
@@ -326,6 +353,7 @@ export async function getAdminDashboard(user: AuthUser) {
         materialCode: waste?.materialCode ?? null,
         weightKg: waste?.weightKg ?? null,
         expectedPayout: entry.expectedPayout,
+        lockedPayout: entry.lockedPayout ?? null,
         updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null
       }
     }),
@@ -339,8 +367,11 @@ export async function getAdminDashboard(user: AuthUser) {
         ? Math.round((entry.currentLoadKg / entry.capacityKgPerDay) * 1000) / 10
         : 0,
       availability: entry.availability,
-      openJobs: entry.openJobs
+      openJobs: entry.openJobs,
+      walletAvailable: Math.round(entry.walletAvailable ?? 0),
+      walletReserved: Math.round(entry.walletReserved ?? 0)
     })),
     collectionQueue
   }
 }
+
