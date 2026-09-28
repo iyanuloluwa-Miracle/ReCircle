@@ -11,7 +11,7 @@ import {
   reserveRecyclerFunds,
   settlePickupFunds
 } from './ledger'
-import { withMongoTransaction } from '../utils/db'
+import { withMongoTransaction, connectDatabase } from '../utils/db'
 import { matchRecyclersForWaste } from './recycler-matching'
 import {
   buildRequestTimeline,
@@ -176,78 +176,110 @@ export async function createPickupRequest(options: {
   const recyclerId = new Types.ObjectId(options.recyclerId)
   const userId = new Types.ObjectId(options.userId)
 
-  return withMongoTransaction(async (session) => {
-    const item = await WasteItem.findOne({ _id: wasteItemId, userId }).session(session)
-    if (!item) throw notFound('Waste item not found')
-    if (item.status !== 'matched' && item.status !== 'pickup_requested') {
-      throw conflict('Match a recycler before requesting pickup')
+  // Validate + re-match outside the transaction. $geoNear is not safe inside a multi-doc txn,
+  // and keeping the txn short avoids production 500s from long open sessions.
+  await connectDatabase()
+  const item = await WasteItem.findOne({ _id: wasteItemId, userId })
+  if (!item) throw notFound('Waste item not found')
+  if (item.status !== 'matched' && item.status !== 'pickup_requested') {
+    throw conflict('Match a recycler before requesting pickup')
+  }
+  if (!item.weightKg || item.weightKg <= 0) throw conflict('Weight is required before requesting pickup')
+  if (!item.materialCode || !item.location?.coordinates) throw conflict('Item is missing material or location data')
+
+  const existing = await Request.findOne({ wasteItemId })
+  const previousRecyclerId = existing?.recyclerId?.toString() ?? null
+  const isPendingReassign = Boolean(existing && existing.status === 'pending')
+
+  if (existing) {
+    if (existing.status === 'pending') {
+      if (previousRecyclerId === recyclerId.toString()) {
+        throw conflict('That recycler is already assigned to this pickup')
+      }
+    } else if (existing.status !== 'cancelled' && existing.status !== 'rejected') {
+      throw conflict('A pickup request already exists for this item')
     }
-    if (!item.weightKg || item.weightKg <= 0) throw conflict('Weight is required before requesting pickup')
-    if (!item.materialCode || !item.location?.coordinates) throw conflict('Item is missing material or location data')
+  } else if (item.status === 'pickup_requested') {
+    throw conflict('Match a recycler before requesting pickup')
+  }
 
-    const existing = await Request.findOne({ wasteItemId }).session(session)
-    const previousRecyclerId = existing?.recyclerId?.toString() ?? null
-    const isPendingReassign = Boolean(existing && existing.status === 'pending')
+  const match = await matchRecyclersForWaste({
+    location: item.location,
+    materialCode: item.materialCode,
+    weightKg: item.weightKg
+  })
+  const eligibleMatch = match.allMatches.find(entry => entry.recyclerId === recyclerId.toString())
+  if (!eligibleMatch) throw conflict('That recycler is no longer eligible for this pickup')
 
-    if (existing) {
-      if (existing.status === 'pending') {
-        if (previousRecyclerId === recyclerId.toString()) {
+  const payload = {
+    wasteItemId,
+    userId,
+    recyclerId,
+    pickupLocation: item.location,
+    requestedPickupTime: options.requestedPickupTime ?? null,
+    confirmedPickupTime: null as Date | null,
+    acceptedAt: null as Date | null,
+    pickedUpAt: null as Date | null,
+    completedAt: null as Date | null,
+    rejectedAt: null as Date | null,
+    cancelledAt: null as Date | null,
+    settledAt: null as Date | null,
+    lockedPayout: null as number | null,
+    capacityHeld: false,
+    matchScore: toStoredMatchScore(eligibleMatch.matchScore),
+    matchReasons: [...eligibleMatch.whySelected, ...eligibleMatch.reasons].slice(0, 8),
+    distanceKm: eligibleMatch.distanceKm,
+    pricePerKg: eligibleMatch.pricePerKg,
+    expectedPayout: eligibleMatch.expectedPayout,
+    status: 'pending' as const,
+    isDemo: options.isDemo ?? item.isDemo ?? false
+  }
+
+  const serialized = await withMongoTransaction(async (session) => {
+    // Re-load under the session so concurrent creates cannot race past unique wasteItemId.
+    const lockedItem = await WasteItem.findOne({ _id: wasteItemId, userId }).session(session)
+    if (!lockedItem) throw notFound('Waste item not found')
+
+    const lockedExisting = await Request.findOne({ wasteItemId }).session(session)
+    if (lockedExisting) {
+      if (lockedExisting.status === 'pending') {
+        if (lockedExisting.recyclerId.toString() === recyclerId.toString()) {
           throw conflict('That recycler is already assigned to this pickup')
         }
-      } else if (existing.status !== 'cancelled' && existing.status !== 'rejected') {
+      } else if (lockedExisting.status !== 'cancelled' && lockedExisting.status !== 'rejected') {
         throw conflict('A pickup request already exists for this item')
       }
-    } else if (item.status === 'pickup_requested') {
+    } else if (lockedItem.status === 'pickup_requested') {
       throw conflict('Match a recycler before requesting pickup')
-    }
-
-    const match = await matchRecyclersForWaste({
-      location: item.location,
-      materialCode: item.materialCode,
-      weightKg: item.weightKg
-    })
-    const eligibleMatch = match.allMatches.find(entry => entry.recyclerId === recyclerId.toString())
-    if (!eligibleMatch) throw conflict('That recycler is no longer eligible for this pickup')
-
-    const payload = {
-      wasteItemId,
-      userId,
-      recyclerId,
-      pickupLocation: item.location,
-      requestedPickupTime: options.requestedPickupTime ?? null,
-      confirmedPickupTime: null as Date | null,
-      acceptedAt: null as Date | null,
-      pickedUpAt: null as Date | null,
-      completedAt: null as Date | null,
-      rejectedAt: null as Date | null,
-      cancelledAt: null as Date | null,
-      settledAt: null as Date | null,
-      lockedPayout: null as number | null,
-      capacityHeld: false,
-      matchScore: toStoredMatchScore(eligibleMatch.matchScore),
-      matchReasons: [...eligibleMatch.whySelected, ...eligibleMatch.reasons].slice(0, 8),
-      distanceKm: eligibleMatch.distanceKm,
-      pricePerKg: eligibleMatch.pricePerKg,
-      expectedPayout: eligibleMatch.expectedPayout,
-      status: 'pending' as const,
-      isDemo: options.isDemo ?? item.isDemo ?? false
     }
 
     let requestDoc
-    if (existing) {
-      existing.set(payload)
-      await existing.save({ session })
-      requestDoc = existing
+    if (lockedExisting) {
+      lockedExisting.set(payload)
+      await lockedExisting.save({ session })
+      requestDoc = lockedExisting
     } else {
       const created = await Request.create([payload], { session })
       requestDoc = created[0]!
     }
 
-    item.status = 'pickup_requested'
-    await item.save({ session })
+    lockedItem.status = 'pickup_requested'
+    await lockedItem.save({ session })
 
+    return serializeRequest(requestDoc.toObject() as RequestLean, {
+      businessName: eligibleMatch.businessName,
+      materialCode: lockedItem.materialCode,
+      itemName: lockedItem.itemName,
+      weightKg: lockedItem.weightKg,
+      wasteStatus: lockedItem.status
+    })
+  })
+
+  // Notifications after commit: creating a collection mid-transaction fails on fresh DBs,
+  // and a notification failure must not roll back a successful pickup request.
+  try {
     if (isPendingReassign && previousRecyclerId && previousRecyclerId !== recyclerId.toString()) {
-      const previousRecycler = await Recycler.findById(previousRecyclerId).select('userId').session(session).lean()
+      const previousRecycler = await Recycler.findById(previousRecyclerId).select('userId').lean()
       if (previousRecycler) {
         await Notification.create([{
           userId: previousRecycler.userId,
@@ -255,11 +287,11 @@ export async function createPickupRequest(options: {
           title: 'Pickup reassigned',
           body: `The consumer chose another recycler for ${item.itemName || item.materialCode || 'a pickup'}.`,
           href: '/dashboard/incoming'
-        }], { session })
+        }])
       }
     }
 
-    const recyclerProfile = await Recycler.findById(recyclerId).select('userId').session(session).lean()
+    const recyclerProfile = await Recycler.findById(recyclerId).select('userId').lean()
     if (recyclerProfile) {
       await Notification.create([{
         userId: recyclerProfile.userId,
@@ -267,17 +299,16 @@ export async function createPickupRequest(options: {
         title: isPendingReassign ? 'Pickup reassigned to you' : 'New pickup request',
         body: `${item.itemName || item.materialCode || 'A recyclable item'} is ready for your review.`,
         href: '/dashboard/incoming'
-      }], { session })
+      }])
     }
+  } catch (error) {
+    console.error(
+      '[recircle:create-request] notification failed after request commit',
+      error instanceof Error ? error.message : error
+    )
+  }
 
-    return serializeRequest(requestDoc.toObject() as RequestLean, {
-      businessName: eligibleMatch.businessName,
-      materialCode: item.materialCode,
-      itemName: item.itemName,
-      weightKg: item.weightKg,
-      wasteStatus: item.status
-    })
-  })
+  return serialized
 }
 
 export async function listRequestsForActor(options: {
