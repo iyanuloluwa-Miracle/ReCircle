@@ -254,7 +254,7 @@ export async function createPickupRequest(options: {
           type: 'pickup_cancelled',
           title: 'Pickup reassigned',
           body: `The consumer chose another recycler for ${item.itemName || item.materialCode || 'a pickup'}.`,
-          href: '/dashboard/recycler'
+          href: '/dashboard/incoming'
         }], { session })
       }
     }
@@ -266,7 +266,7 @@ export async function createPickupRequest(options: {
         type: 'pickup_requested',
         title: isPendingReassign ? 'Pickup reassigned to you' : 'New pickup request',
         body: `${item.itemName || item.materialCode || 'A recyclable item'} is ready for your review.`,
-        href: '/dashboard/recycler'
+        href: '/dashboard/incoming'
       }], { session })
     }
 
@@ -431,7 +431,7 @@ export async function updateRequestStatus(options: {
         type: 'pickup_cancelled',
         title: 'Pickup cancelled',
         body: `The consumer cancelled the ${item.itemName || item.materialCode || 'pickup'} request.`,
-        href: '/dashboard/recycler'
+        href: '/dashboard/incoming'
       }], { session })
       await notifyAdmins({ type: 'pickup_cancelled', title: 'Pickup cancelled', body: 'A consumer cancelled a pickup; capacity and routing may need review.', href: '/dashboard/admin' }, session)
     } else if (nextStatus === 'picked_up') {
@@ -513,7 +513,7 @@ export async function reschedulePickupRequest(options: { requestId: string; user
   request.requestedPickupTime = options.requestedPickupTime
   await request.save()
   const recycler = await Recycler.findById(request.recyclerId).select('userId').lean()
-  if (recycler) await Notification.create([{ userId: recycler.userId, type: 'pickup_rescheduled', title: 'Pickup time updated', body: 'A consumer updated their preferred pickup time.', href: '/dashboard/recycler' }])
+  if (recycler) await Notification.create([{ userId: recycler.userId, type: 'pickup_rescheduled', title: 'Pickup time updated', body: 'A consumer updated their preferred pickup time.', href: '/dashboard/incoming' }])
   return serializeRequest(request.toObject() as RequestLean)
 }
 

@@ -217,3 +217,18 @@ export async function initializeTransaction(options: {
   }
 }
 
+export async function verifyTransaction(reference: string) {
+  const data = await paystackFetch<{
+    status: string
+    reference: string
+    amount: number
+    currency: string
+  }>(`/transaction/verify/${encodeURIComponent(reference)}`)
+  return {
+    status: data.status,
+    reference: data.reference,
+    amountKobo: data.amount,
+    currency: data.currency
+  }
+}
+

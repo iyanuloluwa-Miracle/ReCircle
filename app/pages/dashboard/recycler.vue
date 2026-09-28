@@ -41,6 +41,8 @@ interface RecyclerDashboard {
 }
 
 const toast = useToast()
+const route = useRoute()
+const router = useRouter()
 const { data, pending, error, refresh } = await useAsyncData('recycler-dashboard', async () => {
   const fetcher = import.meta.server ? useRequestFetch() : $fetch
   return fetcher<RecyclerDashboard>('/api/dashboard/recycler')
@@ -48,6 +50,59 @@ const { data, pending, error, refresh } = await useAsyncData('recycler-dashboard
 
 const topUpAmount = ref('5000')
 const toppingUp = ref(false)
+const verifyingTopUp = ref(false)
+
+const incomingCount = computed(() => data.value?.incoming.length ?? 0)
+
+async function verifyTopUpFromCallback() {
+  if (!import.meta.client || verifyingTopUp.value) return
+  const reference = typeof route.query.reference === 'string'
+    ? route.query.reference
+    : typeof route.query.trxref === 'string'
+      ? route.query.trxref
+      : null
+  if (!reference || !reference.startsWith('topup_')) return
+
+  verifyingTopUp.value = true
+  try {
+    const result = await $fetch<{
+      handled: boolean
+      alreadyApplied?: boolean
+      amount?: number
+      available?: number
+      reason?: string
+    }>('/api/wallet/top-up/verify', {
+      method: 'POST',
+      body: { reference }
+    })
+    await refresh()
+    if (result.handled && (result.alreadyApplied || result.reason === 'already_applied')) {
+      toast.success('Wallet already updated', 'This top-up was credited earlier.')
+    } else if (result.handled && result.reason === 'credited' && result.amount != null) {
+      toast.success(
+        'Wallet topped up',
+        `${formatNaira(result.amount)} added. Available: ${formatNaira(result.available ?? 0)}.`
+      )
+    } else {
+      toast.error('Top-up not credited yet', result.reason || 'Payment is still confirming. Refresh in a moment.')
+    }
+  } catch (error) {
+    const message = error && typeof error === 'object' && 'data' in error
+      ? String((error.data as { statusMessage?: string })?.statusMessage || 'Could not verify top-up')
+      : 'Could not verify top-up'
+    toast.error('Top-up verification failed', message)
+  } finally {
+    verifyingTopUp.value = false
+    const nextQuery = { ...route.query }
+    delete nextQuery.reference
+    delete nextQuery.trxref
+    await router.replace({ path: route.path, query: nextQuery })
+  }
+}
+
+onMounted(() => {
+  void verifyTopUpFromCallback()
+})
 
 const metrics = computed(() => {
   const m = data.value?.metrics
@@ -129,6 +184,9 @@ async function topUpWallet() {
         <BaseBadge v-if="data?.recycler" :tone="data.recycler.availability === 'available' ? 'green' : 'warning'">
           {{ data.recycler.availability.toUpperCase() }}
         </BaseBadge>
+        <BaseButton to="/dashboard/incoming" variant="secondary" class="dash-cta">
+          Incoming matches{{ incomingCount ? ` (${incomingCount})` : '' }}
+        </BaseButton>
         <BaseButton to="/dashboard/availability" variant="secondary" class="dash-cta">Manage availability</BaseButton>
         <BaseButton to="/dashboard/analytics" variant="secondary" class="dash-cta">View analytics</BaseButton>
       </div>
@@ -162,28 +220,6 @@ async function topUpWallet() {
             </label>
             <BaseButton type="submit" size="sm" :loading="toppingUp">Top up wallet</BaseButton>
           </form>
-        </DashboardSection>
-
-        <DashboardSection
-          class="dash-span-2"
-          title="Incoming matched waste"
-          description="Pending requests assigned to your business. Accept locks wallet funds and reserves daily capacity."
-        >
-          <div v-if="data.incoming.length" class="incoming-grid">
-            <IncomingRequestCard
-              v-for="request in data.incoming"
-              :key="request.id"
-              :request="request"
-              @updated="onUpdated"
-            />
-          </div>
-          <EmptyState
-            v-else
-            compact
-            symbol="◈"
-            title="No incoming requests"
-            description="When consumers request your business, photo, material, weight, and purchase price appear here."
-          />
         </DashboardSection>
 
         <DashboardSection title="Accepted pickups" description="Jobs you have accepted or already collected.">

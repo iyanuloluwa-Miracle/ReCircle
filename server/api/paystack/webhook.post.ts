@@ -5,6 +5,7 @@ import {
 } from '../../services/paystack'
 import { applyTopUpFromWebhook, applyWithdrawWebhook } from '../../services/wallet'
 import { connectDatabase } from '../../utils/db'
+import { logPayout } from '../../utils/payout-logger'
 
 interface PaystackWebhookEvent {
   event?: string
@@ -35,6 +36,10 @@ export default defineEventHandler(async (event) => {
   }
   const signature = getHeader(event, 'x-paystack-signature')
   if (!verifyPaystackSignature(bodyBuffer, signature, secret)) {
+    logPayout('webhook.signature.invalid', 'Rejected Paystack webhook with invalid signature', {
+      hasSignature: Boolean(signature),
+      bodyBytes: bodyBuffer.length
+    }, 'error')
     throw createError({ statusCode: 401, statusMessage: 'Invalid Paystack signature' })
   }
 
@@ -47,26 +52,67 @@ export default defineEventHandler(async (event) => {
 
   const eventName = payload.event
   const reference = payload.data?.reference
-  if (!eventName || !reference) return { received: true }
+  const amountKobo = typeof payload.data?.amount === 'number' ? payload.data.amount : undefined
+
+  logPayout('webhook.received', 'Paystack webhook received', {
+    eventName: eventName || null,
+    reference: reference || null,
+    amountKobo: amountKobo ?? null,
+    status: payload.data?.status || null
+  })
+
+  if (!eventName || !reference) {
+    logPayout('webhook.skip', 'Missing event or reference', {
+      eventName: eventName || null,
+      reference: reference || null
+    }, 'warn')
+    return { received: true }
+  }
 
   await connectDatabase()
 
-  if (eventName === 'charge.success') {
-    await applyTopUpFromWebhook({
-      reference,
-      amountKobo: typeof payload.data?.amount === 'number' ? payload.data.amount : undefined
-    })
-    return { received: true }
-  }
+  try {
+    if (eventName === 'charge.success') {
+      const result = await applyTopUpFromWebhook({
+        reference,
+        amountKobo
+      })
+      logPayout('webhook.topup.result', 'Top-up webhook processed', {
+        reference,
+        handled: result.handled,
+        alreadyApplied: result.alreadyApplied ?? false,
+        reason: result.reason ?? null,
+        amountKobo: amountKobo ?? null
+      }, result.handled ? 'info' : 'warn')
+      return { received: true }
+    }
 
-  if (eventName === 'transfer.success' || eventName === 'transfer.failed' || eventName === 'transfer.reversed') {
-    await applyWithdrawWebhook({
-      reference,
-      event: eventName,
-      reason: payload.data?.reason || payload.data?.message
-    })
-    return { received: true }
-  }
+    if (eventName === 'transfer.success' || eventName === 'transfer.failed' || eventName === 'transfer.reversed') {
+      const result = await applyWithdrawWebhook({
+        reference,
+        event: eventName,
+        reason: payload.data?.reason || payload.data?.message
+      })
+      logPayout('webhook.transfer.result', 'Transfer webhook processed', {
+        reference,
+        eventName,
+        handled: result.handled,
+        reason: result.reason ?? null
+      }, result.handled ? 'info' : 'warn')
+      return { received: true }
+    }
 
-  return { received: true }
+    logPayout('webhook.ignored', 'Unhandled Paystack event', { eventName, reference }, 'info')
+    return { received: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Webhook handler failed'
+    logPayout('webhook.error', message, {
+      eventName,
+      reference,
+      hint: message.toLowerCase().includes('replica') || message.toLowerCase().includes('transaction')
+        ? 'MongoDB transactions require a replica set (Atlas or local rs).'
+        : null
+    }, 'error')
+    throw error
+  }
 })

@@ -4,6 +4,7 @@ import { nextOnboardingPath, postAuthDestination } from '../../utils/onboarding'
 const roleByPath: Record<string, UserRole> = {
   '/dashboard/user': 'user',
   '/dashboard/recycler': 'recycler',
+  '/dashboard/incoming': 'recycler',
   '/dashboard/availability': 'recycler',
   '/dashboard/admin': 'admin',
   '/dashboard/operator': 'admin',

@@ -103,7 +103,7 @@ Recent product and platform work shipped in this codebase:
 - On **accept**, ReCircle locks `weightKg × pricePerKg` from the recycler (available → reserved)
 - On **complete**, reserved funds settle into the consumer wallet (no bank Transfer per pickup)
 - Consumers withdraw on demand via **Paystack Transfer** to a saved NUBAN in Settings
-- Recycler top-ups use Paystack Checkout; wallet credit only after a verified webhook (or demo top-up when TEST keys are unset)
+- Recycler top-ups use Paystack Checkout; wallet credit after a verified `charge.success` webhook or Checkout return verify (or demo top-up when TEST keys are unset)
 - ReCircle is the **ledger + Paystack rails**, not the payer of rewards — recyclers fund the system
 
 ## Challenges we ran into 🏃
@@ -205,7 +205,7 @@ Pickup **completed** means **settled in-app**, not “bank transfer succeeded.�
 
 | Flow | Behaviour |
 |------|-----------|
-| Recycler top-up | Paystack Checkout (`/transaction/initialize`). Wallet credited **only** after verified `charge.success` webhook — never from a client “I paid” claim. When TEST keys are unset, `POST /api/wallet/top-up/demo` credits immediately for local demos. |
+| Recycler top-up | Paystack Checkout (`/transaction/initialize`). Wallet is credited after a verified `charge.success` webhook **or** when the recycler returns from Checkout and the app verifies the payment (`POST /api/wallet/top-up/verify`). Never from a client “I paid” claim alone. When TEST keys are unset, `POST /api/wallet/top-up/demo` credits immediately for local demos. |
 | Consumer withdraw | Debits wallet and initiates Paystack Transfer to the saved NUBAN. Clear 4xx rejections restore balance; unclear timeouts stay pending for webhook. Without Paystack keys, withdraw debits locally (demo). |
 | On complete | **Not used.** No per-pickup Transfer to bank. |
 
@@ -228,9 +228,11 @@ Pickup **completed** means **settled in-app**, not “bank transfer succeeded.�
 #### Try it locally
 
 1. Add Paystack **TEST** keys to `.env` (live keys are rejected), or leave them empty for demo top-up / demo withdraw.
-2. Recycler: top up wallet from the recycler dashboard.
-3. Accept and complete a pickup — consumer wallet increases (no bank Transfer yet).
-4. Consumer: save NUBAN in **Settings → Withdrawal bank account**, then withdraw from the dashboard.
+2. For real Checkout + webhook funding, expose the app publicly (ngrok / Cloudflare Tunnel) and set the Paystack webhook URL to `https://<public-host>/api/paystack/webhook` with events `charge.success`, `transfer.success`, `transfer.failed`, and `transfer.reversed`. Localhost alone cannot receive Paystack webhooks.
+3. Optional: set `PAYOUT_DEBUG=1` and inspect `[recircle:payout]` logs or `GET /api/debug/payout-log` when diagnosing top-up / withdraw issues.
+4. Recycler: top up wallet from the recycler dashboard. After Checkout, returning to Overview also verifies the payment so the wallet funds even if the webhook is delayed.
+5. Accept and complete a pickup — consumer wallet increases (no bank Transfer yet).
+6. Consumer: save NUBAN in **Settings → Withdrawal bank account**, then withdraw from the dashboard.
 
 Estimated / locked payouts use `weightKg × pricePerKg` (two decimal places).
 

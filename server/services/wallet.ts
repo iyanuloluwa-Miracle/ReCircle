@@ -16,9 +16,11 @@ import {
   initiateTransfer,
   isPaystackConfigured,
   topUpReferenceForId,
+  verifyTransaction,
   withdrawReferenceForId
 } from './paystack'
 import { withMongoTransaction, connectDatabase } from '../utils/db'
+import { logPayout } from '../utils/payout-logger'
 import type { AuthUser } from '../../types'
 
 function conflict(message: string) {
@@ -250,48 +252,171 @@ export async function applyTopUpFromWebhook(options: {
   amountKobo?: number
 }) {
   const reference = options.reference
-  if (!reference.startsWith('topup_')) return { handled: false as const }
+  if (!reference.startsWith('topup_')) {
+    logPayout('webhook.topup.skip', 'Reference is not a recycler top-up', {
+      reference,
+      reason: 'bad_prefix'
+    }, 'warn')
+    return { handled: false as const, reason: 'bad_prefix' as const }
+  }
 
-  return withMongoTransaction(async (session) => {
-    const topUp = await TopUp.findOne({ providerRef: reference }).session(session)
-    if (!topUp) return { handled: false as const }
-    if (topUp.status === 'completed') return { handled: true as const, alreadyApplied: true }
+  try {
+    return await withMongoTransaction(async (session) => {
+      const topUp = await TopUp.findOne({ providerRef: reference }).session(session)
+      if (!topUp) {
+        logPayout('webhook.topup.skip', 'No TopUp row for providerRef', {
+          reference,
+          reason: 'topup_not_found'
+        }, 'warn')
+        return { handled: false as const, reason: 'topup_not_found' as const }
+      }
+      if (topUp.status === 'completed') {
+        logPayout('webhook.topup.duplicate', 'Top-up already credited', {
+          reference,
+          topUpId: topUp._id.toString(),
+          reason: 'already_applied'
+        })
+        return { handled: true as const, alreadyApplied: true, reason: 'already_applied' as const, amount: topUp.amount }
+      }
 
-    if (options.amountKobo == null || !Number.isFinite(options.amountKobo)) {
-      // Require Paystack amount so we never credit from an incomplete payload.
-      return { handled: false as const }
-    }
+      if (options.amountKobo == null || !Number.isFinite(options.amountKobo)) {
+        topUp.status = 'failed'
+        topUp.failureReason = 'Paystack payload missing amount'
+        await topUp.save({ session })
+        logPayout('webhook.topup.skip', 'Missing or non-finite amount from Paystack', {
+          reference,
+          topUpId: topUp._id.toString(),
+          reason: 'missing_amount'
+        }, 'error')
+        return { handled: true as const, alreadyApplied: false, reason: 'missing_amount' as const }
+      }
 
-    const expectedKobo = Math.round(topUp.amount * 100)
-    if (Math.abs(expectedKobo - options.amountKobo) > 1) {
-      topUp.status = 'failed'
-      topUp.failureReason = 'Paid amount did not match top-up amount'
-      await topUp.save({ session })
-      return { handled: true as const, alreadyApplied: false }
-    }
+      const expectedKobo = Math.round(topUp.amount * 100)
+      if (Math.abs(expectedKobo - options.amountKobo) > 1) {
+        topUp.status = 'failed'
+        topUp.failureReason = 'Paid amount did not match top-up amount'
+        await topUp.save({ session })
+        logPayout('webhook.topup.amount_mismatch', 'Paid amount did not match top-up amount', {
+          reference,
+          topUpId: topUp._id.toString(),
+          expectedKobo,
+          amountKobo: options.amountKobo,
+          reason: 'amount_mismatch'
+        }, 'error')
+        return { handled: true as const, alreadyApplied: false, reason: 'amount_mismatch' as const }
+      }
 
-    await creditRecyclerTopUp({
-      recyclerId: topUp.recyclerId,
-      topUpId: topUp._id,
-      amount: topUp.amount,
-      provider: 'paystack',
-      providerRef: reference,
-      session
+      await creditRecyclerTopUp({
+        recyclerId: topUp.recyclerId,
+        topUpId: topUp._id,
+        amount: topUp.amount,
+        provider: 'paystack',
+        providerRef: reference,
+        session
+      })
+
+      const recycler = await Recycler.findById(topUp.recyclerId).select('userId').session(session).lean()
+      if (recycler) {
+        await Notification.create([{
+          userId: recycler.userId,
+          type: 'wallet_top_up',
+          title: 'Wallet topped up',
+          body: `₦${Math.round(topUp.amount).toLocaleString('en-NG')} was added to your available balance.`,
+          href: '/dashboard/recycler'
+        }], { session })
+      }
+
+      logPayout('webhook.topup.credited', 'Recycler wallet credited from Paystack', {
+        reference,
+        topUpId: topUp._id.toString(),
+        amount: topUp.amount,
+        reason: 'credited'
+      })
+      return { handled: true as const, alreadyApplied: false, reason: 'credited' as const, amount: topUp.amount }
     })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Top-up credit failed'
+    logPayout('webhook.topup.error', message, {
+      reference,
+      hint: message.toLowerCase().includes('replica') || message.toLowerCase().includes('transaction')
+        ? 'MongoDB transactions require a replica set (Atlas or local rs).'
+        : null
+    }, 'error')
+    throw error
+  }
+}
 
-    const recycler = await Recycler.findById(topUp.recyclerId).select('userId').session(session).lean()
-    if (recycler) {
-      await Notification.create([{
-        userId: recycler.userId,
-        type: 'wallet_top_up',
-        title: 'Wallet topped up',
-        body: `₦${Math.round(topUp.amount).toLocaleString('en-NG')} was added to your available balance.`,
-        href: '/dashboard/recycler'
-      }], { session })
+export async function verifyAndApplyRecyclerTopUp(options: {
+  userId: string
+  reference: string
+}) {
+  const reference = options.reference
+  if (!reference.startsWith('topup_')) {
+    throw badRequest('Invalid top-up reference')
+  }
+
+  await connectDatabase()
+  const profile = await Recycler.findOne({ userId: options.userId })
+    .select('_id walletAvailable')
+    .lean()
+  if (!profile) throw createError({ statusCode: 404, statusMessage: 'Recycler profile not found' })
+
+  const topUp = await TopUp.findOne({ providerRef: reference }).lean()
+  if (!topUp || topUp.recyclerId.toString() !== profile._id.toString()) {
+    logPayout('topup.verify.not_found', 'Top-up not found for recycler', { reference }, 'warn')
+    throw createError({ statusCode: 404, statusMessage: 'Top-up not found' })
+  }
+
+  if (topUp.status === 'completed') {
+    logPayout('topup.verify.duplicate', 'Top-up already completed', {
+      reference,
+      topUpId: topUp._id.toString()
+    })
+    return {
+      handled: true as const,
+      alreadyApplied: true,
+      reason: 'already_applied' as const,
+      amount: topUp.amount,
+      available: roundNaira(profile.walletAvailable ?? 0)
     }
+  }
 
-    return { handled: true as const, alreadyApplied: false }
+  logPayout('topup.verify.start', 'Verifying Paystack transaction after Checkout return', {
+    reference,
+    topUpId: topUp._id.toString()
   })
+
+  const verified = await verifyTransaction(reference)
+  if (verified.status !== 'success') {
+    logPayout('topup.verify.not_success', 'Paystack transaction is not successful', {
+      reference,
+      status: verified.status
+    }, 'warn')
+    throw conflict(`Payment status is ${verified.status}`)
+  }
+
+  const result = await applyTopUpFromWebhook({
+    reference,
+    amountKobo: verified.amountKobo
+  })
+
+  const updated = await Recycler.findById(profile._id).select('walletAvailable').lean()
+  logPayout('topup.verify.result', 'Verify-on-return finished', {
+    reference,
+    handled: result.handled,
+    alreadyApplied: result.alreadyApplied ?? false,
+    reason: result.reason ?? null
+  }, result.handled ? 'info' : 'warn')
+
+  return {
+    handled: result.handled,
+    alreadyApplied: result.alreadyApplied ?? false,
+    reason: result.reason,
+    amount: result.reason === 'credited' || result.reason === 'already_applied'
+      ? (result.amount ?? topUp.amount)
+      : undefined,
+    available: roundNaira(updated?.walletAvailable ?? 0)
+  }
 }
 
 export async function startConsumerWithdraw(options: {
@@ -449,44 +574,64 @@ export async function applyWithdrawWebhook(options: {
   reason?: string
 }) {
   const reference = options.reference
-  if (!reference.startsWith('withdraw_')) return { handled: false as const }
+  if (!reference.startsWith('withdraw_')) {
+    logPayout('webhook.transfer.skip', 'Reference is not a consumer withdraw', {
+      reference,
+      reason: 'bad_prefix'
+    }, 'warn')
+    return { handled: false as const, reason: 'bad_prefix' as const }
+  }
 
-  return withMongoTransaction(async (session) => {
-    const withdrawal = await Withdrawal.findOne({ providerRef: reference }).session(session)
-    if (!withdrawal) return { handled: false as const }
-
-    if (options.event === 'transfer.success') {
-      if (withdrawal.status !== 'completed') {
-        withdrawal.status = 'completed'
-        withdrawal.failureReason = null
-        await withdrawal.save({ session })
-        await Notification.create([{
-          userId: withdrawal.userId,
-          type: 'withdraw_completed',
-          title: 'Withdrawal sent',
-          body: `₦${Math.round(withdrawal.amount).toLocaleString('en-NG')} was sent to your bank account.`,
-          href: '/dashboard/user'
-        }], { session })
+  try {
+    return await withMongoTransaction(async (session) => {
+      const withdrawal = await Withdrawal.findOne({ providerRef: reference }).session(session)
+      if (!withdrawal) {
+        logPayout('webhook.transfer.skip', 'No Withdrawal row for providerRef', {
+          reference,
+          reason: 'withdrawal_not_found'
+        }, 'warn')
+        return { handled: false as const, reason: 'withdrawal_not_found' as const }
       }
-      return { handled: true as const }
-    }
 
-    if (withdrawal.status === 'failed') return { handled: true as const }
-    const reason = (options.reason || 'Transfer failed').slice(0, 280)
-    await restoreFailedWithdraw({
-      userId: withdrawal.userId,
-      withdrawalId: withdrawal._id,
-      amount: withdrawal.amount,
-      failureReason: reason,
-      session
+      if (options.event === 'transfer.success') {
+        if (withdrawal.status !== 'completed') {
+          withdrawal.status = 'completed'
+          withdrawal.failureReason = null
+          await withdrawal.save({ session })
+          await Notification.create([{
+            userId: withdrawal.userId,
+            type: 'withdraw_completed',
+            title: 'Withdrawal sent',
+            body: `₦${Math.round(withdrawal.amount).toLocaleString('en-NG')} was sent to your bank account.`,
+            href: '/dashboard/user'
+          }], { session })
+        }
+        return { handled: true as const, reason: 'transfer_success' as const }
+      }
+
+      if (withdrawal.status === 'failed') {
+        return { handled: true as const, reason: 'already_failed' as const }
+      }
+      const reason = (options.reason || 'Transfer failed').slice(0, 280)
+      await restoreFailedWithdraw({
+        userId: withdrawal.userId,
+        withdrawalId: withdrawal._id,
+        amount: withdrawal.amount,
+        failureReason: reason,
+        session
+      })
+      await Notification.create([{
+        userId: withdrawal.userId,
+        type: 'withdraw_failed',
+        title: options.event === 'transfer.reversed' ? 'Withdrawal reversed' : 'Withdrawal failed',
+        body: 'Your withdrawal could not be completed. The amount was returned to your wallet. Check your bank account in Settings if needed.',
+        href: '/dashboard/settings'
+      }], { session })
+      return { handled: true as const, reason: options.event === 'transfer.reversed' ? 'transfer_reversed' as const : 'transfer_failed' as const }
     })
-    await Notification.create([{
-      userId: withdrawal.userId,
-      type: 'withdraw_failed',
-      title: options.event === 'transfer.reversed' ? 'Withdrawal reversed' : 'Withdrawal failed',
-      body: 'Your withdrawal could not be completed. The amount was returned to your wallet. Check your bank account in Settings if needed.',
-      href: '/dashboard/settings'
-    }], { session })
-    return { handled: true as const }
-  })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Withdraw webhook failed'
+    logPayout('webhook.transfer.error', message, { reference, event: options.event }, 'error')
+    throw error
+  }
 }

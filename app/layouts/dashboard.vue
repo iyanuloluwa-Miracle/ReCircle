@@ -24,6 +24,7 @@ const headerCrumb = computed(() => {
   if (route.path.endsWith('/match')) return 'Find a recycler'
   if (route.path.startsWith('/scan')) return 'Scan an item'
   if (route.path.startsWith('/dashboard/analytics')) return 'Analytics'
+  if (route.path.startsWith('/dashboard/incoming')) return 'Incoming'
   if (route.path.startsWith('/dashboard/availability')) return 'Availability'
   if (route.path.startsWith('/dashboard/history')) return 'History'
   if (route.path.startsWith('/dashboard/settings')) return 'Settings'
@@ -36,6 +37,9 @@ const headerNudge = computed(() => {
   }
   if (route.path.startsWith('/dashboard/settings')) {
     return { icon: 'settings' as const, text: 'Fresh details keep pickups smooth.' }
+  }
+  if (route.path.startsWith('/dashboard/incoming')) {
+    return { icon: 'box' as const, text: 'Review matches quickly so consumers are not left waiting.' }
   }
   if (route.path.startsWith('/dashboard/availability')) {
     return { icon: 'calendar' as const, text: 'Open hours and capacity help nearby scanners find you.' }
@@ -54,6 +58,7 @@ const headerNudge = computed(() => {
 const avatarSrc = computed(() => user.value?.avatarUrl?.startsWith('http') ? user.value.avatarUrl : null)
 const navigation = computed(() => [
   { to: overviewPath.value, label: 'Overview', icon: 'overview', active: route.path === overviewPath.value },
+  ...(user.value?.role === 'recycler' ? [{ to: '/dashboard/incoming', label: 'Incoming', icon: 'box', active: route.path.startsWith('/dashboard/incoming') }] : []),
   ...(user.value?.role === 'recycler' ? [{ to: '/dashboard/availability', label: 'Availability', icon: 'calendar', active: route.path.startsWith('/dashboard/availability') }] : []),
   ...(user.value ? [{ to: '/dashboard/analytics', label: 'Analytics', icon: 'chart', active: route.path.startsWith('/dashboard/analytics') }] : []),
   ...(user.value?.role === 'user' ? [{ to: '/scan', label: 'Scan an item', icon: 'scan', active: route.path.startsWith('/scan') }] : []),

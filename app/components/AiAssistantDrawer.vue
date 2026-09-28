@@ -31,7 +31,7 @@ const suggestions = [
 ]
 const actions = computed(() => {
   if (user.value?.role === 'recycler') return [
-    { label: 'Open incoming pickups', to: '/dashboard/recycler' },
+    { label: 'Open incoming pickups', to: '/dashboard/incoming' },
     { label: 'Update availability', to: '/dashboard/availability' },
     { label: 'View analytics', to: '/dashboard/analytics' }
   ]
