@@ -21,7 +21,7 @@ Drop PNG/JPG files into [`docs/screenshots/`](docs/screenshots/), keep the filen
 | Landing (mobile) | `docs/screenshots/02-landing-mobile.png` | ![Landing mobile](docs/screenshots/02-landing-mobile.jpeg) |
 | Consumer dashboard | `docs/screenshots/03-consumer-dashboard.png` | ![Consumer dashboard](docs/screenshots/03-consumer-dashboard.png) |
 | Scan / match recycler | `docs/screenshots/04-scan-match.png` | ![Scan match](docs/screenshots/04-scan-match.png) |
-| Recycler incoming pickups | `docs/screenshots/05-recycler-dashboard.png` | ![Recycler dashboard](docs/screenshots/05-recycler-dashboard.png) |
+| Recycler incoming pickups | `docs/screenshots/05-recycler-dashboard.png` | ![Recycler dashboard](docs/screenshots/05-recycler-dashboard.jpeg) |
 | Wallet / top-up / withdraw | `docs/screenshots/06-payout-wallet.png` | ![Wallet](docs/screenshots/06-payout-wallet.png) |
 | Admin / analytics | `docs/screenshots/07-admin-analytics.png` | ![Admin analytics](docs/screenshots/07-admin-analytics.png) |
 | Settings withdrawal bank | `docs/screenshots/08-settings-payout.png` | ![Settings bank](docs/screenshots/08-settings-payout.png) |
