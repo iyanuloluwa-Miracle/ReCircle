@@ -11,7 +11,7 @@ import { User } from '../server/models/User.ts'
 import { Recycler } from '../server/models/Recycler.ts'
 import { WasteItem } from '../server/models/WasteItem.ts'
 import { Request } from '../server/models/Request.ts'
-import { Transaction } from '../server/models/Transaction.ts'
+import { LedgerEntry } from '../server/models/LedgerEntry.ts'
 import { computeRecyclingStreak } from '../utils/dashboard-metrics.ts'
 
 const envPath = resolve('.env')
@@ -71,13 +71,14 @@ try {
   const consumerApi = await dashboard<{
     metrics: {
       wasteDivertedKg: number
+      walletAvailableNgn: number
       totalEarnedNgn: number
       activePickups: number
       recyclingStreakDays: number
     }
     activePickups: unknown[]
     recentScans: unknown[]
-    walletActivity: Array<{ amount: number; status: string; provider: string; requestId?: string }>
+    walletActivity: Array<{ amount: number; type: string; provider: string; requestId?: string }>
   }>('/api/dashboard/user', consumerCookie)
 
   const recyclerApi = await dashboard<{
@@ -87,6 +88,8 @@ try {
       jobsToday: number
       potentialPurchaseValueNgn: number
       completedCollections: number
+      walletAvailableNgn?: number
+      walletReservedNgn?: number
     }
     incoming: Array<{ weightKg: number | null; expectedPayout: number; status: string }>
     acceptedPickups: unknown[]
@@ -108,13 +111,13 @@ try {
       { $match: { userId: consumerId, status: { $in: ['picked_up', 'completed'] }, weightKg: { $gt: 0 } } },
       { $group: { _id: null, totalKg: { $sum: '$weightKg' } } }
     ]),
-    Transaction.aggregate<{ total: number }>([
-      { $match: { userId: consumerId, status: 'completed', type: 'recycling_reward' } },
+    LedgerEntry.aggregate<{ total: number }>([
+      { $match: { ownerType: 'user', ownerId: consumerId, type: 'settle_credit' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]),
     Request.find({ userId: consumerId, status: 'completed', completedAt: { $ne: null } }).select('completedAt').lean(),
     Request.countDocuments({ userId: consumerId, status: { $in: ['pending', 'accepted', 'picked_up'] } }),
-    Transaction.countDocuments({ userId: consumerId })
+    LedgerEntry.countDocuments({ ownerType: 'user', ownerId: consumerId })
   ])
 
   const expectedWaste = Math.round((wasteDiverted[0]?.totalKg ?? 0) * 100) / 100
@@ -122,20 +125,21 @@ try {
   const expectedStreak = computeRecyclingStreak(
     completedDates.map(entry => entry.completedAt!).filter(Boolean)
   )
+  const expectedAvailable = Math.round(consumer.walletAvailable ?? 0)
 
   console.log('\n=== CONSUMER ===')
   check('wasteDivertedKg', consumerApi.metrics.wasteDivertedKg, expectedWaste)
+  check('walletAvailableNgn', consumerApi.metrics.walletAvailableNgn, expectedAvailable)
   check('totalEarnedNgn', consumerApi.metrics.totalEarnedNgn, expectedEarned)
   check('activePickups', consumerApi.metrics.activePickups, activeRequestCount)
   check('recyclingStreakDays', consumerApi.metrics.recyclingStreakDays, expectedStreak)
   check('activePickups list length', consumerApi.activePickups.length, activeRequestCount)
   assert.ok(consumerApi.walletActivity.length <= 8)
   assert.ok(walletCount >= consumerApi.walletActivity.length)
-  const walletSumCompleted = consumerApi.walletActivity
-    .filter(entry => entry.status === 'completed')
+  const walletSumCredits = consumerApi.walletActivity
+    .filter(entry => entry.type === 'settle_credit')
     .reduce((sum, entry) => sum + entry.amount, 0)
-  // Wallet is last 8 only; total earned is all-time completed — wallet subset ≤ total
-  assert.ok(walletSumCompleted <= expectedEarned + 0.01)
+  assert.ok(walletSumCredits <= expectedEarned + 0.01)
   console.log(`wallet entries=${consumerApi.walletActivity.length} recentScans=${consumerApi.recentScans.length}`)
   console.log(`wallet providers: ${[...new Set(consumerApi.walletActivity.map(e => e.provider))].join(', ') || '(none)'}`)
 
@@ -185,10 +189,10 @@ try {
   check('utilizationPct', recyclerApi.capacity.utilizationPct, utilization)
   console.log(`materialBreakdown rows=${recyclerApi.materialBreakdown.length}`)
 
-  // Cross-check: consumer total earned should equal sum of completed txs in DB
-  const allTx = await Transaction.find({ userId: consumerId, status: 'completed' }).select('amount').lean()
-  const txSum = Math.round(allTx.reduce((sum, entry) => sum + entry.amount, 0))
-  check('totalEarned vs all completed txs', consumerApi.metrics.totalEarnedNgn, txSum)
+  // Cross-check: consumer total earned should equal sum of settle_credit ledger entries
+  const allCredits = await LedgerEntry.find({ ownerType: 'user', ownerId: consumerId, type: 'settle_credit' }).select('amount').lean()
+  const creditSum = Math.round(allCredits.reduce((sum, entry) => sum + entry.amount, 0))
+  check('totalEarned vs all settle credits', consumerApi.metrics.totalEarnedNgn, creditSum)
 
   console.log('\nDASHBOARD RECONCILIATION OK')
 } catch (error) {

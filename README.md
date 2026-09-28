@@ -92,17 +92,17 @@ Recent product and platform work shipped in this codebase:
 
 - Deterministic recycler ranking (distance, price, capacity, service radius)
 - Eligible recyclers listed even outside radius (flagged), with consumer reassign while pending
-- Pickup lifecycle with strict status transitions; recycler **Confirm collected & release payout**
+- Pickup lifecycle with strict status transitions; recycler **Confirm collected** settles locked wallet funds
 - Request-scoped chat for consumers and recyclers on active pickups
 - Notifications and paginated history / list surfaces for operational volume
 
 ### Rewards, wallet, and Paystack
 
-- Consumers save a payout bank (NUBAN) in **Settings**; estimated payout = `weightKg × pricePerKg`
-- On pickup complete, ReCircle attempts a **Paystack Transfer** to the consumer (not Checkout)
-- If keys/recipient are missing, or Transfer fails (for example Paystack **Starter** cannot do third-party payouts), the app credits a **demo wallet** so demos still complete
-- Wallet and request UI surface **Demo** vs **Paystack** provider and status
-- Optional `PAYOUT_DEBUG=1` logger (`[recircle:payout]` lines, copyable debug on the request card, `GET /api/debug/payout-log`)
+- **Double wallet:** recyclers top up available balance; consumers earn into their wallet on complete
+- On **accept**, ReCircle locks `weightKg × pricePerKg` from the recycler (available → reserved)
+- On **complete**, reserved funds settle into the consumer wallet (no bank Transfer per pickup)
+- Consumers withdraw on demand via **Paystack Transfer** to a saved NUBAN in Settings
+- Recycler top-ups use Paystack Checkout; wallet credit only after a verified webhook (or demo top-up when TEST keys are unset)
 
 ## Challenges we ran into 🏃
 
@@ -112,7 +112,7 @@ Recycler matching was another complex area. A nearby recycler is not automatical
 
 We also had to design role-specific workflows that remain connected: consumers need a simple recycling experience, partner recycling companies need operational clarity, and admins need network oversight without being able to alter restricted pickup actions.
 
-On payouts, Paystack **Transfers** behave differently from Checkout: consumers are paid when a pickup completes. Starter Paystack businesses often cannot initiate third-party payouts, so ReCircle records a clear failure path and falls back to demo wallet credit for local demos until Transfers are enabled on the business account.
+Settlement is wallet-first: recyclers prepay, accept locks escrow, complete credits the consumer, and bank payouts happen only on explicit withdraw. ReCircle is the ledger and Paystack rails — not the payer of rewards.
 
 ## Accomplishments we’re proud of 🚀
 
@@ -125,7 +125,7 @@ We are especially proud of building more than a recycling directory. ReCircle su
 - Mobile-responsive dashboards for every user role
 - Analytics built from real platform data instead of misleading environmental estimates
 - An AI assistant designed to stay grounded in verified platform data
-- Paystack Transfer integration with transparent demo-wallet fallback for demos and blocked payouts
+- Double-wallet escrow settlement with Paystack top-up and on-demand withdraw
 
 ## What we learned 📖
 
@@ -156,38 +156,27 @@ vision model in `OPENROUTER_MODEL` that supports strict structured output.
 Payment keys may remain empty.
 Set `SESSION_SECRET` to at least 32 random characters before using authentication.
 
-### Recycling rewards (Paystack Transfers)
+### Wallet settlement (Paystack rails)
 
-ReCircle pays consumers with **Paystack Transfers** when a recycler marks a pickup
-**completed**. There is **no Checkout / payment page** — consumers do not pay through
-a hosted Paystack UI.
+ReCircle never funds consumer rewards. Recyclers top up a wallet; accept locks funds;
+complete credits the consumer wallet; bank payouts happen only on explicit withdraw.
 
-| Setup | What happens on pickup complete |
-|-------|----------------------------------|
-| `PAYSTACK_SECRET_KEY` / `PAYSTACK_PUBLIC_KEY` empty, or consumer has no saved bank recipient | Creates a **mock** wallet transaction (`provider: mock`, status completed). Money appears in the in-app wallet only. |
-| TEST keys set (`sk_test_` / `pk_test_`) **and** consumer saved a NUBAN in **Settings → Payout bank account** | Creates a Paystack Transfer (`provider: paystack`). Status may be pending until the transfer settles. |
-| Paystack Transfer API errors (for example Starter business cannot do third-party payouts) | Falls back to a **demo wallet** credit (`provider: mock`, status completed) so local demos still work. The Paystack error is stored on the transaction for debugging. |
+| Flow | Behaviour |
+|------|-----------|
+| Recycler top-up | Paystack Checkout (`/transaction/initialize`). Wallet credited **only** after verified `charge.success` webhook. When TEST keys are unset, `POST /api/wallet/top-up/demo` credits immediately for local demos. |
+| Accept pickup | Locks `weightKg × pricePerKg` (available → reserved). Blocked if available balance is too low. |
+| Complete pickup | Settles reserved → consumer `walletAvailable`. No bank Transfer. |
+| Cancel / reject after accept | Unlocks reserved → available. |
+| Consumer withdraw | Debits wallet and initiates Paystack Transfer to the saved NUBAN. Failures restore balance. Without Paystack keys, withdraw debits locally (demo). |
 
-To exercise real Transfers locally:
+To exercise rails locally:
 
-1. Add Paystack **TEST** keys to `.env` (live keys are rejected).
-2. Sign in as a consumer → **Dashboard → Settings** → save bank + 10-digit NUBAN.
-3. Complete a pickup as the recycler.
-4. Confirm wallet activity shows **Paystack** (not Demo) and the transfer in your Paystack dashboard.
-5. If Paystack returns a Starter / third-party payout error, upgrade the Paystack business so Transfers are allowed—or rely on the demo-wallet fallback for demos.
+1. Add Paystack **TEST** keys to `.env` (live keys are rejected), or leave them empty for demo top-up / demo withdraw.
+2. Recycler: top up wallet from the recycler dashboard.
+3. Accept and complete a pickup — consumer wallet increases.
+4. Consumer: save NUBAN in **Settings → Withdrawal bank account**, then withdraw from the dashboard.
 
-### Payout debug logger
-
-Set `PAYOUT_DEBUG=1` in `.env` and restart `npm run dev`. After **Release payout**:
-
-- Terminal lines tagged `[recircle:payout]`
-- Expand **Payout debug log** on the request card and use **Copy debug JSON**
-- Or open `GET /api/debug/payout-log` while logged in and paste the `copyPaste` field
-
-Share that dump when investigating mock vs Paystack paths. Recipient codes are redacted.
-
-Estimated payouts use `weightKg × pricePerKg` (two decimal places). The UI shows
-fractional amounts such as `NGN 1.08` instead of rounding small values to whole naira only.
+Estimated / locked payouts use `weightKg × pricePerKg` (two decimal places).
 
 ## Commands
 

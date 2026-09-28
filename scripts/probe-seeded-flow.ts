@@ -226,6 +226,20 @@ try {
   console.log('incoming count', incomingIds.length)
   assert.ok(incomingIds.includes(request.id), 'new request should appear on recycler incoming list')
 
+  stage = 'wallet top-up'
+  const topUp = await api('/api/wallet/top-up/demo', {
+    method: 'POST',
+    cookie: recyclerCookie,
+    body: { amount: 20_000 },
+    expect: [200, 409]
+  })
+  if (topUp.status === 200) {
+    const topUpBody = await json<{ available: number; amount: number }>(topUp)
+    console.log('demo top-up', topUpBody.amount, 'available', topUpBody.available)
+  } else {
+    console.log('demo top-up skipped (Paystack configured)')
+  }
+
   stage = 'accept'
   const accept = await api(`/api/requests/${request.id}/status`, {
     method: 'PATCH',
@@ -233,7 +247,9 @@ try {
     body: { status: 'accepted', confirmedPickupTime: pickupAt },
     expect: 200
   })
-  assert.equal((await json<{ status: string }>(accept)).status, 'accepted')
+  const acceptBody = await json<{ status: string; lockedPayout: number | null }>(accept)
+  assert.equal(acceptBody.status, 'accepted')
+  console.log('accepted; lockedPayout', acceptBody.lockedPayout)
 
   stage = 'picked_up'
   const picked = await api(`/api/requests/${request.id}/status`, {
@@ -251,20 +267,22 @@ try {
     body: { status: 'completed' },
     expect: 200
   })
-  const completedBody = await json<{ status: string; transactionStatus: string | null }>(completed)
+  const completedBody = await json<{ status: string; settledAt: string | null; lockedPayout: number | null }>(completed)
   assert.equal(completedBody.status, 'completed')
-  console.log('completed; transactionStatus', completedBody.transactionStatus)
+  assert.ok(completedBody.settledAt)
+  console.log('completed; settled', completedBody.lockedPayout)
 
   stage = 'consumer wallet'
   const userDash = await api('/api/dashboard/user', { cookie: consumerCookie, expect: 200 })
   const wallet = await json<{
-    walletActivity: Array<{ requestId?: string; status: string; provider: string; amount: number }>
-    metrics: { totalEarnedNgn: number }
+    walletActivity: Array<{ requestId?: string; type: string; provider: string; amount: number }>
+    metrics: { totalEarnedNgn: number; walletAvailableNgn: number }
   }>(userDash)
-  const reward = wallet.walletActivity.find(entry => entry.requestId === request.id)
-    ?? wallet.walletActivity.find(entry => entry.amount === request.expectedPayout)
+  const reward = wallet.walletActivity.find(entry => entry.requestId === request.id && entry.type === 'settle_credit')
+    ?? wallet.walletActivity.find(entry => entry.amount === request.expectedPayout && entry.type === 'settle_credit')
   assert.ok(reward, 'completed reward should appear in wallet activity')
-  console.log('wallet entry', reward.provider, reward.status, reward.amount)
+  console.log('wallet entry', reward.type, reward.provider, reward.amount)
+  assert.ok(wallet.metrics.walletAvailableNgn >= reward.amount)
 
   stage = 'admin login'
   const adminLogin = await api('/api/auth/login', {

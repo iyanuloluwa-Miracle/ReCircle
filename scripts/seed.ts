@@ -6,7 +6,7 @@ import { User } from '../server/models/User.ts'
 import { Recycler } from '../server/models/Recycler.ts'
 import { WasteItem } from '../server/models/WasteItem.ts'
 import { Request } from '../server/models/Request.ts'
-import { Transaction } from '../server/models/Transaction.ts'
+import { LedgerEntry } from '../server/models/LedgerEntry.ts'
 import { Message } from '../server/models/Message.ts'
 import { hashPassword } from '../server/services/password.ts'
 import { AVATAR_PRESETS } from '../utils/avatar-presets.ts'
@@ -109,7 +109,8 @@ async function runSeed(mongodbUri: string) {
         pricingRules: business.materials.map((material, i) => ({ material, pricePerKg: business.prices[i], currency: 'NGN' })),
         capacityKgPerDay: business.capacity, currentLoadKg: business.load,
         availability: 'available', serviceRadiusKm: business.radius,
-        businessHours: 'Demo: open 24/7 (WAT)', operatingHours: alwaysOpenOperatingHours, isDemo: true
+        businessHours: 'Demo: open 24/7 (WAT)', operatingHours: alwaysOpenOperatingHours, isDemo: true,
+        walletAvailable: 50_000, walletReserved: 0
       })
     }
     // Refresh passwords on re-seed; insert path only sets them on first create.
@@ -120,7 +121,15 @@ async function runSeed(mongodbUri: string) {
     // Keep demo yards matchable overnight; insert path only sets hours on first create.
     await Recycler.updateMany(
       { isDemo: true },
-      { $set: { availability: 'available', businessHours: 'Demo: open 24/7 (WAT)', operatingHours: alwaysOpenOperatingHours } }
+      {
+        $set: {
+          availability: 'available',
+          businessHours: 'Demo: open 24/7 (WAT)',
+          operatingHours: alwaysOpenOperatingHours,
+          walletAvailable: 50_000,
+          walletReserved: 0
+        }
+      }
     )
 
     // Local category art under /public — never use example.invalid (breaks dashboard thumbs).
@@ -136,12 +145,14 @@ async function runSeed(mongodbUri: string) {
       { material: 'PAPER', item: 'Paper bundle', weight: 7, recycler: 21, price: 25, daysAgo: 11 },
       { material: 'GLASS', item: 'Glass bottles', weight: 6, recycler: 22, price: 20, daysAgo: 4 }
     ]
+    let consumerLifetime = 0
     for (const [index, item] of historical.entries()) {
       const completedAt = new Date(Date.now() - item.daysAgo * 86400000)
       const createdAt = new Date(completedAt.getTime() - 2 * 86400000)
       const wasteItemId = id(30 + index)
       const requestId = id(40 + index)
       const payout = item.weight * item.price // Invented DEMO rule; no AI price calculation.
+      consumerLifetime += payout
       const imageUrl = demoImages[item.material] ?? '/categories/plastic-bottles.png'
       await insertDemo(WasteItem, {
         _id: wasteItemId, userId: consumerId, imageUrl,
@@ -158,23 +169,43 @@ async function runSeed(mongodbUri: string) {
       await insertDemo(Request, {
         _id: requestId, wasteItemId, userId: consumerId, recyclerId: id(item.recycler),
         pickupLocation: consumerPoint, requestedPickupTime: createdAt, acceptedAt: createdAt,
-        pickedUpAt: new Date(completedAt.getTime() - 3600000), completedAt,
+        pickedUpAt: new Date(completedAt.getTime() - 3600000), completedAt, settledAt: completedAt,
+        lockedPayout: payout,
         matchScore: 0.86, matchReasons: ['Demo nearby recycler', 'Demo material price'],
         distanceKm: 5.2, pricePerKg: item.price, expectedPayout: payout, status: 'completed',
         isDemo: true, createdAt, updatedAt: completedAt
       })
-      await insertDemo(Transaction, {
-        _id: id(50 + index), userId: consumerId, requestId, amount: payout,
-        currency: 'NGN', type: 'recycling_reward', provider: 'mock', status: 'completed',
-        isDemo: true, createdAt
-      })
+      await LedgerEntry.updateOne(
+        { idempotencyKey: `settle_credit:${requestId.toString()}` },
+        {
+          $setOnInsert: {
+            _id: id(50 + index),
+            ownerType: 'user',
+            ownerId: consumerId,
+            type: 'settle_credit',
+            amount: payout,
+            currency: 'NGN',
+            requestId,
+            provider: 'demo',
+            providerRef: null,
+            failureReason: null,
+            idempotencyKey: `settle_credit:${requestId.toString()}`,
+            createdAt
+          }
+        },
+        { upsert: true, timestamps: false }
+      )
     }
+    await User.updateOne(
+      { _id: consumerId },
+      { $set: { walletAvailable: consumerLifetime } }
+    )
 
     await verifyIndexes(User)
     await verifyIndexes(Recycler)
     await verifyIndexes(WasteItem)
     await verifyIndexes(Request)
-    await verifyIndexes(Transaction)
+    await verifyIndexes(LedgerEntry)
     await verifyIndexes(Message)
     async function verifyDemoRecords<T>(model: Model<T>, ids: number[]) {
       const count = await model.countDocuments({ _id: { $in: ids.map(id) }, isDemo: true })
@@ -185,7 +216,12 @@ async function runSeed(mongodbUri: string) {
     await verifyDemoRecords(Recycler, [20, 21, 22, 23])
     await verifyDemoRecords(WasteItem, [30, 31, 32, 33])
     await verifyDemoRecords(Request, [40, 41, 42, 43])
-    await verifyDemoRecords(Transaction, [50, 51, 52, 53])
+    const ledgerCount = await LedgerEntry.countDocuments({
+      _id: { $in: [50, 51, 52, 53].map(id) },
+      type: 'settle_credit'
+    })
+    if (ledgerCount !== 4) throw new Error('Demo ledger verification failed for LedgerEntry')
+    console.log(`LedgerEntry: ${ledgerCount} demo settle credits verified`)
     console.log('DEMO seed complete: 1 consumer, 1 internal admin, 4 fictional recyclers, 4 historical completed requests.')
   } finally {
     await mongoose.disconnect()
