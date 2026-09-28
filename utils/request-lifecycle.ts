@@ -12,12 +12,13 @@ export type RequestStatus = (typeof requestStatuses)[number]
 /** Legal status transitions. Anything else must fail. */
 export const requestTransitions: Record<RequestStatus, readonly RequestStatus[]> = {
   pending: ['accepted', 'rejected', 'cancelled'],
-  accepted: ['picked_up', 'completed'],
-  picked_up: ['completed'],
+  accepted: ['picked_up', 'completed', 'rejected', 'cancelled'],
+  picked_up: ['completed', 'cancelled'],
   completed: [],
   rejected: [],
   cancelled: []
 }
+
 
 export function canTransitionRequest(from: RequestStatus, to: RequestStatus) {
   return (requestTransitions[from] ?? []).includes(to)
@@ -35,15 +36,17 @@ export interface TimelineStep {
 export interface TimelineInput {
   wasteStatus: string
   requestStatus: RequestStatus | null
-  transactionStatus: 'pending' | 'completed' | 'failed' | null
+  /** True when reserved funds have settled into the consumer wallet. */
+  settled?: boolean
   analyzedAt?: string | Date | null
   matchedAt?: string | Date | null
   requestedAt?: string | Date | null
   acceptedAt?: string | Date | null
   pickedUpAt?: string | Date | null
   completedAt?: string | Date | null
-  paidAt?: string | Date | null
+  settledAt?: string | Date | null
 }
+
 
 function iso(value: string | Date | null | undefined) {
   if (!value) return null
@@ -75,8 +78,8 @@ export function buildRequestTimeline(input: TimelineInput): TimelineStep[] {
     : waste === 'pickup_requested' || waste === 'picked_up' || waste === 'completed'
   const accepted = request === 'accepted' || request === 'picked_up' || request === 'completed'
   const collected = request === 'picked_up' || request === 'completed' || waste === 'picked_up' || waste === 'completed'
-  // Payment completes only when the reward transaction succeeds — not when the item is merely collected.
-  const paid = input.transactionStatus === 'completed'
+  // Wallet credit completes when pickup is settled in-app — not when a bank transfer succeeds.
+  const credited = Boolean(input.settled) || request === 'completed'
 
   return mark([
     { id: 'analyzed', label: 'Analyzed', done: analyzed, at: iso(input.analyzedAt) },
@@ -84,9 +87,10 @@ export function buildRequestTimeline(input: TimelineInput): TimelineStep[] {
     { id: 'requested', label: 'Pickup requested', done: requested, at: iso(input.requestedAt) },
     { id: 'accepted', label: 'Recycler accepted', done: accepted, at: iso(input.acceptedAt) },
     { id: 'collected', label: 'Collected', done: collected, at: iso(input.pickedUpAt ?? (request === 'completed' ? input.completedAt : null)) },
-    { id: 'payment', label: 'Payment', done: paid, at: iso(input.paidAt ?? (paid ? input.completedAt : null)) }
+    { id: 'wallet', label: 'Wallet credited', done: credited, at: iso(input.settledAt ?? (credited ? input.completedAt : null)) }
   ])
 }
+
 
 /** Convert UI match score (0–100) to the Request schema scale (0–1). */
 export function toStoredMatchScore(scoreOutOf100: number) {

@@ -13,13 +13,14 @@ test('allows only the strict pickup lifecycle transitions', () => {
   assert.equal(canTransitionRequest('pending', 'cancelled'), true)
   assert.equal(canTransitionRequest('accepted', 'picked_up'), true)
   assert.equal(canTransitionRequest('accepted', 'completed'), true)
+  assert.equal(canTransitionRequest('accepted', 'rejected'), true)
+  assert.equal(canTransitionRequest('accepted', 'cancelled'), true)
   assert.equal(canTransitionRequest('picked_up', 'completed'), true)
+  assert.equal(canTransitionRequest('picked_up', 'cancelled'), true)
 
   assert.equal(canTransitionRequest('completed', 'pending'), false)
   assert.equal(canTransitionRequest('rejected', 'picked_up'), false)
   assert.equal(canTransitionRequest('cancelled', 'accepted'), false)
-  assert.equal(canTransitionRequest('accepted', 'rejected'), false)
-  assert.equal(canTransitionRequest('picked_up', 'cancelled'), false)
 })
 
 test('match scores convert between UI and storage scales', () => {
@@ -32,7 +33,7 @@ test('timeline marks completed steps and leaves later ones pending', () => {
   const steps = buildRequestTimeline({
     wasteStatus: 'pickup_requested',
     requestStatus: 'accepted',
-    transactionStatus: null,
+    settled: false,
     requestedAt: '2026-09-22T08:00:00.000Z',
     acceptedAt: '2026-09-22T09:00:00.000Z'
   })
@@ -44,41 +45,29 @@ test('timeline marks completed steps and leaves later ones pending', () => {
   assert.equal(steps[4]!.state, 'current')
   assert.equal(steps[4]!.label, 'Collected')
   assert.equal(steps[5]!.state, 'pending')
-  assert.equal(steps[5]!.label, 'Payment')
+  assert.equal(steps[5]!.label, 'Wallet credited')
 })
 
-test('collected without a transaction keeps payment pending', () => {
+test('collected without settle keeps wallet step current', () => {
   const steps = buildRequestTimeline({
     wasteStatus: 'picked_up',
     requestStatus: 'picked_up',
-    transactionStatus: null,
+    settled: false,
     pickedUpAt: '2026-09-22T11:00:00.000Z'
   })
   assert.equal(steps[4]!.state, 'complete')
   assert.equal(steps[4]!.label, 'Collected')
   assert.equal(steps[5]!.state, 'current')
-  assert.equal(steps[5]!.label, 'Payment')
+  assert.equal(steps[5]!.label, 'Wallet credited')
 })
 
-test('completed requests mark payment complete', () => {
+test('completed requests mark wallet credited', () => {
   const steps = buildRequestTimeline({
     wasteStatus: 'completed',
     requestStatus: 'completed',
-    transactionStatus: 'completed',
+    settled: true,
     completedAt: '2026-09-22T12:00:00.000Z',
-    paidAt: '2026-09-22T12:00:00.000Z'
+    settledAt: '2026-09-22T12:00:00.000Z'
   })
   assert.ok(steps.every(step => step.state === 'complete'))
-})
-
-test('completed with pending paystack keeps payment current', () => {
-  const steps = buildRequestTimeline({
-    wasteStatus: 'completed',
-    requestStatus: 'completed',
-    transactionStatus: 'pending',
-    completedAt: '2026-09-22T12:00:00.000Z',
-    pickedUpAt: '2026-09-22T12:00:00.000Z'
-  })
-  assert.equal(steps[4]!.state, 'complete')
-  assert.equal(steps[5]!.state, 'current')
 })
