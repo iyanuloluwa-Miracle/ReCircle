@@ -72,6 +72,17 @@ test('operational collections declare required geospatial and lookup indexes', (
   assert.ok(hasIndex(Message.schema.indexes(), { requestId: 1, createdAt: 1 }))
 })
 
+test('a pending pickup request permits an unset locked payout', async () => {
+  const request = new Request({
+    wasteItemId: new Types.ObjectId(), userId: owner, recyclerId: new Types.ObjectId(),
+    pickupLocation: location, matchScore: 0.8, distanceKm: 2,
+    pricePerKg: 100, expectedPayout: 500, status: 'pending'
+  })
+  assert.equal(await request.validate(), undefined)
+  request.lockedPayout = Number.NaN
+  await assert.rejects(request.validate())
+})
+
 test('pickup messages require a request, sender, and non-empty body', async () => {
   const message = new Message({
     requestId: owner,

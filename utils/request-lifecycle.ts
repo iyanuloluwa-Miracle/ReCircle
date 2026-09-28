@@ -13,7 +13,9 @@ export type RequestStatus = (typeof requestStatuses)[number]
 export const requestTransitions: Record<RequestStatus, readonly RequestStatus[]> = {
   pending: ['accepted', 'rejected', 'cancelled'],
   accepted: ['picked_up', 'completed', 'rejected', 'cancelled'],
-  picked_up: ['completed', 'cancelled'],
+  // Once collection is recorded, the consumer cannot cancel and release
+  // funds for an item the recycler may already possess.
+  picked_up: ['completed'],
   completed: [],
   rejected: [],
   cancelled: []

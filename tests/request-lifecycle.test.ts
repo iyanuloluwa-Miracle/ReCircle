@@ -16,7 +16,7 @@ test('allows only the strict pickup lifecycle transitions', () => {
   assert.equal(canTransitionRequest('accepted', 'rejected'), true)
   assert.equal(canTransitionRequest('accepted', 'cancelled'), true)
   assert.equal(canTransitionRequest('picked_up', 'completed'), true)
-  assert.equal(canTransitionRequest('picked_up', 'cancelled'), true)
+  assert.equal(canTransitionRequest('picked_up', 'cancelled'), false)
 
   assert.equal(canTransitionRequest('completed', 'pending'), false)
   assert.equal(canTransitionRequest('rejected', 'picked_up'), false)

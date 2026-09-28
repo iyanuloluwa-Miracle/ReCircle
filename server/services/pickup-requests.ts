@@ -242,6 +242,8 @@ export async function createPickupRequest(options: {
   }
 
   let requestDoc
+  let requestPersisted = false
+  const previousRequest = existing?.toObject()
   try {
     if (existing) {
       existing.set(payload)
@@ -250,10 +252,29 @@ export async function createPickupRequest(options: {
     } else {
       requestDoc = await Request.create(payload)
     }
+    requestPersisted = true
 
     item.status = 'pickup_requested'
     await item.save()
   } catch (error) {
+    // Creation uses two documents without a transaction because this endpoint must
+    // also work against deployments without replica-set transactions. Compensate if
+    // the request write succeeded but the linked item status could not be persisted.
+    if (requestPersisted) {
+      try {
+        if (existing && previousRequest) {
+          existing.set(previousRequest)
+          await existing.save()
+        } else if (requestDoc) {
+          await Request.deleteOne({ _id: requestDoc._id })
+        }
+      } catch (rollbackError) {
+        console.error(
+          '[recircle:create-request] rollback failed after item write failure',
+          rollbackError instanceof Error ? rollbackError.message.slice(0, 180) : 'unknown error'
+        )
+      }
+    }
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
     const code = error && typeof error === 'object' && 'code' in error
       ? Number((error as { code: unknown }).code)

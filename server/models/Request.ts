@@ -19,7 +19,12 @@ const requestSchema = new Schema({
   pricePerKg: { type: Number, required: true, min: 0, validate: Number.isFinite },
   expectedPayout: { type: Number, required: true, min: 0, validate: Number.isFinite },
   /** Frozen on accept: weightKg × pricePerKg. Settled exactly on complete (v1). */
-  lockedPayout: { type: Number, default: null, min: 0, validate: Number.isFinite },
+  lockedPayout: {
+    type: Number,
+    default: null,
+    min: 0,
+    validate: (value: number | null) => value == null || Number.isFinite(value)
+  },
   /** Set once when reserved funds settle into the consumer wallet. */
   settledAt: { type: Date, default: null },
   /** True while daily kg capacity is held for this accepted pickup. */
