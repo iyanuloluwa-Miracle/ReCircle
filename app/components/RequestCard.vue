@@ -7,6 +7,8 @@ const props = defineProps<{
   role: 'user' | 'recycler' | 'admin'
   /** History lists collapse the timeline so pagination stays short. */
   compact?: boolean
+  /** Optional destination used by consumer active-pickup cards. */
+  detailLink?: string
 }>()
 
 const emit = defineEmits<{
@@ -19,10 +21,17 @@ const toast = useToast()
 const rescheduling = ref(false)
 const pickupTime = ref('')
 const { openRequestChat } = useRequestChat()
+const router = useRouter()
 
 const canChat = computed(() => props.role === 'user' || props.role === 'recycler')
 
 const displayPayout = computed(() => props.request.lockedPayout ?? props.request.expectedPayout)
+const statusLabel = computed(() => {
+  if (props.request.status === 'completed') {
+    return props.request.settledAt ? 'SOLD' : 'COLLECTED'
+  }
+  return props.request.status.replaceAll('_', ' ').toUpperCase()
+})
 
 function openChat() {
   openRequestChat({
@@ -32,6 +41,15 @@ function openChat() {
       ? (props.request.businessName || 'Recycler')
       : 'Consumer pickup'
   })
+}
+
+function openDetails(event?: MouseEvent | KeyboardEvent) {
+  if (!props.detailLink) return
+  if (event instanceof MouseEvent) {
+    const target = event.target as HTMLElement | null
+    if (target?.closest('a, button, input, select, textarea, summary, label')) return
+  }
+  void router.push(props.detailLink)
 }
 
 function localDateTime(value?: string | null) {
@@ -91,7 +109,14 @@ async function setStatus(status: string) {
 </script>
 
 <template>
-  <article class="request-card">
+  <article
+    class="request-card"
+    :class="{ 'request-card--linked': detailLink }"
+    :role="detailLink ? 'link' : undefined"
+    :tabindex="detailLink ? 0 : undefined"
+    @click="openDetails"
+    @keydown.enter.prevent="openDetails"
+  >
     <header class="request-card-head">
       <div>
         <p class="analysis-kicker">{{ request.businessName || 'Recycler' }}</p>
@@ -103,7 +128,7 @@ async function setStatus(status: string) {
         </p>
       </div>
       <BaseBadge :tone="request.status === 'completed' ? 'green' : request.status === 'rejected' || request.status === 'cancelled' ? 'warning' : 'lime'">
-        {{ request.status.replaceAll('_', ' ').toUpperCase() }}
+        {{ statusLabel }}
       </BaseBadge>
     </header>
 
@@ -124,6 +149,10 @@ async function setStatus(status: string) {
       <time v-if="request.createdAt" :datetime="request.createdAt">Requested {{ new Date(request.createdAt).toLocaleString('en-NG') }}</time>
     </div>
 
+    <div v-if="detailLink" class="request-card-actions">
+      <BaseButton size="sm" variant="ghost" :to="detailLink">View pickup</BaseButton>
+    </div>
+
     <div v-if="role === 'user' && request.status === 'pending'" class="request-card-actions">
       <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
       <BaseButton size="sm" variant="ghost" :disabled="busy" @click="rescheduling = !rescheduling; pickupTime = localDateTime(request.requestedPickupTime)">{{ rescheduling ? 'Close schedule' : 'Change time' }}</BaseButton>
@@ -133,7 +162,7 @@ async function setStatus(status: string) {
     <form v-if="role === 'user' && request.status === 'pending' && rescheduling" class="request-reschedule" @submit.prevent="reschedule"><label :for="`pickup-time-${request.id}`">New preferred pickup time<input :id="`pickup-time-${request.id}`" v-model="pickupTime" type="datetime-local" :min="earliestPickupTime()" required></label><BaseButton size="sm" :loading="busy" type="submit">Save time</BaseButton></form>
     <div v-if="role === 'user' && ['accepted', 'picked_up', 'completed'].includes(request.status)" class="pickup-tracking" aria-label="Pickup tracking details">
       <template v-if="request.status === 'completed'">
-        <strong>{{ formatNaira(displayPayout) }} added to your wallet</strong>
+        <strong>{{ request.settledAt ? 'Sold — ' : 'Collected — ' }}{{ formatNaira(displayPayout) }} added to your wallet</strong>
         <span>Withdraw to your bank anytime from your dashboard or Settings.</span>
         <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
       </template>
@@ -143,7 +172,7 @@ async function setStatus(status: string) {
         <span v-else>Awaiting a confirmed arrival time.</span>
         <a v-if="request.recyclerPhone" :href="`tel:${request.recyclerPhone}`">Call recycler: {{ request.recyclerPhone }}</a>
         <span v-else>Recycler contact will appear when they add it.</span>
-        <BaseButton size="sm" variant="ghost" :loading="busy" @click="setStatus('cancelled')">Cancel pickup</BaseButton>
+        <BaseButton v-if="request.status === 'accepted'" size="sm" variant="ghost" :loading="busy" @click="setStatus('cancelled')">Cancel pickup</BaseButton>
         <BaseButton size="sm" variant="ghost" @click="openChat">Chat</BaseButton>
       </template>
     </div>

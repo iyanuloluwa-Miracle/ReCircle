@@ -278,6 +278,8 @@
 .workspace-app .skeleton-metric { min-height: 10.25rem; }
 .workspace-app .request-list { margin-top: 0; gap: .85rem; }
 .workspace-app .request-card { padding: 1.15rem; border-color: #e5eadf; background: #fcfdf8; border-radius: .8rem; min-width: 0; }
+.workspace-app .request-card--linked { cursor: pointer; transition: border-color .18s, box-shadow .18s, background .18s; }
+.workspace-app .request-card--linked:hover, .workspace-app .request-card--linked:focus-visible { border-color: #b9cda0; background: #fffefa; box-shadow: 0 .45rem 1.2rem #123f320c; outline: none; }
 .workspace-app .request-card-head { flex-wrap: wrap; gap: .6rem; }
 .workspace-app .request-card-head h3 { font-size: 1rem; overflow-wrap: anywhere; }
 .workspace-app .request-card-head .muted { font-size: .75rem; }

@@ -159,6 +159,7 @@ async function withdraw() {
               :key="request.id"
               :request="request"
               role="user"
+              :detail-link="`/dashboard/pickups/${request.id}`"
               @updated="onUpdated"
             />
           </div>
