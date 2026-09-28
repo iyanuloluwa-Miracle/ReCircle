@@ -1,13 +1,12 @@
 import { createError, defineEventHandler, getHeader, readRawBody } from 'h3'
-import { Transaction } from '../../models/Transaction'
-import { Notification } from '../../models/Notification'
 import {
   getPaystackSecretOrNull,
   verifyPaystackSignature
 } from '../../services/paystack'
+import { applyTopUpFromWebhook, applyWithdrawWebhook } from '../../services/wallet'
 import { connectDatabase } from '../../utils/db'
 
-interface PaystackTransferEvent {
+interface PaystackWebhookEvent {
   event?: string
   data?: {
     reference?: string
@@ -15,6 +14,8 @@ interface PaystackTransferEvent {
     status?: string
     reason?: string
     message?: string
+    amount?: number
+    metadata?: { type?: string; topUpId?: string }
   }
 }
 
@@ -37,50 +38,34 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Invalid Paystack signature' })
   }
 
-  let payload: PaystackTransferEvent
+  let payload: PaystackWebhookEvent
   try {
-    payload = JSON.parse(bodyBuffer.toString('utf8')) as PaystackTransferEvent
+    payload = JSON.parse(bodyBuffer.toString('utf8')) as PaystackWebhookEvent
   } catch {
     throw createError({ statusCode: 400, statusMessage: 'Invalid JSON body' })
   }
 
   const eventName = payload.event
-  if (!eventName || !['transfer.success', 'transfer.failed', 'transfer.reversed'].includes(eventName)) {
+  const reference = payload.data?.reference
+  if (!eventName || !reference) return { received: true }
+
+  await connectDatabase()
+
+  if (eventName === 'charge.success') {
+    await applyTopUpFromWebhook({
+      reference,
+      amountKobo: typeof payload.data?.amount === 'number' ? payload.data.amount : undefined
+    })
     return { received: true }
   }
 
-  const reference = payload.data?.reference
-  if (!reference) return { received: true }
-
-  await connectDatabase()
-  const tx = await Transaction.findOne({ provider: 'paystack', providerRef: reference })
-  if (!tx) return { received: true }
-
-  if (eventName === 'transfer.success') {
-    if (tx.status !== 'completed') {
-      tx.status = 'completed'
-      tx.failureReason = null
-      await tx.save()
-      await Notification.create([{
-        userId: tx.userId,
-        type: 'payout_completed',
-        title: 'Reward sent',
-        body: 'Your recycling reward was paid via Paystack.',
-        href: '/dashboard/user'
-      }])
-    }
-  } else {
-    const reason = (payload.data?.reason || payload.data?.message || 'Transfer failed').slice(0, 280)
-    tx.status = 'failed'
-    tx.failureReason = reason
-    await tx.save()
-    await Notification.create([{
-      userId: tx.userId,
-      type: 'payout_failed',
-      title: eventName === 'transfer.reversed' ? 'Payout reversed' : 'Payout failed',
-      body: 'Your recycling reward could not be completed. Update your payout bank account in Settings if needed.',
-      href: '/dashboard/settings'
-    }])
+  if (eventName === 'transfer.success' || eventName === 'transfer.failed' || eventName === 'transfer.reversed') {
+    await applyWithdrawWebhook({
+      reference,
+      event: eventName,
+      reason: payload.data?.reason || payload.data?.message
+    })
+    return { received: true }
   }
 
   return { received: true }

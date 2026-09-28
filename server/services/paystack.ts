@@ -1,9 +1,22 @@
 import { createError } from 'h3'
 import { getServerConfig } from '../utils/config'
-import { nairaToKobo, transferReferenceForRequest, verifyPaystackSignature } from '../../utils/paystack'
+import {
+  nairaToKobo,
+  topUpReferenceForId,
+  transferReferenceForRequest,
+  verifyPaystackSignature,
+  withdrawReferenceForId
+} from '../../utils/paystack'
 import { logPayout } from '../utils/payout-logger'
 
-export { nairaToKobo, transferReferenceForRequest, verifyPaystackSignature }
+export {
+  nairaToKobo,
+  topUpReferenceForId,
+  transferReferenceForRequest,
+  verifyPaystackSignature,
+  withdrawReferenceForId
+}
+
 
 const PAYSTACK_API = 'https://api.paystack.co'
 
@@ -174,3 +187,33 @@ export async function initiateTransfer(options: {
     status: data.status
   }
 }
+
+export async function initializeTransaction(options: {
+  email: string
+  amountNaira: number
+  reference: string
+  callbackUrl?: string
+  metadata?: Record<string, unknown>
+}) {
+  const data = await paystackFetch<{
+    authorization_url: string
+    access_code: string
+    reference: string
+  }>('/transaction/initialize', {
+    method: 'POST',
+    body: {
+      email: options.email,
+      amount: nairaToKobo(options.amountNaira),
+      reference: options.reference,
+      currency: 'NGN',
+      ...(options.callbackUrl ? { callback_url: options.callbackUrl } : {}),
+      ...(options.metadata ? { metadata: options.metadata } : {})
+    }
+  })
+  return {
+    authorizationUrl: data.authorization_url,
+    accessCode: data.access_code,
+    reference: data.reference
+  }
+}
+
