@@ -22,9 +22,9 @@ Drop PNG/JPG files into [`docs/screenshots/`](docs/screenshots/), keep the filen
 | Consumer dashboard | `docs/screenshots/03-consumer-dashboard.png` | ![Consumer dashboard](docs/screenshots/03-consumer-dashboard.png) |
 | Scan / match recycler | `docs/screenshots/04-scan-match.png` | ![Scan match](docs/screenshots/04-scan-match.png) |
 | Recycler incoming pickups | `docs/screenshots/05-recycler-dashboard.png` | ![Recycler dashboard](docs/screenshots/05-recycler-dashboard.png) |
-| Release payout / wallet | `docs/screenshots/06-payout-wallet.png` | ![Payout wallet](docs/screenshots/06-payout-wallet.png) |
+| Wallet / top-up / withdraw | `docs/screenshots/06-payout-wallet.png` | ![Wallet](docs/screenshots/06-payout-wallet.png) |
 | Admin / analytics | `docs/screenshots/07-admin-analytics.png` | ![Admin analytics](docs/screenshots/07-admin-analytics.png) |
-| Settings payout bank | `docs/screenshots/08-settings-payout.png` | ![Settings payout](docs/screenshots/08-settings-payout.png) |
+| Settings withdrawal bank | `docs/screenshots/08-settings-payout.png` | ![Settings bank](docs/screenshots/08-settings-payout.png) |
 
 **How to attach screenshots**
 
@@ -52,14 +52,15 @@ The platform is designed for **partnership with recycling companies and collecti
 
 The platform follows the full recycling journey:
 
-`Scan waste → Analyze material → Add weight → Match recycler → Request pickup → Collect → Complete payment`
+`Scan waste → Analyze material → Add weight → Match recycler → Request pickup → Accept (funds locked) → Collect → Complete (wallet credited) → Withdraw to bank (optional)`
 
 ## Key features ✨
 
 - AI-assisted waste classification with confidence scores and safety/preparation guidance
 - Consumer confirmation and correction when AI confidence is low
 - Location-aware recycler matching based on distance, pricing, accepted materials, service radius, and available capacity
-- Transparent estimated recycling value in local currency (NGN via Paystack), including fractional amounts (for example `NGN 1.08`)
+- Transparent estimated recycling value in local currency (NGN), including fractional amounts (for example `NGN 1.08`)
+- Double-wallet escrow: recyclers prepay, accept locks funds, complete credits the consumer wallet, withdraw sends money to bank
 - Pickup request lifecycle with clear statuses from pending to completed
 - Role-based dashboards for consumers, recyclers, and admins
 - Partnership-ready recycler profiles so companies can publish materials, pricing, and capacity in one place
@@ -74,9 +75,9 @@ The platform follows the full recycling journey:
 
 ReCircle is built with **Nuxt 4**, **Vue 3**, **TypeScript**, and **Tailwind CSS 4** for a fast, responsive frontend experience. Layout responsiveness uses custom CSS (Flexbox/Grid, fluid `clamp` tokens, and shared breakpoints) on top of the Tailwind entry.
 
-The backend uses **Nuxt server APIs**, **MongoDB**, and **Mongoose** to manage users, recyclers, waste items, pickup requests, transactions, notifications, and analytics. MongoDB’s GeoJSON and geospatial indexing power nearby recycler discovery and location-based matching.
+The backend uses **Nuxt server APIs**, **MongoDB**, and **Mongoose** to manage users, recyclers, waste items, pickup requests, wallet ledgers, notifications, and analytics. MongoDB’s GeoJSON and geospatial indexing power nearby recycler discovery and location-based matching.
 
-We also integrated **OpenRouter** for structured waste-image analysis, **Byteship** for secure uploads, **Google Maps** for pickup-location selection and geocoding, **Google OAuth** and **Resend OTP** for authentication, **Paystack** for recycling-reward Transfers (with demo-wallet fallback), **Chart.js** for analytics, and **Zod** for API validation.
+We also integrated **OpenRouter** for structured waste-image analysis, **Byteship** for secure uploads, **Google Maps** for pickup-location selection and geocoding, **Google OAuth** and **Resend OTP** for authentication, **Paystack** for recycler top-up Checkout and consumer withdraw Transfers, **Chart.js** for analytics, and **Zod** for API validation.
 
 ## Implementation highlights
 
@@ -103,6 +104,7 @@ Recent product and platform work shipped in this codebase:
 - On **complete**, reserved funds settle into the consumer wallet (no bank Transfer per pickup)
 - Consumers withdraw on demand via **Paystack Transfer** to a saved NUBAN in Settings
 - Recycler top-ups use Paystack Checkout; wallet credit only after a verified webhook (or demo top-up when TEST keys are unset)
+- ReCircle is the **ledger + Paystack rails**, not the payer of rewards — recyclers fund the system
 
 ## Challenges we ran into 🏃
 
@@ -156,24 +158,78 @@ vision model in `OPENROUTER_MODEL` that supports strict structured output.
 Payment keys may remain empty.
 Set `SESSION_SECRET` to at least 32 random characters before using authentication.
 
-### Wallet settlement (Paystack rails)
+### Wallet settlement (escrow flow)
 
-ReCircle never funds consumer rewards. Recyclers top up a wallet; accept locks funds;
-complete credits the consumer wallet; bank payouts happen only on explicit withdraw.
+ReCircle never funds consumer rewards and never settles cash on collection. Money moves
+**recycler → consumer** on the platform, then **consumer → bank** only when they withdraw.
+
+#### Roles of money
+
+| Wallet | Who | Purpose |
+|--------|-----|---------|
+| **Recycler wallet** | Partner yard | Prepay so they can accept pickups; funds are locked then paid out |
+| **Consumer wallet** | Household user | Receives rewards on collection; withdraws to bank when ready |
+
+| Balance | Meaning |
+|---------|---------|
+| Recycler `available` | Can be used to accept new pickups |
+| Recycler `reserved` | Locked for accepted-but-not-completed requests |
+| Consumer `available` | Earned, withdrawable |
+
+#### End-to-end flow
+
+```text
+1. Recycler tops up wallet     Paystack Checkout → webhook credits available
+2. Consumer requests pickup    pending — no money moved
+3. Recycler accepts            LOCK: available → reserved (lockedPayout = weightKg × pricePerKg)
+4. Recycler completes          SETTLE: debit reserved → credit consumer available
+5. Consumer withdraws          available → Paystack Transfer → NUBAN (optional)
+```
+
+Reject or cancel after accept → **UNLOCK** (reserved → available). Nothing hits the consumer.
+
+**v1 rule:** complete pays exactly `lockedPayout`. Reweigh / adjust is out of scope for now.
+Pickup **completed** means **settled in-app**, not “bank transfer succeeded.”
+
+#### Lifecycle vs money
+
+| Request status | Money |
+|----------------|--------|
+| `pending` | None |
+| `accepted` | Recycler: `lockedPayout` reserved |
+| `picked_up` | Still reserved (collection in progress) |
+| `completed` | Reserved debited; consumer wallet credited |
+| `rejected` / `cancelled` (after accept) | Reserved returned to recycler available |
+
+#### Bank rails (Paystack)
 
 | Flow | Behaviour |
 |------|-----------|
-| Recycler top-up | Paystack Checkout (`/transaction/initialize`). Wallet credited **only** after verified `charge.success` webhook. When TEST keys are unset, `POST /api/wallet/top-up/demo` credits immediately for local demos. |
-| Accept pickup | Locks `weightKg × pricePerKg` (available → reserved). Blocked if available balance is too low. |
-| Complete pickup | Settles reserved → consumer `walletAvailable`. No bank Transfer. |
-| Cancel / reject after accept | Unlocks reserved → available. |
-| Consumer withdraw | Debits wallet and initiates Paystack Transfer to the saved NUBAN. Failures restore balance. Without Paystack keys, withdraw debits locally (demo). |
+| Recycler top-up | Paystack Checkout (`/transaction/initialize`). Wallet credited **only** after verified `charge.success` webhook — never from a client “I paid” claim. When TEST keys are unset, `POST /api/wallet/top-up/demo` credits immediately for local demos. |
+| Consumer withdraw | Debits wallet and initiates Paystack Transfer to the saved NUBAN. Clear 4xx rejections restore balance; unclear timeouts stay pending for webhook. Without Paystack keys, withdraw debits locally (demo). |
+| On complete | **Not used.** No per-pickup Transfer to bank. |
 
-To exercise rails locally:
+#### What the UI should say
+
+- **Recycler:** wallet available / reserved / top up; on accept “₦X will be locked”; cannot accept without enough balance; complete = “Confirm collected”
+- **Consumer:** wallet balance + history; on accept “₦X locked for your pickup”; on complete “₦X added to your wallet”; Settings = bank for withdrawals
+- **Admin:** balances, failed top-ups/withdrawals, reserved totals — audit visibility only
+
+#### Invariants
+
+1. Only recyclers fund the system (via top-up).
+2. Accept always locks full `lockedPayout` or fails.
+3. Complete moves value once, idempotently (no double credit).
+4. Cancel/reject after accept always unlocks.
+5. Consumer bank payout only via explicit withdraw.
+6. Server ledger is source of truth; UI never invents balances.
+7. No cash settlement method.
+
+#### Try it locally
 
 1. Add Paystack **TEST** keys to `.env` (live keys are rejected), or leave them empty for demo top-up / demo withdraw.
 2. Recycler: top up wallet from the recycler dashboard.
-3. Accept and complete a pickup — consumer wallet increases.
+3. Accept and complete a pickup — consumer wallet increases (no bank Transfer yet).
 4. Consumer: save NUBAN in **Settings → Withdrawal bank account**, then withdraw from the dashboard.
 
 Estimated / locked payouts use `weightKg × pricePerKg` (two decimal places).
@@ -207,12 +263,12 @@ app/
   middleware/     Role-aware navigation guards
   assets/css/     Tailwind entry, design tokens and responsive styles
 server/
-  api/            HTTP endpoints (including debug/payout-log when PAYOUT_DEBUG=1)
+  api/            HTTP endpoints (wallet top-up/withdraw/ledger, Paystack webhook, …)
   middleware/     Response headers
-  models/         Mongoose operational models and GeoJSON validation
-  services/       Password hashing, classification, matching, pickup requests,
-                  Paystack transfers, analytics, assistant context and clients
-  utils/          Configuration, database, sessions, validation, payout logger
+  models/         Mongoose models (User, Recycler, Request, LedgerEntry, TopUp, Withdrawal, …)
+  services/       Auth, classification, matching, pickup requests, ledger escrow,
+                  wallet + Paystack rails, analytics, assistant context
+  utils/          Configuration, database, sessions, validation
 scripts/           Demo seed and live HTTP verification
 docs/screenshots/  README screenshots (add PNGs here)
 types/            Shared contracts; never put secrets here
@@ -232,4 +288,5 @@ Documentation:
 [Byteship](https://byteship.dev/docs/uploading-a-file),
 [OpenRouter](https://openrouter.ai/docs/quickstart),
 [Chart.js](https://www.chartjs.org/docs/latest/getting-started/integration.html),
+[Paystack](https://paystack.com/docs/),
 [Paystack Transfers](https://paystack.com/docs/transfers/).
