@@ -15,9 +15,9 @@ export async function connectDatabase() {
   if (!connectionPromise) {
     connectionPromise = mongoose.connect(mongodbUri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 5000,
-      socketTimeoutMS: 5000
+      serverSelectionTimeoutMS: 10_000,
+      connectTimeoutMS: 10_000,
+      socketTimeoutMS: 30_000
     }).finally(() => { connectionPromise = undefined })
   }
   try {
@@ -29,16 +29,19 @@ export async function connectDatabase() {
 }
 
 /** Run multi-document work inside a MongoDB transaction when the deployment supports it. */
-function isAppHttpError(error: unknown): error is { statusCode: number } {
+function isAppHttpError(error: unknown): error is { statusCode: number; statusMessage?: string } {
   return Boolean(error && typeof error === 'object' && 'statusCode' in error && typeof (error as { statusCode: unknown }).statusCode === 'number')
 }
 
 function isTransactionUnsupported(error: unknown) {
   const message = error instanceof Error ? error.message : String(error ?? '')
-  return /replica set|Transaction numbers are only allowed|transactions are not supported|transaction numbers/i.test(message)
+  const code = mongoErrorCode(error)
+  // 20 = IllegalOperation (common when transactions are unavailable)
+  return code === 20
+    || /replica set|Transaction numbers are only allowed|transactions are not supported|transaction numbers|illegal operation/i.test(message)
 }
 
-function mongoErrorCode(error: unknown) {
+function mongoErrorCode(error: unknown): number | null {
   if (!error || typeof error !== 'object') return null
   if ('code' in error && typeof (error as { code: unknown }).code === 'number') {
     return (error as { code: number }).code
@@ -47,6 +50,14 @@ function mongoErrorCode(error: unknown) {
   if ('cause' in error) return mongoErrorCode((error as { cause: unknown }).cause)
   if ('errorResponse' in error) return mongoErrorCode((error as { errorResponse: unknown }).errorResponse)
   return null
+}
+
+function safeDbFailureMessage(error: unknown) {
+  const raw = error instanceof Error ? error.message : String(error ?? 'unknown error')
+  return raw
+    .replace(/mongodb(\+srv)?:\/\/\S+/gi, '[redacted-uri]')
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[redacted-email]')
+    .slice(0, 180)
 }
 
 export async function withMongoTransaction<T>(work: (session: mongoose.ClientSession) => Promise<T>): Promise<T> {
@@ -76,11 +87,12 @@ export async function withMongoTransaction<T>(work: (session: mongoose.ClientSes
         })
       }
 
-      console.error(
-        '[recircle:db] transaction failed',
-        error instanceof Error ? error.message : error
-      )
-      throw createError({ statusCode: 503, statusMessage: 'Database write failed' })
+      const detail = safeDbFailureMessage(error)
+      console.error('[recircle:db] transaction failed', detail)
+      throw createError({
+        statusCode: 503,
+        statusMessage: `Database write failed: ${detail}`
+      })
     }
     return result
   } finally {

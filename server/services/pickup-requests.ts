@@ -176,8 +176,8 @@ export async function createPickupRequest(options: {
   const recyclerId = new Types.ObjectId(options.recyclerId)
   const userId = new Types.ObjectId(options.userId)
 
-  // Validate + re-match outside the transaction. $geoNear is not safe inside a multi-doc txn,
-  // and keeping the txn short avoids production 500s from long open sessions.
+  // No multi-doc transaction here: unique wasteItemId + status checks cover races, and
+  // production create-request was failing inside withTransaction with opaque DB errors.
   await connectDatabase()
   const item = await WasteItem.findOne({ _id: wasteItemId, userId })
   if (!item) throw notFound('Waste item not found')
@@ -204,7 +204,10 @@ export async function createPickupRequest(options: {
   }
 
   const match = await matchRecyclersForWaste({
-    location: item.location,
+    location: {
+      type: 'Point',
+      coordinates: [item.location.coordinates[0]!, item.location.coordinates[1]!]
+    },
     materialCode: item.materialCode,
     weightKg: item.weightKg
   })
@@ -215,7 +218,10 @@ export async function createPickupRequest(options: {
     wasteItemId,
     userId,
     recyclerId,
-    pickupLocation: item.location,
+    pickupLocation: {
+      type: 'Point' as const,
+      coordinates: [item.location.coordinates[0]!, item.location.coordinates[1]!] as [number, number]
+    },
     requestedPickupTime: options.requestedPickupTime ?? null,
     confirmedPickupTime: null as Date | null,
     acceptedAt: null as Date | null,
@@ -235,48 +241,41 @@ export async function createPickupRequest(options: {
     isDemo: options.isDemo ?? item.isDemo ?? false
   }
 
-  const serialized = await withMongoTransaction(async (session) => {
-    // Re-load under the session so concurrent creates cannot race past unique wasteItemId.
-    const lockedItem = await WasteItem.findOne({ _id: wasteItemId, userId }).session(session)
-    if (!lockedItem) throw notFound('Waste item not found')
-
-    const lockedExisting = await Request.findOne({ wasteItemId }).session(session)
-    if (lockedExisting) {
-      if (lockedExisting.status === 'pending') {
-        if (lockedExisting.recyclerId.toString() === recyclerId.toString()) {
-          throw conflict('That recycler is already assigned to this pickup')
-        }
-      } else if (lockedExisting.status !== 'cancelled' && lockedExisting.status !== 'rejected') {
-        throw conflict('A pickup request already exists for this item')
-      }
-    } else if (lockedItem.status === 'pickup_requested') {
-      throw conflict('Match a recycler before requesting pickup')
-    }
-
-    let requestDoc
-    if (lockedExisting) {
-      lockedExisting.set(payload)
-      await lockedExisting.save({ session })
-      requestDoc = lockedExisting
+  let requestDoc
+  try {
+    if (existing) {
+      existing.set(payload)
+      await existing.save()
+      requestDoc = existing
     } else {
-      const created = await Request.create([payload], { session })
-      requestDoc = created[0]!
+      requestDoc = await Request.create(payload)
     }
 
-    lockedItem.status = 'pickup_requested'
-    await lockedItem.save({ session })
-
-    return serializeRequest(requestDoc.toObject() as RequestLean, {
-      businessName: eligibleMatch.businessName,
-      materialCode: lockedItem.materialCode,
-      itemName: lockedItem.itemName,
-      weightKg: lockedItem.weightKg,
-      wasteStatus: lockedItem.status
+    item.status = 'pickup_requested'
+    await item.save()
+  } catch (error) {
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
+    const code = error && typeof error === 'object' && 'code' in error
+      ? Number((error as { code: unknown }).code)
+      : null
+    if (code === 11000) throw conflict('A pickup request already exists for this item')
+    const detail = error instanceof Error ? error.message.slice(0, 180) : 'unknown error'
+    console.error('[recircle:create-request] write failed', detail)
+    throw createError({
+      statusCode: 503,
+      statusMessage: `Could not create pickup request: ${detail}`
     })
+  }
+
+  const serialized = serializeRequest(requestDoc.toObject() as RequestLean, {
+    businessName: eligibleMatch.businessName,
+    materialCode: item.materialCode,
+    itemName: item.itemName,
+    weightKg: item.weightKg,
+    wasteStatus: item.status
   })
 
-  // Notifications after commit: creating a collection mid-transaction fails on fresh DBs,
-  // and a notification failure must not roll back a successful pickup request.
+  // Best-effort notifications; never roll back a committed request.
   try {
     if (isPendingReassign && previousRecyclerId && previousRecyclerId !== recyclerId.toString()) {
       const previousRecycler = await Recycler.findById(previousRecyclerId).select('userId').lean()
