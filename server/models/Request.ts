@@ -18,9 +18,16 @@ const requestSchema = new Schema({
   distanceKm: { type: Number, required: true, min: 0, validate: Number.isFinite },
   pricePerKg: { type: Number, required: true, min: 0, validate: Number.isFinite },
   expectedPayout: { type: Number, required: true, min: 0, validate: Number.isFinite },
+  /** Frozen on accept: weightKg × pricePerKg. Settled exactly on complete (v1). */
+  lockedPayout: { type: Number, default: null, min: 0, validate: Number.isFinite },
+  /** Set once when reserved funds settle into the consumer wallet. */
+  settledAt: { type: Date, default: null },
+  /** True while daily kg capacity is held for this accepted pickup. */
+  capacityHeld: { type: Boolean, default: false },
   status: { type: String, required: true, enum: ['pending', 'accepted', 'picked_up', 'completed', 'rejected', 'cancelled'] },
   isDemo: { type: Boolean, default: false }
 }, { timestamps: true })
+
 
 requestSchema.index({ recyclerId: 1, status: 1, createdAt: -1 })
 requestSchema.index({ userId: 1, createdAt: -1 })

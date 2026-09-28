@@ -21,12 +21,15 @@ const userSchema = new Schema({
   emailVerified: { type: Boolean, required: true, default: false },
   onboardingCompletedAt: { type: Date, default: null },
   isDemo: { type: Boolean, default: false },
-  /** Consumer NUBAN payout destination for Paystack Transfers (TEST). */
+  /** Consumer NUBAN destination for Paystack withdraw Transfers (TEST). */
   bankCode: { type: String, default: null, trim: true, maxlength: 10 },
   accountNumber: { type: String, default: null, trim: true, maxlength: 20 },
   accountName: { type: String, default: null, trim: true, maxlength: 160 },
-  paystackRecipientCode: { type: String, default: null, trim: true, maxlength: 64 }
+  paystackRecipientCode: { type: String, default: null, trim: true, maxlength: 64 },
+  /** Spendable consumer wallet balance (server ledger is source of truth). */
+  walletAvailable: { type: Number, default: 0, min: 0, validate: Number.isFinite }
 }, { timestamps: true })
+
 
 export type UserDocument = InferSchemaType<typeof userSchema>
 export const User: Model<UserDocument> = (mongoose.models.User as Model<UserDocument> | undefined) ?? mongoose.model<UserDocument>('User', userSchema)

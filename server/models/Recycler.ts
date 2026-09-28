@@ -33,8 +33,13 @@ const recyclerSchema = new Schema({
   serviceRadiusKm: { type: Number, required: true, min: 0, validate: Number.isFinite },
   operatingHours: { type: [operatingHoursSchema], default: undefined },
   contactPhone: { type: String, default: null, trim: true, maxlength: 40 },
-  isDemo: { type: Boolean, default: false }
+  isDemo: { type: Boolean, default: false },
+  /** Funds available to lock when accepting pickups. */
+  walletAvailable: { type: Number, default: 0, min: 0, validate: Number.isFinite },
+  /** Funds locked for accepted-but-not-completed pickups. */
+  walletReserved: { type: Number, default: 0, min: 0, validate: Number.isFinite }
 }, { timestamps: true })
+
 
 recyclerSchema.path('pricingRules').validate(function (rules: Array<{ material: string }>) {
   return rules.every(rule => this.acceptedMaterials.includes(rule.material))
