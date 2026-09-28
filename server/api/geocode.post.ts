@@ -62,8 +62,11 @@ export default defineEventHandler(async (event): Promise<GeocodeResponse> => {
   }
 
   const hit = payload.results[0]
-  const lat = hit?.geometry?.location?.lat
-  const lng = hit?.geometry?.location?.lng
+  if (!hit) {
+    throw createError({ statusCode: 404, statusMessage: 'No matching address found in Africa' })
+  }
+  const lat = hit.geometry?.location?.lat
+  const lng = hit.geometry?.location?.lng
   if (typeof lat !== 'number' || typeof lng !== 'number'
     || !Number.isFinite(lat) || !Number.isFinite(lng)
     || lat < -90 || lat > 90 || lng < -180 || lng > 180) {

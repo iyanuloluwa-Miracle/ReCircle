@@ -45,7 +45,7 @@ function onInput(index: number, event: Event) {
     return
   }
   setDigit(index, raw)
-  target.value = digits.value[index]
+  target.value = digits.value[index] ?? ''
 }
 
 function onKeydown(index: number, event: KeyboardEvent) {

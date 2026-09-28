@@ -14,7 +14,10 @@ if (!uri) {
 } else {
   try {
     await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000 })
-    const result = await User.updateMany({ role: 'waste_operator' }, { $set: { role: 'admin' } }, { runValidators: false })
+    const result = await User.collection.updateMany(
+      { role: 'waste_operator' },
+      { $set: { role: 'admin' } }
+    )
     console.log(`Migrated ${result.modifiedCount} legacy operator account(s) to admin.`)
   } catch (error) {
     console.error(`Role migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`)

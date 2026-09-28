@@ -209,7 +209,7 @@ useSeoMeta({ title: 'Create an account — ReCircle', robots: 'noindex' })
       </form>
     </template>
 
-    <form v-else-if="step === 'otp'" class="auth-form auth-form--otp" @submit.prevent="submitOtp">
+    <form v-else-if="step === 'otp'" class="auth-form auth-form--otp" @submit.prevent="() => submitOtp()">
       <p class="muted auth-hint auth-hint--center">
         Enter the 6-digit code sent to <strong>{{ email.trim().toLowerCase() }}</strong>.
       </p>

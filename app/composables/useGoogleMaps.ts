@@ -1,6 +1,22 @@
 type MapsNamespace = {
-  maps: {
+  maps?: {
     places?: unknown
+  }
+  accounts?: {
+    id: {
+      initialize: (config: {
+        client_id: string
+        callback: (response: { credential?: string }) => void
+        auto_select?: boolean
+        cancel_on_tap_outside?: boolean
+      }) => void
+      prompt: (momentListener?: (notification: {
+        isNotDisplayed: () => boolean
+        isSkippedMoment: () => boolean
+        isDismissedMoment: () => boolean
+      }) => void) => void
+      renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void
+    }
   }
 }
 
@@ -13,7 +29,8 @@ declare global {
 }
 
 const SCRIPT_ID = 'recircle-google-maps'
-let mapsPromise: Promise<MapsNamespace['maps']> | null = null
+type GoogleMapsApi = NonNullable<MapsNamespace['maps']>
+let mapsPromise: Promise<GoogleMapsApi> | null = null
 
 export const MAPS_AUTH_FAILURE_MESSAGE = [
   'Google Maps rejected this API key.',
@@ -30,7 +47,7 @@ export function useGoogleMaps() {
   const apiKey = computed(() => String(config.public.googleMapsApiKey || '').trim())
   const configured = computed(() => Boolean(apiKey.value))
 
-  async function loadMaps(): Promise<MapsNamespace['maps']> {
+  async function loadMaps(): Promise<GoogleMapsApi> {
     if (!import.meta.client) {
       throw new Error('Google Maps is only available in the browser.')
     }
@@ -43,7 +60,7 @@ export function useGoogleMaps() {
     if (mapsPromise) return mapsPromise
 
     mapsAuthError.value = ''
-    mapsPromise = new Promise<MapsNamespace['maps']>((resolve, reject) => {
+    mapsPromise = new Promise<GoogleMapsApi>((resolve, reject) => {
       const fail = (message: string) => {
         mapsAuthError.value = message
         mapsPromise = null

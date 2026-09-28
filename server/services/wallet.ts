@@ -214,7 +214,7 @@ export async function demoRecyclerTopUp(options: { userId: string; amountNaira: 
   if (!profile) throw createError({ statusCode: 404, statusMessage: 'Recycler profile not found' })
 
   return withMongoTransaction(async (session) => {
-    const [topUp] = await TopUp.create([{
+    const created = await TopUp.create([{
       recyclerId: profile._id,
       amount,
       currency: 'NGN',
@@ -222,6 +222,8 @@ export async function demoRecyclerTopUp(options: { userId: string; amountNaira: 
       provider: 'demo',
       providerRef: null
     }], { session })
+    const topUp = created[0]
+    if (!topUp) throw createError({ statusCode: 500, statusMessage: 'Could not create top-up' })
 
     const providerRef = `demo_topup_${topUp._id.toString()}`
     await creditRecyclerTopUp({
@@ -314,7 +316,7 @@ export async function startConsumerWithdraw(options: {
   if (!isPaystackConfigured()) {
     // Local/demo: debit and mark completed without a bank Transfer
     return withMongoTransaction(async (session) => {
-      const [withdrawal] = await Withdrawal.create([{
+      const created = await Withdrawal.create([{
         userId: user._id,
         amount,
         currency: 'NGN',
@@ -322,6 +324,8 @@ export async function startConsumerWithdraw(options: {
         provider: 'demo',
         providerRef: null
       }], { session })
+      const withdrawal = created[0]
+      if (!withdrawal) throw createError({ statusCode: 500, statusMessage: 'Could not create withdrawal' })
 
       const providerRef = `demo_withdraw_${withdrawal._id.toString()}`
       await debitConsumerWithdraw({

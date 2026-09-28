@@ -27,29 +27,6 @@ const clientId = computed(() => String(config.public.googleClientId || '').trim(
 
 type CredentialResponse = { credential?: string }
 
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: {
-            client_id: string
-            callback: (response: CredentialResponse) => void
-            auto_select?: boolean
-            cancel_on_tap_outside?: boolean
-          }) => void
-          prompt: (momentListener?: (notification: {
-            isNotDisplayed: () => boolean
-            isSkippedMoment: () => boolean
-            isDismissedMoment: () => boolean
-          }) => void) => void
-          renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void
-        }
-      }
-    }
-  }
-}
-
 let scriptPromise: Promise<void> | null = null
 
 function loadGis(): Promise<void> {
@@ -118,14 +95,17 @@ async function onGoogle() {
       }
     }
 
-    window.google!.accounts.id.initialize({
+    const gis = window.google?.accounts?.id
+    if (!gis) throw new Error('Google Identity Services failed to load')
+
+    gis.initialize({
       client_id: clientId.value,
       cancel_on_tap_outside: true,
       callback
     })
 
     // Prefer One Tap; if skipped, trigger the official button under the hood.
-    window.google!.accounts.id.prompt((notification) => {
+    gis.prompt((notification) => {
       if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
         const host = gisHost.value
         if (!host) {
@@ -135,7 +115,7 @@ async function onGoogle() {
         }
         host.replaceChildren()
         const buttonWidth = Math.min(360, Math.max(200, Math.floor(host.parentElement?.clientWidth || host.clientWidth || 360)))
-        window.google!.accounts.id.renderButton(host, {
+        gis.renderButton(host, {
           type: 'standard',
           theme: 'outline',
           size: 'large',

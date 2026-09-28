@@ -10,7 +10,10 @@ export async function createNotification(input: { userId: string | Types.ObjectI
 export async function notifyAdmins(input: { type: string; title: string; body: string; href?: string | null }, session?: ClientSession) {
   const admins = await User.find({ role: 'admin' }).select('_id').session(session ?? null).lean()
   if (!admins.length) return
-  await Notification.insertMany(admins.map(admin => ({ userId: admin._id, ...input })), session ? { session } : undefined)
+  await Notification.insertMany(
+    admins.map(admin => ({ userId: admin._id, ...input })),
+    session ? { session } : {}
+  )
 }
 
 export async function listNotifications(userId: string) {
