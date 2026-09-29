@@ -7,8 +7,7 @@ const roleByPath: Record<string, UserRole> = {
   '/dashboard/incoming': 'recycler',
   '/dashboard/availability': 'recycler',
   '/dashboard/admin': 'admin',
-  '/dashboard/operator': 'admin',
-  '/dashboard/history': 'user'
+  '/dashboard/operator': 'admin'
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {
@@ -18,7 +17,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   const requiredRole = roleByPath[to.path]
     ?? (to.path === '/scan' || to.path.startsWith('/scan/') ? 'user' : undefined)
-    ?? (to.path === '/dashboard/analytics' || to.path === '/dashboard/settings' ? 'any' as const : undefined)
+    ?? (to.path === '/dashboard/analytics' || to.path === '/dashboard/settings' || to.path === '/dashboard/history' ? 'any' as const : undefined)
     ?? (isOnboarding ? 'any' as const : undefined)
 
   if (!requiredRole && !isOnboarding) return
@@ -48,6 +47,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   if (requiredRole !== 'any' && user.role !== requiredRole) {
+    return navigateTo(dashboardPathByRole[user.role])
+  }
+
+  if (to.path === '/dashboard/history' && user.role !== 'user' && user.role !== 'recycler') {
     return navigateTo(dashboardPathByRole[user.role])
   }
 })

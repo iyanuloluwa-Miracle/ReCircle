@@ -3,7 +3,14 @@ import { formatNumber } from '~~/utils/format'
 import type { PickupRequestView } from '../../../types'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useSeoMeta({ title: 'Activity history — ReCircle', robots: 'noindex' })
+
+const { user } = useAuth()
+const isRecycler = computed(() => user.value?.role === 'recycler')
+
+useSeoMeta({
+  title: () => isRecycler.value ? 'Collection history — ReCircle' : 'Activity history — ReCircle',
+  robots: 'noindex'
+})
 
 type HistoryItem = {
   id: string
@@ -16,6 +23,7 @@ type HistoryItem = {
 }
 
 type HistoryResponse = {
+  role?: 'user' | 'recycler'
   items: HistoryItem[]
   requests: PickupRequestView[]
   itemsTotal: number
@@ -44,7 +52,7 @@ watch([q, status], () => {
 }, { flush: 'sync' })
 
 const { data, pending, refresh } = await useAsyncData(
-  'history',
+  () => `history-${user.value?.role || 'user'}`,
   () => $fetch<HistoryResponse>('/api/history', { query: query.value }),
   { watch: [query] }
 )
@@ -76,6 +84,8 @@ const requestsRangeLabel = computed(() => {
   return `Showing ${start}–${end} of ${requestsTotal.value}`
 })
 
+const requestRole = computed(() => isRecycler.value ? 'recycler' : 'user')
+
 function itemLink(item: { id: string; status: string }) {
   return item.status === 'draft' || item.status === 'analyzed' ? `/scan/${item.id}/analysis` : `/scan/${item.id}/match`
 }
@@ -89,29 +99,55 @@ function onRequestUpdated() {
   <div class="dash-page">
     <div class="dash-hero">
       <div>
-        <p class="eyebrow">Your activity</p>
-        <h1 class="page-title">Scan & pickup history.</h1>
-        <p class="muted workspace-intro">Find a previous item, check a pickup, or continue where you left off.</p>
+        <p class="eyebrow">{{ isRecycler ? 'Recycler activity' : 'Your activity' }}</p>
+        <h1 class="page-title">{{ isRecycler ? 'Collection history.' : 'Scan & pickup history.' }}</h1>
+        <p class="muted workspace-intro">
+          {{ isRecycler
+            ? 'Review past pickups, filter by status, and reopen any job timeline.'
+            : 'Find a previous item, check a pickup, or continue where you left off.' }}
+        </p>
+      </div>
+      <div v-if="isRecycler" class="dash-hero-actions">
+        <BaseButton to="/dashboard/recycler" variant="secondary" class="dash-cta">Back to overview</BaseButton>
       </div>
     </div>
 
     <div class="history-filters">
-      <input v-model="q" type="search" placeholder="Search item, material, or recycler">
+      <input
+        v-model="q"
+        type="search"
+        :placeholder="isRecycler ? 'Search item or material' : 'Search item, material, or recycler'"
+      >
       <select v-model="status">
-        <option value="">All scan statuses</option>
-        <option value="draft">Draft</option>
-        <option value="analyzed">Analyzed</option>
-        <option value="matched">Matched</option>
-        <option value="pickup_requested">Pickup requested</option>
-        <option value="picked_up">Picked up</option>
-        <option value="completed">Completed</option>
+        <template v-if="isRecycler">
+          <option value="">All pickup statuses</option>
+          <option value="pending">Pending</option>
+          <option value="accepted">Accepted</option>
+          <option value="picked_up">Picked up</option>
+          <option value="completed">Completed</option>
+          <option value="rejected">Rejected</option>
+          <option value="cancelled">Cancelled</option>
+        </template>
+        <template v-else>
+          <option value="">All scan statuses</option>
+          <option value="draft">Draft</option>
+          <option value="analyzed">Analyzed</option>
+          <option value="matched">Matched</option>
+          <option value="pickup_requested">Pickup requested</option>
+          <option value="picked_up">Picked up</option>
+          <option value="completed">Completed</option>
+        </template>
       </select>
       <BaseButton size="sm" variant="ghost" @click="refresh">Refresh</BaseButton>
     </div>
 
     <LoadingSkeleton v-if="pending" :lines="6" label="Loading history" />
     <template v-else>
-      <DashboardSection title="Your scans" description="Recent items, from first photo to completed recycling.">
+      <DashboardSection
+        v-if="!isRecycler"
+        title="Your scans"
+        description="Recent items, from first photo to completed recycling."
+      >
         <template v-if="itemsRangeLabel" #action>
           <span class="history-range">{{ itemsRangeLabel }}</span>
         </template>
@@ -133,7 +169,12 @@ function onRequestUpdated() {
         </nav>
       </DashboardSection>
 
-      <DashboardSection title="Pickup requests" description="Every recycler request and its latest status.">
+      <DashboardSection
+        :title="isRecycler ? 'Pickup history' : 'Pickup requests'"
+        :description="isRecycler
+          ? 'Every job assigned to your business, from incoming to settled.'
+          : 'Every recycler request and its latest status.'"
+      >
         <template v-if="requestsRangeLabel" #action>
           <span class="history-range">{{ requestsRangeLabel }}</span>
         </template>
@@ -142,12 +183,19 @@ function onRequestUpdated() {
             v-for="request in data.requests"
             :key="request.id"
             :request="request"
-            role="user"
+            :role="requestRole"
             compact
             @updated="onRequestUpdated"
           />
         </div>
-        <EmptyState v-else compact title="No pickup requests found" description="Pickup requests will appear here once you choose a recycler." />
+        <EmptyState
+          v-else
+          compact
+          :title="isRecycler ? 'No pickups found' : 'No pickup requests found'"
+          :description="isRecycler
+            ? 'Accepted and completed jobs will appear here as you work through incoming matches.'
+            : 'Pickup requests will appear here once you choose a recycler.'"
+        />
         <nav v-if="requestsPageCount > 1" class="history-pagination" aria-label="Pickup requests pagination">
           <BaseButton size="sm" variant="ghost" :disabled="requestsPage <= 1" @click="requestsPage -= 1">Previous</BaseButton>
           <span>Page {{ requestsPage }} of {{ requestsPageCount }}</span>
