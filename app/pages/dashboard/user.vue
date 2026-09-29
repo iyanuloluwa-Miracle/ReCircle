@@ -15,7 +15,7 @@ interface ConsumerDashboard {
     recyclingStreakDays: number
   }
   activePickups: PickupRequestView[]
-  recentScans: Array<{
+  unfinishedScans: Array<{
     id: string
     imageUrl: string
     itemName: string | null
@@ -26,16 +26,6 @@ interface ConsumerDashboard {
     estimatedValueMax: number | null
     createdAt: string | null
   }>
-  walletActivity: Array<{
-    id: string
-    amount: number
-    currency: string
-    type: string
-    provider: string
-    failureReason: string | null
-    createdAt: string | null
-  }>
-  tips: Array<{ title: string; body: string }>
 }
 
 const { user } = useAuth()
@@ -53,30 +43,19 @@ const metrics = computed(() => {
   const m = data.value?.metrics
   return [
     { label: 'Wallet balance', value: formatNaira(m?.walletAvailableNgn ?? 0) },
-    { label: 'Lifetime earned', value: formatNaira(m?.totalEarnedNgn ?? 0) },
-    { label: 'Waste diverted', value: `${formatNumber(m?.wasteDivertedKg ?? 0)} kg` },
-    { label: 'Active pickups', value: String(m?.activePickups ?? 0) }
+    { label: 'Active pickups', value: String(m?.activePickups ?? 0) },
+    { label: 'Recycling streak', value: `${m?.recyclingStreakDays ?? 0} day${(m?.recyclingStreakDays ?? 0) === 1 ? '' : 's'}` },
+    { label: 'Waste diverted', value: `${formatNumber(m?.wasteDivertedKg ?? 0)} kg` }
   ]
 })
 
 function onUpdated() {
-  refresh()
+  void refresh()
 }
 
-function scanLink(scan: ConsumerDashboard['recentScans'][number]) {
+function scanLink(scan: ConsumerDashboard['unfinishedScans'][number]) {
   if (scan.status === 'draft' || scan.status === 'analyzed') return `/scan/${scan.id}/analysis`
-  if (scan.status === 'matched') return `/scan/${scan.id}/match`
-  return '/dashboard/user'
-}
-
-function ledgerLabel(type: string) {
-  const labels: Record<string, string> = {
-    settle_credit: 'Pickup reward',
-    withdraw: 'Withdrawal',
-    withdraw_failed: 'Withdrawal restored',
-    top_up: 'Top-up'
-  }
-  return labels[type] || type.replaceAll('_', ' ')
+  return `/scan/${scan.id}/match`
 }
 
 async function withdraw() {
@@ -108,6 +87,14 @@ async function withdraw() {
     withdrawing.value = false
   }
 }
+
+let refreshTimer: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  refreshTimer = setInterval(() => { void refresh() }, 15_000)
+})
+onBeforeUnmount(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
+})
 </script>
 
 <template>
@@ -117,12 +104,12 @@ async function withdraw() {
         <p class="eyebrow">Consumer workspace</p>
         <h1 class="page-title">Welcome back, {{ firstName }}.</h1>
         <p class="muted workspace-intro">
-          Rewards land in your wallet when a recycler completes a pickup. Withdraw to your bank when you are ready.
+          Track open pickups, finish unfinished scans, then withdraw rewards when you are ready.
         </p>
       </div>
       <div class="dash-hero-actions">
         <BaseButton to="/scan" class="dash-cta">Scan waste</BaseButton>
-        <BaseButton to="/dashboard/settings" variant="secondary" class="dash-cta">Bank settings</BaseButton>
+        <BaseButton to="/dashboard/history" variant="secondary" class="dash-cta">History</BaseButton>
       </div>
     </div>
 
@@ -136,23 +123,14 @@ async function withdraw() {
       <DashboardMetrics :metrics="metrics" />
 
       <div class="dash-grid">
-        <DashboardSection title="Withdraw" description="Send available wallet balance to your saved NUBAN.">
-          <form class="withdraw-form" @submit.prevent="withdraw">
-            <label>
-              Amount (₦)
-              <input v-model="withdrawAmount" type="number" min="100" step="1" :max="data.metrics.walletAvailableNgn" placeholder="1000" required>
-            </label>
-            <p class="muted">Available: {{ formatNaira(data.metrics.walletAvailableNgn) }}</p>
-            <div class="withdraw-actions">
-              <BaseButton type="submit" size="sm" :loading="withdrawing" :disabled="data.metrics.walletAvailableNgn < 100">
-                Withdraw
-              </BaseButton>
-              <BaseButton to="/dashboard/settings" size="sm" variant="ghost">Manage bank account</BaseButton>
-            </div>
-          </form>
-        </DashboardSection>
-
-        <DashboardSection title="Active pickups" description="Requests still moving through the lifecycle.">
+        <DashboardSection
+          class="dash-span-2"
+          title="Active pickups"
+          description="Requests still moving through the lifecycle."
+        >
+          <template #action>
+            <BaseButton to="/dashboard/history" size="sm" variant="ghost">View history</BaseButton>
+          </template>
           <div v-if="data.activePickups.length" class="request-list">
             <RequestCard
               v-for="request in data.activePickups"
@@ -174,10 +152,13 @@ async function withdraw() {
           </EmptyState>
         </DashboardSection>
 
-        <DashboardSection title="Recent scans" description="Your latest waste items.">
-          <div v-if="data.recentScans.length" class="scan-strip">
+        <DashboardSection title="Finish these scans" description="Drafts and matches that still need your next step.">
+          <template #action>
+            <BaseButton to="/dashboard/history" size="sm" variant="ghost">All scans</BaseButton>
+          </template>
+          <div v-if="data.unfinishedScans.length" class="scan-strip">
             <NuxtLink
-              v-for="scan in data.recentScans"
+              v-for="scan in data.unfinishedScans"
               :key="scan.id"
               class="scan-chip"
               :to="scanLink(scan)"
@@ -195,42 +176,27 @@ async function withdraw() {
             v-else
             compact
             symbol="▣"
-            title="No scans yet"
-            description="Upload a photo to start your first draft."
+            title="No unfinished scans"
+            description="Everything is matched or completed. Scan something new when you are ready."
           >
             <BaseButton to="/scan" size="sm">Scan waste</BaseButton>
           </EmptyState>
         </DashboardSection>
 
-        <DashboardSection title="Wallet history" description="Earnings and withdrawals from your ledger.">
-          <ul v-if="data.walletActivity.length" class="wallet-list">
-            <li v-for="entry in data.walletActivity" :key="entry.id">
-              <div>
-                <strong>{{ formatNaira(entry.amount) }}</strong>
-                <span class="muted">{{ ledgerLabel(entry.type) }}</span>
-                <span v-if="entry.failureReason" class="muted">{{ entry.failureReason }}</span>
-              </div>
-              <time v-if="entry.createdAt" :datetime="entry.createdAt">
-                {{ new Date(entry.createdAt).toLocaleDateString('en-NG') }}
-              </time>
-            </li>
-          </ul>
-          <EmptyState
-            v-else
-            compact
-            symbol="◈"
-            title="No wallet activity"
-            description="Rewards appear when a recycler completes a pickup. Add a bank account in Settings before withdrawing."
-          />
-        </DashboardSection>
-
-        <DashboardSection title="Recycling tips" description="Habits that improve acceptance and payout quality.">
-          <ul class="tips-list">
-            <li v-for="tip in data.tips" :key="tip.title">
-              <strong>{{ tip.title }}</strong>
-              <p class="muted">{{ tip.body }}</p>
-            </li>
-          </ul>
+        <DashboardSection title="Withdraw" description="Send available wallet balance to your saved NUBAN.">
+          <form class="withdraw-form" @submit.prevent="withdraw">
+            <label>
+              Amount (₦)
+              <input v-model="withdrawAmount" type="number" min="100" step="1" :max="data.metrics.walletAvailableNgn" placeholder="1000" required>
+            </label>
+            <p class="muted">Available: {{ formatNaira(data.metrics.walletAvailableNgn) }}</p>
+            <div class="withdraw-actions">
+              <BaseButton type="submit" size="sm" :loading="withdrawing" :disabled="data.metrics.walletAvailableNgn < 100">
+                Withdraw
+              </BaseButton>
+              <BaseButton to="/dashboard/settings" size="sm" variant="ghost">Manage bank account</BaseButton>
+            </div>
+          </form>
         </DashboardSection>
       </div>
     </template>

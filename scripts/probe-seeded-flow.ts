@@ -275,14 +275,14 @@ try {
   stage = 'consumer wallet'
   const userDash = await api('/api/dashboard/user', { cookie: consumerCookie, expect: 200 })
   const wallet = await json<{
-    walletActivity: Array<{ requestId?: string; type: string; provider: string; amount: number }>
     metrics: { totalEarnedNgn: number; walletAvailableNgn: number }
   }>(userDash)
-  const reward = wallet.walletActivity.find(entry => entry.requestId === request.id && entry.type === 'settle_credit')
-    ?? wallet.walletActivity.find(entry => entry.amount === request.expectedPayout && entry.type === 'settle_credit')
-  assert.ok(reward, 'completed reward should appear in wallet activity')
-  console.log('wallet entry', reward.type, reward.provider, reward.amount)
-  assert.ok(wallet.metrics.walletAvailableNgn >= reward.amount)
+  assert.ok(
+    wallet.metrics.walletAvailableNgn >= (completedBody.lockedPayout ?? request.expectedPayout),
+    'consumer wallet should include the settled pickup reward'
+  )
+  assert.ok(wallet.metrics.totalEarnedNgn >= (completedBody.lockedPayout ?? request.expectedPayout))
+  console.log('wallet available', wallet.metrics.walletAvailableNgn, 'earned', wallet.metrics.totalEarnedNgn)
 
   stage = 'admin login'
   const adminLogin = await api('/api/auth/login', {

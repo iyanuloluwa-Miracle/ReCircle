@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatNaira, formatNumber } from '~~/utils/format'
+import { formatNaira } from '~~/utils/format'
 import type { PickupRequestView } from '../../../types'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
@@ -30,8 +30,6 @@ interface RecyclerDashboard {
   }
   incoming: PickupRequestView[]
   acceptedPickups: PickupRequestView[]
-  completedPickups: PickupRequestView[]
-  materialBreakdown: Array<{ materialCode: string; weightKg: number; count: number; valueNgn: number }>
   capacity: {
     capacityKgPerDay: number
     currentLoadKg: number
@@ -108,22 +106,14 @@ const metrics = computed(() => {
   const m = data.value?.metrics
   return [
     { label: 'Wallet available', value: formatNaira(m?.walletAvailableNgn ?? 0) },
-    { label: 'Wallet reserved', value: formatNaira(m?.walletReservedNgn ?? 0) },
-    { label: 'Available supply', value: `${formatNumber(m?.availableSupplyKg ?? 0)} kg` },
+    { label: 'Locked on pickups', value: formatNaira(m?.walletReservedNgn ?? 0) },
+    { label: 'Collections completed', value: String(m?.completedCollections ?? 0), detail: 'Full list in History' },
     { label: 'Jobs today', value: String(m?.jobsToday ?? 0) }
   ]
 })
 
-const materialItems = computed(() =>
-  (data.value?.materialBreakdown ?? []).map(entry => ({
-    label: entry.materialCode,
-    value: entry.weightKg,
-    detail: `${formatNumber(entry.weightKg)} kg · ${entry.count} jobs · ${formatNaira(entry.valueNgn)}`
-  }))
-)
-
 function onUpdated() {
-  refresh()
+  void refresh()
 }
 
 async function topUpWallet() {
@@ -184,11 +174,9 @@ async function topUpWallet() {
         <BaseBadge v-if="data?.recycler" :tone="data.recycler.availability === 'available' ? 'green' : 'warning'">
           {{ data.recycler.availability.toUpperCase() }}
         </BaseBadge>
-        <BaseButton to="/dashboard/incoming" variant="secondary" class="dash-cta">
+        <BaseButton to="/dashboard/incoming" class="dash-cta">
           Incoming matches{{ incomingCount ? ` (${incomingCount})` : '' }}
         </BaseButton>
-        <BaseButton to="/dashboard/availability" variant="secondary" class="dash-cta">Manage availability</BaseButton>
-        <BaseButton to="/dashboard/analytics" variant="secondary" class="dash-cta">View analytics</BaseButton>
       </div>
     </div>
 
@@ -208,11 +196,11 @@ async function topUpWallet() {
       <DashboardMetrics :metrics="metrics" />
 
       <div class="dash-grid">
-        <DashboardSection title="Wallet" description="Available funds can accept new pickups. Reserved funds are locked on accepted jobs.">
+        <DashboardSection title="Wallet" description="Available funds can accept new pickups. Locked funds stay held until you confirm collection.">
           <form class="wallet-topup" @submit.prevent="topUpWallet">
             <p class="muted">
               Available {{ formatNaira(data.metrics.walletAvailableNgn ?? 0) }}
-              · Reserved {{ formatNaira(data.metrics.walletReservedNgn ?? 0) }}
+              · Locked on pickups {{ formatNaira(data.metrics.walletReservedNgn ?? 0) }}
             </p>
             <label>
               Top-up amount (₦)
@@ -220,53 +208,6 @@ async function topUpWallet() {
             </label>
             <BaseButton type="submit" size="sm" :loading="toppingUp">Top up wallet</BaseButton>
           </form>
-        </DashboardSection>
-
-        <DashboardSection title="Accepted pickups" description="Jobs you have accepted or already collected.">
-          <div v-if="data.acceptedPickups.length" class="request-list">
-            <RequestCard
-              v-for="request in data.acceptedPickups"
-              :key="request.id"
-              :request="request"
-              role="recycler"
-              @updated="onUpdated"
-            />
-          </div>
-          <EmptyState
-            v-else
-            compact
-            symbol="◈"
-            title="No accepted pickups"
-            description="Accepted and in-transit jobs will list here with timeline controls."
-          />
-        </DashboardSection>
-
-        <DashboardSection
-          class="dash-span-2"
-          title="Completed collections"
-          description="Recent pickups after you confirm collection. Active jobs stay above."
-        >
-          <div v-if="data.completedPickups.length" class="request-list">
-            <RequestCard
-              v-for="request in data.completedPickups"
-              :key="request.id"
-              :request="request"
-              role="recycler"
-              compact
-              @updated="onUpdated"
-            />
-          </div>
-          <EmptyState
-            v-else
-            compact
-            symbol="◈"
-            title="No completed collections yet"
-            description="Completed pickups appear here after you confirm collection."
-          />
-        </DashboardSection>
-
-        <DashboardSection title="Material breakdown" description="Weight and value across accepted-or-later jobs.">
-          <BreakdownList :items="materialItems" unit="kg" />
         </DashboardSection>
 
         <DashboardSection title="Current capacity" description="Daily load reserved from accepted pickups.">
@@ -283,6 +224,34 @@ async function topUpWallet() {
             title="Capacity unavailable"
             description="Recycler capacity fields are missing."
           />
+        </DashboardSection>
+
+        <DashboardSection
+          class="dash-span-2"
+          title="Accepted pickups"
+          description="Accepted and in-transit jobs."
+        >
+          <template #action>
+            <BaseButton to="/dashboard/history" size="sm" variant="ghost">View history</BaseButton>
+          </template>
+          <div v-if="data.acceptedPickups.length" class="request-list">
+            <RequestCard
+              v-for="request in data.acceptedPickups"
+              :key="request.id"
+              :request="request"
+              role="recycler"
+              @updated="onUpdated"
+            />
+          </div>
+          <EmptyState
+            v-else
+            compact
+            symbol="◈"
+            title="No accepted pickups"
+            description="Accepted and in-transit jobs will list here with timeline controls."
+          >
+            <BaseButton to="/dashboard/incoming" size="sm">Check incoming</BaseButton>
+          </EmptyState>
         </DashboardSection>
       </div>
     </template>
@@ -301,7 +270,7 @@ async function topUpWallet() {
   font-weight: 600;
 }
 .wallet-topup input {
-  max-width: 14rem;
+  max-width: 16rem;
   padding: .55rem .7rem;
   border: 1px solid #c9d6b8;
   border-radius: .55rem;
