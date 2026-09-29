@@ -39,6 +39,29 @@ const status = ref('')
 const itemsPage = ref(1)
 const requestsPage = ref(1)
 
+const statusFilters = computed(() => {
+  if (isRecycler.value) {
+    return [
+      { value: '', label: 'All' },
+      { value: 'pending', label: 'Pending' },
+      { value: 'accepted', label: 'Accepted' },
+      { value: 'picked_up', label: 'Picked up' },
+      { value: 'completed', label: 'Completed' },
+      { value: 'rejected', label: 'Rejected' },
+      { value: 'cancelled', label: 'Cancelled' }
+    ]
+  }
+  return [
+    { value: '', label: 'All' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'analyzed', label: 'Analyzed' },
+    { value: 'matched', label: 'Matched' },
+    { value: 'pickup_requested', label: 'Requested' },
+    { value: 'picked_up', label: 'Picked up' },
+    { value: 'completed', label: 'Completed' }
+  ]
+})
+
 const query = computed(() => ({
   q: q.value || undefined,
   status: status.value || undefined,
@@ -50,6 +73,10 @@ watch([q, status], () => {
   itemsPage.value = 1
   requestsPage.value = 1
 }, { flush: 'sync' })
+
+watch(isRecycler, () => {
+  status.value = ''
+})
 
 const { data, pending, refresh } = await useAsyncData(
   () => `history-${user.value?.role || 'user'}`,
@@ -93,6 +120,10 @@ function itemLink(item: { id: string; status: string }) {
 function onRequestUpdated() {
   void refresh()
 }
+
+function setStatus(next: string) {
+  status.value = next
+}
 </script>
 
 <template>
@@ -113,32 +144,34 @@ function onRequestUpdated() {
     </div>
 
     <div class="history-filters">
-      <input
-        v-model="q"
-        type="search"
-        :placeholder="isRecycler ? 'Search item or material' : 'Search item, material, or recycler'"
+      <div class="history-search-row">
+        <label class="history-search">
+          <span class="sr-only">Search history</span>
+          <input
+            v-model="q"
+            type="search"
+            :placeholder="isRecycler ? 'Search item or material' : 'Search item, material, or recycler'"
+          >
+        </label>
+        <BaseButton size="sm" variant="ghost" :loading="pending" @click="refresh">Refresh</BaseButton>
+      </div>
+      <div
+        class="history-status-chips"
+        role="toolbar"
+        :aria-label="isRecycler ? 'Filter by pickup status' : 'Filter by scan status'"
       >
-      <select v-model="status">
-        <template v-if="isRecycler">
-          <option value="">All pickup statuses</option>
-          <option value="pending">Pending</option>
-          <option value="accepted">Accepted</option>
-          <option value="picked_up">Picked up</option>
-          <option value="completed">Completed</option>
-          <option value="rejected">Rejected</option>
-          <option value="cancelled">Cancelled</option>
-        </template>
-        <template v-else>
-          <option value="">All scan statuses</option>
-          <option value="draft">Draft</option>
-          <option value="analyzed">Analyzed</option>
-          <option value="matched">Matched</option>
-          <option value="pickup_requested">Pickup requested</option>
-          <option value="picked_up">Picked up</option>
-          <option value="completed">Completed</option>
-        </template>
-      </select>
-      <BaseButton size="sm" variant="ghost" @click="refresh">Refresh</BaseButton>
+        <button
+          v-for="filter in statusFilters"
+          :key="filter.value || 'all'"
+          type="button"
+          class="history-status-chip"
+          :class="{ 'is-active': status === filter.value }"
+          :aria-pressed="status === filter.value"
+          @click="setStatus(filter.value)"
+        >
+          {{ filter.label }}
+        </button>
+      </div>
     </div>
 
     <LoadingSkeleton v-if="pending" :lines="6" label="Loading history" />
