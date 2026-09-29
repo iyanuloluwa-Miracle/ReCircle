@@ -77,8 +77,7 @@ try {
       recyclingStreakDays: number
     }
     activePickups: unknown[]
-    recentScans: unknown[]
-    walletActivity: Array<{ amount: number; type: string; provider: string; requestId?: string }>
+    unfinishedScans: Array<{ status: string }>
   }>('/api/dashboard/user', consumerCookie)
 
   const recyclerApi = await dashboard<{
@@ -99,14 +98,13 @@ try {
       remainingCapacityKg: number
       utilizationPct: number
     } | null
-    materialBreakdown: Array<{ materialCode: string; weightKg: number; count: number; valueNgn: number }>
   }>('/api/dashboard/recycler', recyclerCookie)
 
   const consumer = await User.findOne({ email: 'consumer@recircle-demo.example' }).lean()
   assert.ok(consumer)
   const consumerId = consumer._id as Types.ObjectId
 
-  const [wasteDiverted, earned, completedDates, activeRequestCount, walletCount] = await Promise.all([
+  const [wasteDiverted, earned, completedDates, activeRequestCount] = await Promise.all([
     WasteItem.aggregate<{ totalKg: number }>([
       { $match: { userId: consumerId, status: { $in: ['picked_up', 'completed'] }, weightKg: { $gt: 0 } } },
       { $group: { _id: null, totalKg: { $sum: '$weightKg' } } }
@@ -116,8 +114,7 @@ try {
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]),
     Request.find({ userId: consumerId, status: 'completed', completedAt: { $ne: null } }).select('completedAt').lean(),
-    Request.countDocuments({ userId: consumerId, status: { $in: ['pending', 'accepted', 'picked_up'] } }),
-    LedgerEntry.countDocuments({ ownerType: 'user', ownerId: consumerId })
+    Request.countDocuments({ userId: consumerId, status: { $in: ['pending', 'accepted', 'picked_up'] } })
   ])
 
   const expectedWaste = Math.round((wasteDiverted[0]?.totalKg ?? 0) * 100) / 100
@@ -134,14 +131,8 @@ try {
   check('activePickups', consumerApi.metrics.activePickups, activeRequestCount)
   check('recyclingStreakDays', consumerApi.metrics.recyclingStreakDays, expectedStreak)
   check('activePickups list length', consumerApi.activePickups.length, activeRequestCount)
-  assert.ok(consumerApi.walletActivity.length <= 8)
-  assert.ok(walletCount >= consumerApi.walletActivity.length)
-  const walletSumCredits = consumerApi.walletActivity
-    .filter(entry => entry.type === 'settle_credit')
-    .reduce((sum, entry) => sum + entry.amount, 0)
-  assert.ok(walletSumCredits <= expectedEarned + 0.01)
-  console.log(`wallet entries=${consumerApi.walletActivity.length} recentScans=${consumerApi.recentScans.length}`)
-  console.log(`wallet providers: ${[...new Set(consumerApi.walletActivity.map(e => e.provider))].join(', ') || '(none)'}`)
+  assert.ok(consumerApi.unfinishedScans.every(scan => ['draft', 'analyzed', 'matched'].includes(scan.status)))
+  console.log(`unfinishedScans=${consumerApi.unfinishedScans.length}`)
 
   const recyclerUser = await User.findOne({ email: 'recycler1@recircle-demo.example' }).lean()
   assert.ok(recyclerUser)
@@ -187,7 +178,6 @@ try {
   check('currentLoadKg', recyclerApi.capacity.currentLoadKg, profile.currentLoadKg)
   check('remainingCapacityKg', recyclerApi.capacity.remainingCapacityKg, remaining)
   check('utilizationPct', recyclerApi.capacity.utilizationPct, utilization)
-  console.log(`materialBreakdown rows=${recyclerApi.materialBreakdown.length}`)
 
   // Cross-check: consumer total earned should equal sum of settle_credit ledger entries
   const allCredits = await LedgerEntry.find({ ownerType: 'user', ownerId: consumerId, type: 'settle_credit' }).select('amount').lean()

@@ -18,13 +18,6 @@ function startOfUtcDay(date = new Date()) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
 }
 
-const TIPS = [
-  { title: 'Rinse before you bag', body: 'Clean, dry recyclables fetch better prices and are accepted more often.' },
-  { title: 'Keep materials separate', body: 'PET, paper, and metal should travel in distinct bags when possible.' },
-  { title: 'Weigh what you can', body: 'An honest kilogram estimate helps recyclers plan capacity and arrival windows.' },
-  { title: 'Flag hazards early', body: 'Batteries, chemicals, and broken glass need a clear safety note before pickup.' }
-] as const
-
 async function enrichRequestsWithImages(requests: Awaited<ReturnType<typeof listRequestsForActor>>) {
   if (requests.length === 0) return []
   const wasteIds = requests.map(entry => new Types.ObjectId(entry.wasteItemId))
@@ -42,7 +35,8 @@ async function enrichRequestsWithImages(requests: Awaited<ReturnType<typeof list
 
 export async function getConsumerDashboard(user: AuthUser) {
   const userId = new Types.ObjectId(user.id)
-  const [requests, wasteAgg, userDoc, completedDates, recentScans, ledger] = await Promise.all([
+  const unfinishedScanStatuses = ['draft', 'analyzed', 'matched'] as const
+  const [requests, wasteAgg, userDoc, completedDates, unfinishedScans] = await Promise.all([
     listRequestsForActor({ userId: user.id, role: 'user' }),
     WasteItem.aggregate<{ totalKg: number }>([
       { $match: { userId, status: { $in: ['picked_up', 'completed'] }, weightKg: { $gt: 0 } } },
@@ -50,10 +44,9 @@ export async function getConsumerDashboard(user: AuthUser) {
     ]),
     User.findById(userId).select('walletAvailable').lean(),
     Request.find({ userId, status: 'completed', completedAt: { $ne: null } }).select('completedAt').lean(),
-    WasteItem.find({ userId }).sort({ createdAt: -1 }).limit(6)
+    WasteItem.find({ userId, status: { $in: unfinishedScanStatuses } }).sort({ createdAt: -1 }).limit(6)
       .select('imageUrl itemName materialCode status weightKg estimatedValueMin estimatedValueMax createdAt')
-      .lean(),
-    LedgerEntry.find({ ownerType: 'user', ownerId: userId }).sort({ createdAt: -1 }).limit(8).lean()
+      .lean()
   ])
 
   const lifetimeEarned = await LedgerEntry.aggregate<{ total: number }>([
@@ -77,7 +70,7 @@ export async function getConsumerDashboard(user: AuthUser) {
       recyclingStreakDays: streak
     },
     activePickups,
-    recentScans: recentScans.map(entry => ({
+    unfinishedScans: unfinishedScans.map(entry => ({
       id: entry._id.toString(),
       imageUrl: entry.imageUrl,
       itemName: entry.itemName ?? null,
@@ -87,19 +80,7 @@ export async function getConsumerDashboard(user: AuthUser) {
       estimatedValueMin: entry.estimatedValueMin ?? null,
       estimatedValueMax: entry.estimatedValueMax ?? null,
       createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null
-    })),
-    walletActivity: ledger.map(entry => ({
-      id: entry._id.toString(),
-      amount: entry.amount,
-      currency: entry.currency,
-      type: entry.type,
-      provider: entry.provider,
-      failureReason: entry.failureReason ?? null,
-      requestId: entry.requestId ? entry.requestId.toString() : null,
-      withdrawalId: entry.withdrawalId ? entry.withdrawalId.toString() : null,
-      createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null
-    })),
-    tips: TIPS.map(tip => ({ ...tip }))
+    }))
   }
 }
 
@@ -120,57 +101,25 @@ export async function getRecyclerDashboard(user: AuthUser) {
       },
       incoming: [],
       acceptedPickups: [],
-      completedPickups: [],
-      materialBreakdown: [],
       capacity: null
     }
   }
 
   const recyclerId = profile._id
   const today = startOfUtcDay()
-  const [requests, jobsToday, completedCollections, materialBreakdown] = await Promise.all([
+  const [requests, jobsToday, completedCollections] = await Promise.all([
     listRequestsForActor({ userId: user.id, role: 'recycler' }),
     Request.countDocuments({
       recyclerId,
       createdAt: { $gte: today },
       status: { $nin: ['cancelled', 'rejected'] }
     }),
-    Request.countDocuments({ recyclerId, status: 'completed' }),
-    Request.aggregate<{ materialCode: string; weightKg: number; count: number; valueNgn: number }>([
-      { $match: { recyclerId, status: { $in: ['accepted', 'picked_up', 'completed'] } } },
-      {
-        $lookup: {
-          from: 'wasteitems',
-          localField: 'wasteItemId',
-          foreignField: '_id',
-          as: 'waste'
-        }
-      },
-      { $unwind: '$waste' },
-      {
-        $group: {
-          _id: '$waste.materialCode',
-          weightKg: { $sum: { $ifNull: ['$waste.weightKg', 0] } },
-          count: { $sum: 1 },
-          valueNgn: { $sum: '$expectedPayout' }
-        }
-      },
-      { $project: { _id: 0, materialCode: { $ifNull: ['$_id', 'UNKNOWN'] }, weightKg: 1, count: 1, valueNgn: 1 } },
-      { $sort: { weightKg: -1 } }
-    ])
+    Request.countDocuments({ recyclerId, status: 'completed' })
   ])
 
   const enriched = await enrichRequestsWithImages(requests)
   const incoming = enriched.filter(entry => entry.status === 'pending')
   const acceptedPickups = enriched.filter(entry => entry.status === 'accepted' || entry.status === 'picked_up')
-  const completedPickups = enriched
-    .filter(entry => entry.status === 'completed')
-    .sort((a, b) => {
-      const aAt = a.completedAt ? new Date(a.completedAt).getTime() : 0
-      const bAt = b.completedAt ? new Date(b.completedAt).getTime() : 0
-      return bAt - aAt
-    })
-    .slice(0, 10)
   const availableSupplyKg = Math.round(
     incoming.reduce((sum, entry) => sum + (entry.weightKg ?? 0), 0) * 100
   ) / 100
@@ -208,13 +157,6 @@ export async function getRecyclerDashboard(user: AuthUser) {
     },
     incoming,
     acceptedPickups,
-    completedPickups,
-    materialBreakdown: materialBreakdown.map(entry => ({
-      materialCode: entry.materialCode,
-      weightKg: Math.round(entry.weightKg * 100) / 100,
-      count: entry.count,
-      valueNgn: Math.round(entry.valueNgn)
-    })),
     capacity: {
       capacityKgPerDay: profile.capacityKgPerDay,
       currentLoadKg: profile.currentLoadKg,

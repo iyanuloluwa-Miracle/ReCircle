@@ -107,6 +107,21 @@ const activeRequest = computed(() => {
     ?? existingRequests.value?.find(entry => entry.status !== 'cancelled' && entry.status !== 'rejected')
     ?? null
 })
+const requestPanelChip = computed(() => {
+  const status = activeRequest.value?.status
+  if (status === 'completed') return 'Pickup completed'
+  if (status === 'picked_up') return 'Item collected'
+  if (status === 'accepted') return 'Pickup accepted'
+  return 'Pickup request created'
+})
+const requestPanelAction = computed(() => {
+  const request = activeRequest.value
+  if (!request) return null
+  if (request.status === 'completed') {
+    return { to: '/dashboard/user', label: 'View wallet' }
+  }
+  return { to: `/dashboard/pickups/${request.id}`, label: 'View pickup details' }
+})
 const currentPendingRequest = computed(() =>
   existingRequests.value?.find(entry => entry.status === 'pending') ?? null
 )
@@ -177,12 +192,12 @@ async function confirmRequest() { if (selectedRecycler.value) { confirming.value
     <div v-else class="scan-matches-layout">
       <div class="scan-matches-grid">
         <aside class="scan-value-aside">
-          <section class="scan-value-card" aria-labelledby="item-value"><div class="scan-value-top"><span class="scan-dark-icon"><ScanIcon name="leaf" :size="24" tone="brand" /></span><span class="scan-mini-label">YOUR ITEM’S POTENTIAL</span></div><p class="scan-value-label">Estimated value</p><h2 id="item-value"><template v-if="valueMin != null && valueMax != null">{{ formatNaira(valueMin) }}<span v-if="valueMin !== valueMax">– {{ formatNaira(valueMax) }}</span></template><template v-else>Not available yet</template></h2><p>Based on {{ item.weightKg }} kg of {{ item.materialCode }} and published recycler prices.</p><div class="scan-value-divider" /><div class="scan-value-footer"><ScanIcon name="shield" :size="17" tone="brand" /><span>Offers from eligible recyclers</span></div></section>
+          <section class="scan-value-card" aria-labelledby="item-value"><div class="scan-value-top"><span class="scan-dark-icon"><ScanIcon name="leaf" :size="24" tone="brand" /></span><span class="scan-mini-label">YOUR ITEM’S POTENTIAL</span></div><p class="scan-value-label">Estimated value</p><h2 id="item-value"><template v-if="valueMin != null && valueMax != null">{{ formatNaira(valueMin) }}<span v-if="valueMin !== valueMax"> – {{ formatNaira(valueMax) }}</span></template><template v-else>Not available yet</template></h2><p>Based on {{ item.weightKg }} kg of {{ item.materialCode }} and published recycler prices.</p><div class="scan-value-divider" /><div class="scan-value-footer"><ScanIcon name="shield" :size="17" tone="brand" /><span>Offers from eligible recyclers</span></div></section>
           <div class="scan-item-summary"><img v-if="!imageFailed" :src="item.imageUrl" alt="Your recyclable item" @error="imageFailed = true"><span v-else class="scan-thumbnail-placeholder" role="img" aria-label="Item photo unavailable"><ScanIcon name="image" :size="24" /></span><div><strong>{{ item.itemName || item.materialCode || 'Your item' }}</strong><span>{{ item.materialCode }}<span aria-hidden="true"> · </span>{{ item.weightKg }} kg</span><NuxtLink :to="`/scan/${id}/analysis`">Review item<ScanIcon name="chevron" :size="12" /></NuxtLink></div></div>
           <div v-if="!activeRequest" class="scan-matching-explanation"><h3>{{ reassigning ? 'Choose another recycler' : 'How we find your match' }}</h3><p>{{ reassigning ? 'Pick a different recycler for this pending pickup. Your current assignment stays until you confirm a new one.' : 'We consider material, distance, price and available capacity. Nearby recyclers rank higher, and you can still request farther ones.' }}</p><div><ScanIcon name="pin" :size="17" tone="brand" /><span>{{ matches.length }} eligible {{ matches.length === 1 ? 'recycler' : 'recyclers' }} found</span></div><p v-if="reassigning && currentPendingRequest" class="muted">Currently pending with {{ currentPendingRequest.businessName || 'a recycler' }}.</p><label class="scan-pickup-time" for="pickup-time"><span>Preferred pickup time <small>Optional</small></span><input id="pickup-time" v-model="pickupTime" type="datetime-local" :min="earliestPickupTime"><small>The recycler confirms availability after you request.</small></label></div>
         </aside>
 
-        <section v-if="activeRequest" class="scan-panel scan-request-panel"><span class="scan-heading-chip"><ScanIcon name="check" :size="16" /> Pickup request created</span><h2>{{ activeRequest.businessName || 'Assigned recycler' }}</h2><p class="scan-request-status">{{ activeRequest.status.replaceAll('_', ' ') }}</p><div class="scan-request-payout"><span>Expected payout</span><strong>{{ formatNaira(activeRequest.expectedPayout) }}</strong></div><StatusTimeline :steps="activeRequest.timeline" /><BaseButton to="/dashboard/user" class="scan-full-button">Open my requests<ScanIcon name="arrow" :size="17" /></BaseButton></section>
+        <section v-if="activeRequest && requestPanelAction" class="scan-panel scan-request-panel"><span class="scan-heading-chip"><ScanIcon name="check" :size="16" /> {{ requestPanelChip }}</span><h2>{{ activeRequest.businessName || 'Assigned recycler' }}</h2><p class="scan-request-status">{{ activeRequest.status.replaceAll('_', ' ') }}</p><div class="scan-request-payout"><span>Expected payout</span><strong>{{ formatNaira(activeRequest.expectedPayout) }}</strong></div><StatusTimeline :steps="activeRequest.timeline" /><BaseButton :to="requestPanelAction.to" class="scan-full-button">{{ requestPanelAction.label }}<ScanIcon name="arrow" :size="17" /></BaseButton></section>
         <section v-else-if="recommended" class="scan-panel scan-recommended-panel" aria-labelledby="best-match">
           <header class="scan-recycler-heading"><div><div class="scan-recycler-badges"><span class="scan-recommended-label"><ScanIcon name="sparkles" :size="14" tone="brand" /> YOUR BEST MATCH</span><span v-if="recommended.withinServiceRadius === false" class="scan-outside-area-badge">Outside usual area</span></div><h2 id="best-match">{{ recommended.businessName }}</h2><p><ScanIcon name="pin" :size="15" tone="brand" />{{ distanceLabel(recommended.distanceKm) }}</p></div><span class="scan-recycler-symbol"><ScanIcon name="building" :size="27" tone="brand" /></span></header>
           <div class="scan-offer-row"><div><span>Expected payout</span><strong>{{ formatNaira(recommended.expectedPayout) }}</strong></div><div><span>Price per kg</span><strong>{{ formatNaira(recommended.pricePerKg) }}<small> / kg</small></strong></div></div>

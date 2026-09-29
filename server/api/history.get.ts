@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { WasteItem } from '../models/WasteItem'
 import { listRequestsForActor } from '../services/pickup-requests'
 import { requireSessionUser } from '../utils/session'
+import { requestStatuses } from '../../utils/request-lifecycle'
 
 /** Keep scan pages short so the pager is usable without long scrolling. */
 const ITEMS_PAGE_SIZE = 5
@@ -17,20 +18,61 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireSessionUser(event, ['user'])
+  const user = await requireSessionUser(event, ['user', 'recycler'])
   const parsed = schema.safeParse(getQuery(event))
   if (!parsed.success) throw createError({ statusCode: 400, statusMessage: 'Invalid history filter' })
   const query = parsed.data
+
+  const requests = await listRequestsForActor({
+    userId: user.id,
+    role: user.role
+  })
+
+  if (user.role === 'recycler') {
+    let requestMatches = requests
+    if (query.status && (requestStatuses as readonly string[]).includes(query.status)) {
+      requestMatches = requestMatches.filter(entry => entry.status === query.status)
+    }
+    if (query.q) {
+      const needle = query.q.toLowerCase()
+      requestMatches = requestMatches.filter(entry =>
+        `${entry.businessName} ${entry.itemName} ${entry.materialCode}`.toLowerCase().includes(needle)
+      )
+    }
+
+    const requestsTotal = requestMatches.length
+    const requestsPageMax = Math.max(1, Math.ceil(requestsTotal / REQUESTS_PAGE_SIZE) || 1)
+    const requestsPage = Math.min(query.requestsPage, requestsPageMax)
+    const pagedRequests = requestMatches.slice(
+      (requestsPage - 1) * REQUESTS_PAGE_SIZE,
+      requestsPage * REQUESTS_PAGE_SIZE
+    )
+
+    return {
+      role: 'recycler' as const,
+      items: [],
+      requests: pagedRequests,
+      itemsTotal: 0,
+      requestsTotal,
+      itemsPage: 1,
+      requestsPage,
+      itemsPageSize: ITEMS_PAGE_SIZE,
+      requestsPageSize: REQUESTS_PAGE_SIZE
+    }
+  }
+
   const filter: Record<string, unknown> = { userId: user.id }
   if (query.status) filter.status = query.status
-  if (query.q) filter.$or = [{ itemName: { $regex: query.q, $options: 'i' } }, { materialCode: { $regex: query.q, $options: 'i' } }]
+  if (query.q) {
+    filter.$or = [
+      { itemName: { $regex: query.q, $options: 'i' } },
+      { materialCode: { $regex: query.q, $options: 'i' } }
+    ]
+  }
 
-  const [itemsTotal, requests] = await Promise.all([
-    WasteItem.countDocuments(filter),
-    listRequestsForActor({ userId: user.id, role: 'user' })
-  ])
+  const itemsTotal = await WasteItem.countDocuments(filter)
 
-  const itemsPageMax = Math.max(1, Math.ceil(itemsTotal / ITEMS_PAGE_SIZE))
+  const itemsPageMax = Math.max(1, Math.ceil(itemsTotal / ITEMS_PAGE_SIZE) || 1)
   const itemsPage = Math.min(query.itemsPage, itemsPageMax)
   const items = await WasteItem.find(filter)
     .sort({ createdAt: -1 })
@@ -40,14 +82,20 @@ export default defineEventHandler(async (event) => {
     .lean()
 
   const requestMatches = query.q
-    ? requests.filter(entry => `${entry.businessName} ${entry.itemName} ${entry.materialCode}`.toLowerCase().includes(query.q!.toLowerCase()))
+    ? requests.filter(entry =>
+      `${entry.businessName} ${entry.itemName} ${entry.materialCode}`.toLowerCase().includes(query.q!.toLowerCase())
+    )
     : requests
   const requestsTotal = requestMatches.length
-  const requestsPageMax = Math.max(1, Math.ceil(requestsTotal / REQUESTS_PAGE_SIZE))
+  const requestsPageMax = Math.max(1, Math.ceil(requestsTotal / REQUESTS_PAGE_SIZE) || 1)
   const requestsPage = Math.min(query.requestsPage, requestsPageMax)
-  const pagedRequests = requestMatches.slice((requestsPage - 1) * REQUESTS_PAGE_SIZE, requestsPage * REQUESTS_PAGE_SIZE)
+  const pagedRequests = requestMatches.slice(
+    (requestsPage - 1) * REQUESTS_PAGE_SIZE,
+    requestsPage * REQUESTS_PAGE_SIZE
+  )
 
   return {
+    role: 'user' as const,
     items: items.map(item => ({
       id: item._id.toString(),
       imageUrl: item.imageUrl,

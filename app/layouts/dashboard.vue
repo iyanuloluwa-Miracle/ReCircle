@@ -62,7 +62,9 @@ const navigation = computed(() => [
   ...(user.value?.role === 'recycler' ? [{ to: '/dashboard/availability', label: 'Availability', icon: 'calendar', active: route.path.startsWith('/dashboard/availability') }] : []),
   ...(user.value ? [{ to: '/dashboard/analytics', label: 'Analytics', icon: 'chart', active: route.path.startsWith('/dashboard/analytics') }] : []),
   ...(user.value?.role === 'user' ? [{ to: '/scan', label: 'Scan an item', icon: 'scan', active: route.path.startsWith('/scan') }] : []),
-  ...(user.value?.role === 'user' ? [{ to: '/dashboard/history', label: 'History', icon: 'box', active: route.path.startsWith('/dashboard/history') }] : []),
+  ...(user.value?.role === 'user' || user.value?.role === 'recycler'
+    ? [{ to: '/dashboard/history', label: 'History', icon: 'box', active: route.path.startsWith('/dashboard/history') }]
+    : []),
   ...(user.value ? [{ to: '/dashboard/settings', label: 'Settings', icon: 'settings', active: route.path.startsWith('/dashboard/settings') }] : [])
 ])
 
